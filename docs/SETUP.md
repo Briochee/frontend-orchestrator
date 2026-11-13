@@ -50,7 +50,36 @@ For the current Codex user across projects:
 frontend-director install-codex --scope user
 ```
 
-The project scope writes under `.agents/skills/frontend-design-director/` and `.codex/agents/`. The user scope writes under `~/.agents/skills/frontend-design-director/` and `~/.codex/agents/`; when `CODEX_HOME` is set, user-scope agent files go to `<CODEX_HOME>/agents/`. Existing files are skipped without overwriting them. Open a new Codex session after installation. The command uses documented file discovery locations and does not modify Codex configuration or make a model call.
+The project scope writes under `.agents/skills/frontend-design-director/` and `.codex/agents/`. The user scope writes under `~/.agents/skills/frontend-design-director/` and `~/.codex/agents/`; when `CODEX_HOME` is set, user-scope agent files go to `<CODEX_HOME>/agents/`. The installer compares content hashes, reports current, outdated, modified, untracked, missing, and invalid resources, and records managed files in a versioned manifest. It preserves local modifications unless `--force` is supplied. Open a new Codex session after installation. The command uses documented file discovery locations and does not modify Codex configuration or make a model call.
+
+## Update or repair an installation
+
+The Python CLI and its copied Codex files are updated separately. From the source checkout, refresh the pipx environment from that exact local path:
+
+```bash
+cd /path/to/frontend-orchestrator
+pipx install --force --editable .
+```
+
+`pipx install --editable .` may report that the package is already installed and leave pipx's environment metadata and entry point untouched. If that existing install is already editable from this checkout, Python source edits are normally visible immediately; the message by itself does not reveal the install mode or source path. `frontend-director doctor --expected-source .` reports the mode and path when available. The `--force --editable .` command is supported by pipx and explicitly reinstalls from the current checkout, refreshing package metadata and entry points as well. It does not publish the package or require an API key. Do not use `pipx upgrade frontend-design-director` to switch an installation to a different local checkout; refresh from the path with the command above.
+
+Synchronize user-level Codex files with the active package:
+
+```bash
+frontend-director update-codex --scope user
+frontend-director doctor --expected-source .
+```
+
+Normal synchronization replaces only unchanged managed resources. Locally modified and untracked files are preserved and reported with an actionable next step. To intentionally replace those recognized skill/agent paths, use the explicit `--force` flag:
+
+```bash
+frontend-director update-codex --scope user --force
+frontend-director doctor --expected-source .
+```
+
+`--force` is the documented non-interactive confirmation. Every differing target file is copied to a unique timestamped `.bak` file before replacement; backups are not removed by uninstall. The force option only applies to the exact bundled skill and `frontend-*.toml` agent destinations. It does not follow symbolic links or overwrite other directory contents. For project scope, add `--scope project --project /path/to/frontend` to both commands. `doctor` is read-only and reports package metadata, editable source, executable path, effective `CODEX_HOME`, manifest health, and per-file hashes. It detects this checkout as the expected source when run from the repository root; `--expected-source` can be set explicitly from another directory.
+
+The v2 manifest migrates the prior v1 hash manifest when an install/update runs. It retains ownership only for resources the installer previously recorded or files explicitly created/replaced by the installer. Existing legacy files that were never managed remain unowned unless explicitly replaced with `--force`; uninstallation preserves them.
 
 ## Uninstall
 
@@ -75,7 +104,7 @@ python -m pip uninstall frontend-design-director
 
 Workflow state and artifacts in the target project's `.agents/frontend-design-director/` are retained.
 
-To install the CLI for the user without a per-project virtual environment, install [`pipx`](https://pipx.pypa.io/stable/how-to/install-pipx.html) using your platform's package manager, then run `pipx install --editable /path/to/frontend-orchestrator`. Run the user-scope `install-codex` command afterward.
+To install the CLI for the user without a per-project virtual environment, install [`pipx`](https://pipx.pypa.io/stable/how-to/install-pipx.html) using your platform's package manager, then run `pipx install --force --editable /path/to/frontend-orchestrator`. Run `frontend-director install-codex --scope user` for a first install or `frontend-director update-codex --scope user` to synchronize copied resources afterward.
 
 Install development dependencies when running the pytest suite:
 

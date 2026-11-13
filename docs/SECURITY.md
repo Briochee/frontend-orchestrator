@@ -24,6 +24,14 @@ The adapter uses the read-only sandbox for auditing and planning. Mockup generat
 - Git subprocesses discard inherited `GIT_*` redirection variables and user/system Git configuration before operating in the selected temporary or target directory.
 - A process with direct filesystem access can still alter the local SQLite database or artifacts. This tool assumes the host user account and the local project are trusted; it does not cryptographically attest human identity.
 
+## Codex integration updates
+
+Installation and update commands write only the bundled skill destination and known `frontend-*.toml` agent destinations for the explicitly selected scope, plus that scope's install manifest. They reject manifest path traversal and symbolic-link targets; they do not traverse or clean unrelated files in `.agents/` or `.codex/`.
+
+Ordinary updates replace only files whose current hash still matches a hash recorded as installer-managed. Modified files and legacy/untracked files are reported and preserved. `--force` is the explicit non-interactive authorization to replace differences at those exact resource paths. The installer creates a collision-resistant backup before replacing any existing file and aborts if backup creation fails. Replacements are staged in the destination directory and rolled back if the resource or manifest transaction fails. Backups remain in place after synchronization and uninstall. `doctor` performs read-only hash and package-metadata checks.
+
+The manifest tracks ownership separately from content. A pre-existing file that happens to have the same contents as a bundled resource is reported current but remains unmanaged, so uninstall will not remove it. A forced replacement is limited to the exact recognized resource path; it does not grant ownership over neighboring files.
+
 ## Approval gates
 
 Interactive commands require a TTY and an exact typed phrase. The CLI has no `--yes` or agent-provided approval flag. Human confirmations are persisted with session, type, artifact digest, exact scope, timestamp, and linked decision IDs. Updating an artifact or plan invalidates approvals bound to the old digest.

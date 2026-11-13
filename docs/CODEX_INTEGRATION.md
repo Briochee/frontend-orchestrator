@@ -9,8 +9,8 @@ The implementation was checked against the installed Codex CLI and current OpenA
 - **Model:** defaults to `gpt-6-luna` with `model_reasoning_effort="xhigh"`. Response verbosity defaults to `high`; reasoning summary defaults to `detailed`. The user can override these settings. Model availability is account-specific.
 - **JSON contracts:** every role receives a JSON Schema for its final response. Python validates the returned JSON again before storing findings or plans.
 - **Sandbox:** audit and plan calls use `read-only`; mockup and implementation calls use `workspace-write` only in a temporary isolated repository. The adapter never selects `danger-full-access`.
-- **Custom agents:** standalone TOML definitions live in package resources under `src/frontend_design_director/data/agents/`. The command `frontend-director install-agents --project PATH` copies them into `PATH/.codex/agents/` without overwriting existing files. Custom agents inherit the parent's sandbox and tools; instructions cannot grant human approval or independent permission boundaries.
-- **Skills:** local discovery follows documented `.agents/skills/`, `~/.agents/skills/`, `/etc/codex/skills/`, and installed Codex locations. It reads only the metadata prefix. The skill is bundled as a package resource and `frontend-director install-skill --project PATH` copies it into `PATH/.agents/skills/frontend-design-director/SKILL.md` without overwriting an existing file.
+- **Custom agents:** standalone TOML definitions live in package resources under `src/frontend_design_director/data/agents/`. `install-agents` installs missing files and reports existing resource status. `--upgrade` refreshes unchanged managed files; `--force` backs up and replaces differences at the exact bundled agent paths. Custom agents inherit the parent's sandbox and tools; instructions cannot grant human approval or independent permission boundaries.
+- **Skills:** local discovery follows documented `.agents/skills/`, `~/.agents/skills/`, `/etc/codex/skills/`, and installed Codex locations. It reads only the metadata prefix. The skill is bundled as a package resource. `install-skill` supports the same content-aware update and backup rules at `PATH/.agents/skills/frontend-design-director/SKILL.md`.
 - **MCP and plugins:** configured MCP server names and local plugin manifests can be observed. The initial implementation does not call MCP tools or query remote plugin catalogs. It does not claim that a cached plugin is enabled or callable without a documented probe.
 
 ## Deliberately isolated adapter
@@ -27,7 +27,15 @@ Install the complete integration with one command after installing the Python pa
 frontend-director install-codex --scope project --project /path/to/frontend
 ```
 
-Use `--scope user` to install the skill and agents for the current user across projects. Project scope writes to `.agents/skills/frontend-design-director/SKILL.md` and `.codex/agents/*.toml`; user scope writes the skill to `~/.agents/skills/frontend-design-director/SKILL.md` and agents to `~/.codex/agents/*.toml`, or `<CODEX_HOME>/agents/*.toml` when `CODEX_HOME` is set. Existing files are never overwritten. Start a new Codex session after installing. The command copies the documented files directly; it does not invoke an undocumented Codex installer API or alter Codex configuration.
+Use `--scope user` to install the skill and agents for the current user across projects. Project scope writes to `.agents/skills/frontend-design-director/SKILL.md` and `.codex/agents/*.toml`; user scope writes the skill to `~/.agents/skills/frontend-design-director/SKILL.md` and agents to `~/.codex/agents/*.toml`, or `<CODEX_HOME>/agents/*.toml` when `CODEX_HOME` is set. Installation compares file hashes and records managed resource hashes in a schema-versioned manifest. It never assumes that file existence means the installed version is current.
+
+Synchronize an existing install without overwriting locally edited or legacy files:
+
+```bash
+frontend-director update-codex --scope user
+```
+
+For explicitly authorized replacement of those exact package resource paths, use `--force`. It creates a unique backup before writing; a backup failure aborts the replacement. `install-codex --upgrade` is equivalent to a safe synchronization. Both scopes use the same path resolver and manifest. `frontend-director doctor` checks package/distribution versions, editable source metadata where available, Codex paths, manifest state, and installed-versus-bundled resource hashes without writing files. Start a new Codex session after updating the files. The commands copy documented resources directly; they do not invoke an undocumented Codex installer API or alter Codex configuration.
 
 Remove an installation using the same scope:
 
@@ -36,7 +44,7 @@ frontend-director uninstall-codex --scope project --project /path/to/frontend
 frontend-director uninstall-codex --scope user
 ```
 
-The uninstall command requires an interactive `UNINSTALL CODEX` confirmation unless `--yes` is supplied. It uses the install manifest to remove only unchanged files that this installer created; it preserves pre-existing, modified, and unmanaged files. If `CODEX_HOME` was set for a user-scope installation, use the same value when uninstalling. This removes the Codex integration, not the Python package or target project's saved workflow artifacts. Remove the Python package separately with `pipx uninstall frontend-design-director` or, inside its virtual environment, `python -m pip uninstall frontend-design-director`.
+The uninstall command requires an interactive `UNINSTALL CODEX` confirmation unless `--yes` is supplied. It uses the install manifest to remove only unchanged files marked as installer-managed; it preserves pre-existing, modified, unmanaged, and backup files. It accepts the previous v1 manifest format and migrates it on the next install/update. If `CODEX_HOME` was set for a user-scope installation, use the same value when uninstalling. This removes the Codex integration, not the Python package or target project's saved workflow artifacts. Remove the Python package separately with `pipx uninstall frontend-design-director` or, inside its virtual environment, `python -m pip uninstall frontend-design-director`.
 
 To expose the bundled role files to an existing target project, run:
 
@@ -44,7 +52,7 @@ To expose the bundled role files to an existing target project, run:
 frontend-director install-agents --project /path/to/frontend
 ```
 
-Existing files are skipped, not overwritten. The installer creates no MCP configuration, enables no plugin, and does not alter the user's global Codex configuration.
+Existing files are classified by content. The installer creates no MCP configuration, enables no plugin, and does not alter the user's global Codex configuration outside the selected install paths and manifest.
 
 To invoke the workflow from Codex, install the bundled skill into the target project or call `frontend-director guide --project PATH --depth deep --codex`. The guide's SQLite state and pending action remain authoritative across Codex turns. Read `audit-index.md` and the relevant evidence-backed reports, summarize the important next decision, and continue from the stored phase when the user replies.
 

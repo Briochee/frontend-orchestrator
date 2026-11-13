@@ -6,13 +6,20 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import shlex
 import sqlite3
+import stat
 import sys
 import tempfile
+import tomllib
+import uuid
+from datetime import datetime, timezone
+from importlib import metadata
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from . import __version__
 from .codex_backend import CodexCLIBackend, CodexSettings
@@ -133,14 +140,18 @@ def build_parser() -> argparse.ArgumentParser:
     guide.add_argument("--route", action="append", default=[], help="Limit browser capture to exact same-origin paths plus the base URL; repeat as needed. Without this option, all static source-discovered routes are attempted.")
     guide.add_argument("--allow-remote", action="store_true", help="Allow the explicitly supplied remote URL and same-origin read-only requests.")
 
-    install_agents = subparsers.add_parser("install-agents", help="Install bundled read-only specialist Codex agents into a target project's .codex/agents directory without overwriting files.")
+    install_agents = subparsers.add_parser("install-agents", help="Install bundled read-only specialist Codex agents into a target project's .codex/agents directory.")
     install_agents.add_argument("project_path", nargs="?", type=Path, help="Target project directory; defaults to the current directory.")
     install_agents.add_argument("--project", type=Path, default=argparse.SUPPRESS, help="Target project directory.")
+    install_agents.add_argument("--upgrade", action="store_true", help="Update unchanged installer-managed files to the bundled versions; preserve local edits.")
+    install_agents.add_argument("--force", action="store_true", help="Replace recognized agent files after backing up differences.")
     _add_output(install_agents)
 
-    install_skill = subparsers.add_parser("install-skill", help="Install the bundled Codex workflow skill into a target project's .agents/skills directory without overwriting files.")
+    install_skill = subparsers.add_parser("install-skill", help="Install the bundled Codex workflow skill into a target project's .agents/skills directory.")
     install_skill.add_argument("project_path", nargs="?", type=Path, help="Target project directory; defaults to the current directory.")
     install_skill.add_argument("--project", type=Path, default=argparse.SUPPRESS, help="Target project directory.")
+    install_skill.add_argument("--upgrade", action="store_true", help="Update an unchanged installer-managed skill; preserve local edits.")
+    install_skill.add_argument("--force", action="store_true", help="Replace the recognized skill file after backing up differences.")
     _add_output(install_skill)
 
     install_codex = subparsers.add_parser(
@@ -150,7 +161,29 @@ def build_parser() -> argparse.ArgumentParser:
     install_codex.add_argument("project_path", nargs="?", type=Path, help="Target project directory for project scope; defaults to the current directory.")
     install_codex.add_argument("--project", type=Path, default=argparse.SUPPRESS, help="Target project directory for project scope.")
     install_codex.add_argument("--scope", choices=["project", "user"], default="project", help="Install for one project or the current user's Codex environment (default: project).")
+    install_codex.add_argument("--upgrade", action="store_true", help="Update unchanged installer-managed files to the bundled versions; preserve local edits.")
+    install_codex.add_argument("--force", action="store_true", help="Replace recognized existing files after backing up differences.")
     _add_output(install_codex)
+
+    update_codex = subparsers.add_parser(
+        "update-codex",
+        help="Synchronize the installed Codex skill and agents with bundled resources using content hashes.",
+    )
+    update_codex.add_argument("project_path", nargs="?", type=Path, help="Target project directory for project scope; defaults to the current directory.")
+    update_codex.add_argument("--project", type=Path, default=argparse.SUPPRESS, help="Target project directory for project scope.")
+    update_codex.add_argument("--scope", choices=["project", "user"], default="user", help="Synchronize one project or the current user's Codex environment (default: user).")
+    update_codex.add_argument("--force", action="store_true", help="Back up and replace modified or untracked files at exact Frontend Design Director resource paths.")
+    _add_output(update_codex)
+
+    doctor = subparsers.add_parser(
+        "doctor",
+        help="Inspect Python package and Codex integration synchronization without modifying files.",
+    )
+    doctor.add_argument("project_path", nargs="?", type=Path, help="Target project directory for project scope; defaults to the current directory.")
+    doctor.add_argument("--project", type=Path, default=argparse.SUPPRESS, help="Target project directory for project scope.")
+    doctor.add_argument("--scope", choices=["project", "user"], default="user", help="Inspect one project's or the user's Codex installation (default: user).")
+    doctor.add_argument("--expected-source", type=Path, help="Optional source checkout the active Python package is expected to use.")
+    _add_output(doctor)
 
     uninstall_codex = subparsers.add_parser(
         "uninstall-codex",
@@ -170,7 +203,7 @@ def main(argv: list[str] | None = None) -> int:
     project = getattr(args, "project", None) or getattr(args, "project_path", None) or Path.cwd()
     try:
         project = project.expanduser().resolve(strict=True)
-        if not args.no_update_check:
+        if not args.no_update_check and args.command != "doctor":
             _warn_if_update_available()
         if args.command == "init":
             store = _store_for(project)
@@ -179,15 +212,43 @@ def main(argv: list[str] | None = None) -> int:
             _output({"session_id": session.id, "phase": session.phase.value, "project_root": session.project_root, "state_dir": session.state_dir}, args.json_output)
             return 0
         if args.command == "install-agents":
-            _output(_install_codex(project, "project", include_skill=False)["agents"], args.json_output)
+            _output(
+                _install_codex(
+                    project,
+                    "project",
+                    include_skill=False,
+                    upgrade=args.upgrade,
+                    force=args.force,
+                )["agents"],
+                args.json_output,
+            )
             return 0
         if args.command == "install-skill":
-            _output(_install_codex(project, "project", include_agents=False)["skill"], args.json_output)
+            _output(
+                _install_codex(
+                    project,
+                    "project",
+                    include_agents=False,
+                    upgrade=args.upgrade,
+                    force=args.force,
+                )["skill"],
+                args.json_output,
+            )
             return 0
         if args.command == "install-codex":
             if args.scope == "user" and (args.project_path is not None or hasattr(args, "project")):
                 raise ValueError("Do not supply a project path with `install-codex --scope user`.")
-            _output(_install_codex(project, args.scope), args.json_output)
+            _output(_install_codex(project, args.scope, upgrade=args.upgrade, force=args.force), args.json_output)
+            return 0
+        if args.command == "update-codex":
+            if args.scope == "user" and (args.project_path is not None or hasattr(args, "project")):
+                raise ValueError("Do not supply a project path with `update-codex --scope user`.")
+            _output(_install_codex(project, args.scope, upgrade=True, force=args.force), args.json_output)
+            return 0
+        if args.command == "doctor":
+            if args.scope == "user" and (args.project_path is not None or hasattr(args, "project")):
+                raise ValueError("Do not supply a project path with `doctor --scope user`.")
+            _output(_installation_doctor(project, args.scope, expected_source=args.expected_source), args.json_output)
             return 0
         if args.command == "uninstall-codex":
             if args.scope == "user" and (args.project_path is not None or hasattr(args, "project")):
@@ -602,28 +663,81 @@ def _valid_sha256(value: Any) -> bool:
     return isinstance(value, str) and len(value) == 64 and all(character in "0123456789abcdef" for character in value)
 
 
+def _codex_resource_destination(resource_id: str, root: Path, agents_directory: Path) -> Path:
+    if resource_id == "skill":
+        directory = _safe_project_directory(root, Path(".agents") / "skills" / "frontend-design-director")
+        return directory / "SKILL.md"
+    if resource_id.startswith("agent:"):
+        name = resource_id.removeprefix("agent:")
+        if Path(name).name != name or not name.startswith("frontend-") or not name.endswith(".toml"):
+            raise ValueError("Codex install manifest contains an invalid agent identifier.")
+        return agents_directory / name
+    raise ValueError("Codex install manifest contains an unknown resource identifier.")
+
+
 def _read_codex_manifest(path: Path, *, scope: str, root: Path, agents_directory: Path) -> dict[str, Any] | None:
+    if path.is_symlink():
+        raise ValueError(f"Codex installation manifest is a symbolic link: {path}")
     if not path.exists():
         return None
-    if path.is_symlink() or not path.is_file():
+    if not path.is_file():
         raise ValueError(f"Codex installation manifest is not a regular file: {path}")
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ValueError(f"Codex installation manifest cannot be read: {path}") from error
-    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+    if not isinstance(manifest, dict) or isinstance(manifest.get("schema_version"), bool) or manifest.get("schema_version") not in {1, 2}:
         raise ValueError("Unsupported or malformed Codex installation manifest.")
     if manifest.get("scope") != scope or manifest.get("root") != str(root) or manifest.get("agents_directory") != str(agents_directory):
         raise ValueError("Codex installation scope or CODEX_HOME differs from the saved manifest.")
-    skill_hash = manifest.get("skill_sha256")
-    agent_hashes = manifest.get("agent_sha256")
-    if skill_hash is not None and not _valid_sha256(skill_hash):
-        raise ValueError("Codex installation manifest contains an invalid skill hash.")
-    if not isinstance(agent_hashes, dict):
-        raise ValueError("Codex installation manifest has an invalid agent hash map.")
-    for name, digest in agent_hashes.items():
-        if not isinstance(name, str) or name in {".", ".."} or Path(name).name != name or not name.endswith(".toml") or not _valid_sha256(digest):
-            raise ValueError("Codex installation manifest contains an invalid agent entry.")
+    if manifest["schema_version"] == 1:
+        skill_hash = manifest.get("skill_sha256")
+        agent_hashes = manifest.get("agent_sha256")
+        if skill_hash is not None and not _valid_sha256(skill_hash):
+            raise ValueError("Codex installation manifest contains an invalid skill hash.")
+        if not isinstance(agent_hashes, dict):
+            raise ValueError("Codex installation manifest has an invalid agent hash map.")
+        resources: dict[str, dict[str, Any]] = {}
+        if skill_hash is not None:
+            resources["skill"] = {
+                "type": "skill",
+                "name": "frontend-design-director",
+                "source": "data/skill/SKILL.md",
+                "destination": str(_codex_resource_destination("skill", root, agents_directory)),
+                "sha256": skill_hash,
+                "managed": True,
+            }
+        for name, digest in agent_hashes.items():
+            if not isinstance(name, str) or name in {".", ".."} or Path(name).name != name or not name.startswith("frontend-") or not name.endswith(".toml") or not _valid_sha256(digest):
+                raise ValueError("Codex installation manifest contains an invalid agent entry.")
+            resource_id = f"agent:{name}"
+            resources[resource_id] = {
+                "type": "agent",
+                "name": name,
+                "source": f"data/agents/{name}",
+                "destination": str(_codex_resource_destination(resource_id, root, agents_directory)),
+                "sha256": digest,
+                "managed": True,
+            }
+        manifest = {**manifest, "schema_version": 2, "resources": resources, "_migrated_from_schema": 1}
+    else:
+        resources = manifest.get("resources")
+        if not isinstance(resources, dict):
+            raise ValueError("Codex installation manifest has an invalid resource map.")
+        for resource_id, record in resources.items():
+            if not isinstance(resource_id, str) or not isinstance(record, dict):
+                raise ValueError("Codex installation manifest contains an invalid resource entry.")
+            expected_destination = _codex_resource_destination(resource_id, root, agents_directory)
+            if record.get("destination") != str(expected_destination):
+                raise ValueError("Codex installation manifest contains a resource outside its expected install path.")
+            if record.get("type") != ("skill" if resource_id == "skill" else "agent"):
+                raise ValueError("Codex installation manifest contains an invalid resource type.")
+            if not isinstance(record.get("name"), str) or not isinstance(record.get("source"), str):
+                raise ValueError("Codex installation manifest contains incomplete resource metadata.")
+            digest = record.get("sha256")
+            managed = record.get("managed")
+            if (digest is not None and not _valid_sha256(digest)) or not isinstance(managed, bool) or (managed and digest is None):
+                raise ValueError("Codex installation manifest contains invalid ownership or hash metadata.")
     return manifest
 
 
@@ -631,11 +745,13 @@ def _write_codex_manifest(path: Path, manifest: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path.is_symlink():
         raise ValueError(f"Codex installation manifest is a symbolic link: {path}")
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    if temporary.exists() or temporary.is_symlink():
-        raise ValueError(f"Codex installation temporary file already exists: {temporary}")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
     try:
-        temporary.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
         temporary.chmod(0o600)
         os.replace(temporary, path)
     finally:
@@ -646,51 +762,635 @@ def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _bundled_codex_resources(
+    *, include_skill: bool = True, include_agents: bool = True
+) -> list[dict[str, Any]]:
+    resources: list[dict[str, Any]] = []
+    package = files("frontend_design_director")
+    if include_skill:
+        skill = package.joinpath("data", "skill", "SKILL.md")
+        resources.append({
+            "id": "skill",
+            "type": "skill",
+            "name": "frontend-design-director",
+            "source": "data/skill/SKILL.md",
+            "content": skill.read_bytes(),
+        })
+    if include_agents:
+        agent_directory = package.joinpath("data", "agents")
+        agent_resources = sorted(
+            (resource for resource in agent_directory.iterdir() if resource.name.startswith("frontend-") and resource.name.endswith(".toml")),
+            key=lambda resource: resource.name,
+        )
+        for resource in agent_resources:
+            resources.append({
+                "id": f"agent:{resource.name}",
+                "type": "agent",
+                "name": resource.name,
+                "source": f"data/agents/{resource.name}",
+                "content": resource.read_bytes(),
+            })
+    return resources
+
+
+def _inspect_codex_resource(path: Path, previous: dict[str, Any] | None, bundled_sha256: str) -> dict[str, Any]:
+    try:
+        file_stat = path.lstat()
+    except FileNotFoundError:
+        return {"status": "missing", "installed_sha256": None, "content": None, "mode": None}
+    except OSError as error:
+        return {"status": "invalid", "installed_sha256": None, "content": None, "mode": None, "error": str(error)}
+    if stat.S_ISLNK(file_stat.st_mode) or not stat.S_ISREG(file_stat.st_mode):
+        reason = "symbolic_link" if stat.S_ISLNK(file_stat.st_mode) else "not_a_regular_file"
+        return {"status": "invalid", "installed_sha256": None, "content": None, "mode": None, "error": reason}
+    try:
+        content = path.read_bytes()
+    except OSError as error:
+        return {"status": "invalid", "installed_sha256": None, "content": None, "mode": None, "error": str(error)}
+    digest = hashlib.sha256(content).hexdigest()
+    if digest == bundled_sha256:
+        status = "current" if previous and previous.get("managed") else "current_unmanaged"
+    elif not previous or not previous.get("managed"):
+        status = "untracked_legacy"
+    elif digest == previous.get("sha256"):
+        status = "outdated_unmodified"
+    else:
+        status = "modified_locally"
+    return {
+        "status": status,
+        "installed_sha256": digest,
+        "content": content,
+        "mode": stat.S_IMODE(file_stat.st_mode),
+    }
+
+
+def _inspect_obsolete_codex_resources(
+    resources: dict[str, dict[str, Any]], bundled_ids: set[str]
+) -> list[dict[str, Any]]:
+    obsolete: list[dict[str, Any]] = []
+    for resource_id, record in resources.items():
+        if resource_id in bundled_ids:
+            continue
+        path = Path(record["destination"])
+        if not record["managed"]:
+            inspection = _inspect_codex_resource(path, None, "")
+            status = "unmanaged_obsolete" if inspection["status"] != "missing" else "obsolete_missing"
+        else:
+            inspection = _inspect_codex_resource(path, record, "")
+            status = {
+                "outdated_unmodified": "obsolete_managed",
+                "modified_locally": "modified_obsolete",
+                "missing": "obsolete_missing",
+                "invalid": "invalid",
+            }.get(inspection["status"], "invalid")
+        obsolete.append({
+            "id": resource_id,
+            "type": record["type"],
+            "name": record["name"],
+            "destination": str(path),
+            "installed_sha256": inspection.get("installed_sha256"),
+            "managed": bool(record["managed"]),
+            "status": status,
+            "error": inspection.get("error"),
+        })
+    return obsolete
+
+
+def _create_codex_backup(path: Path, expected_sha256: str) -> Path:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"Cannot back up a non-regular Codex integration file: {path}")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    backup = path.with_name(f"{path.name}.bak.{timestamp}.{uuid.uuid4().hex[:8]}")
+    try:
+        with path.open("rb") as source, backup.open("xb") as destination:
+            shutil.copyfileobj(source, destination)
+        shutil.copystat(path, backup, follow_symlinks=False)
+        if _file_sha256(backup) != expected_sha256:
+            raise OSError(f"Codex integration file changed while its backup was being created: {path}")
+    except Exception:
+        backup.unlink(missing_ok=True)
+        raise
+    return backup
+
+
+def _stage_codex_resource(path: Path, content: bytes, mode: int | None) -> Path:
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if mode is not None:
+            temporary.chmod(mode)
+        return temporary
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _atomic_restore(path: Path, content: bytes, mode: int | None) -> None:
+    if path.is_symlink():
+        raise ValueError(f"Refusing to restore through a symbolic link: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _stage_codex_resource(path, content, mode)
+    try:
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _install_codex(
     project: Path,
     scope: str,
     *,
     include_skill: bool = True,
     include_agents: bool = True,
+    upgrade: bool = False,
+    force: bool = False,
 ) -> dict[str, Any]:
-    """Install the bundled Codex files and record ownership for safe removal."""
+    """Install or content-synchronize only this package's expected Codex paths."""
     if not include_skill and not include_agents:
         raise ValueError("At least one Codex integration component must be selected.")
-    root, agents_root, agents_relative, agents_directory = _codex_install_locations(project, scope, create=True)
+    if force:
+        upgrade = True
+    root, agents_root, agents_relative, agents_directory = _codex_install_locations(project, scope, create=False)
     manifest_path = _codex_manifest_path(root, agents_directory)
-    manifest = _read_codex_manifest(manifest_path, scope=scope, root=root, agents_directory=agents_directory)
-    if manifest is None:
-        manifest = {
-            "schema_version": 1,
-            "scope": scope,
-            "root": str(root),
-            "agents_directory": str(agents_directory),
-            "skill_sha256": None,
-            "agent_sha256": {},
-        }
+    previous_manifest = _read_codex_manifest(manifest_path, scope=scope, root=root, agents_directory=agents_directory)
+    previous_resources = previous_manifest.get("resources", {}) if previous_manifest else {}
+    bundled = _bundled_codex_resources(include_skill=include_skill, include_agents=include_agents)
+    skill_directory = _safe_project_directory(root, Path(".agents") / "skills" / "frontend-design-director")
+    safe_agents_root = agents_root.resolve(strict=False)
+    safe_agents_directory = _safe_project_directory(safe_agents_root, agents_relative)
+    selected: list[dict[str, Any]] = []
+    planned_writes: list[dict[str, Any]] = []
+    resources_for_manifest = dict(previous_resources)
 
-    skill = _install_skill(root) if include_skill else None
-    agents = _install_agents(agents_root, agents_relative) if include_agents else None
-    if skill and skill.get("installed"):
-        manifest["skill_sha256"] = _file_sha256(Path(skill["path"]))
-    if agents:
-        for name in agents["installed"]:
-            agent_path = Path(name)
-            manifest["agent_sha256"][agent_path.name] = _file_sha256(agent_path)
+    for resource in bundled:
+        resource_id = str(resource["id"])
+        destination = skill_directory / "SKILL.md" if resource_id == "skill" else safe_agents_directory / str(resource["name"])
+        inspection = _inspect_codex_resource(destination, previous_resources.get(resource_id), hashlib.sha256(resource["content"]).hexdigest())
+        original_status = inspection["status"]
+        should_write = original_status == "missing" or (upgrade and original_status == "outdated_unmodified") or (force and original_status in {"modified_locally", "untracked_legacy"})
+        action_status = original_status
+        if should_write:
+            action_status = "installed" if original_status == "missing" else ("backed_up_and_updated" if force and original_status in {"modified_locally", "untracked_legacy"} else "updated")
+            planned_writes.append({
+                "resource": resource,
+                "destination": destination,
+                "previous": inspection,
+                "bundled_sha256": hashlib.sha256(resource["content"]).hexdigest(),
+                "status": action_status,
+            })
+        elif original_status == "current_unmanaged":
+            action_status = "current_unmanaged"
+        elif original_status == "outdated_unmodified":
+            action_status = "outdated"
+        selected.append({
+            "id": resource_id,
+            "type": resource["type"],
+            "name": resource["name"],
+            "source": resource["source"],
+            "destination": str(destination),
+            "status": action_status,
+            "installed_sha256": inspection.get("installed_sha256"),
+            "bundled_sha256": hashlib.sha256(resource["content"]).hexdigest(),
+            "managed": bool(previous_resources.get(resource_id, {}).get("managed")),
+            "backup": None,
+        })
 
-    has_managed_files = manifest["skill_sha256"] is not None or bool(manifest["agent_sha256"])
-    if has_managed_files:
-        _write_codex_manifest(manifest_path, manifest)
-        manifest_reference = str(manifest_path)
-    else:
-        manifest_reference = None
+        old_record = previous_resources.get(resource_id)
+        if should_write:
+            resources_for_manifest[resource_id] = {
+                "type": resource["type"],
+                "name": resource["name"],
+                "source": resource["source"],
+                "destination": str(destination),
+                "sha256": hashlib.sha256(resource["content"]).hexdigest(),
+                "managed": True,
+            }
+            selected[-1]["managed"] = True
+        elif inspection.get("status") in {"current", "current_unmanaged"}:
+            resources_for_manifest[resource_id] = {
+                "type": resource["type"],
+                "name": resource["name"],
+                "source": resource["source"],
+                "destination": str(destination),
+                "sha256": inspection["installed_sha256"] if old_record and old_record.get("managed") else None,
+                "managed": bool(old_record and old_record.get("managed")),
+            }
+        elif old_record:
+            resources_for_manifest[resource_id] = old_record
+        else:
+            resources_for_manifest[resource_id] = {
+                "type": resource["type"],
+                "name": resource["name"],
+                "source": resource["source"],
+                "destination": str(destination),
+                "sha256": None,
+                "managed": False,
+            }
+
+    obsolete_resources = _inspect_obsolete_codex_resources(resources_for_manifest, {str(item["id"]) for item in bundled})
+
+    manifest = {
+        "schema_version": 2,
+        "package_name": "frontend-design-director",
+        "package_version": __version__,
+        "scope": scope,
+        "root": str(root),
+        "agents_directory": str(agents_directory),
+        "installed_at": (previous_manifest or {}).get("installed_at") or datetime.now(timezone.utc).isoformat(),
+        "resources": resources_for_manifest,
+    }
+    if previous_manifest and previous_manifest.get("_migrated_from_schema"):
+        manifest["migrated_from_schema"] = previous_manifest["_migrated_from_schema"]
+
+    original_manifest_bytes: bytes | None = None
+    original_manifest_mode: int | None = None
+    if manifest_path.is_file() and not manifest_path.is_symlink():
+        original_manifest_bytes = manifest_path.read_bytes()
+        original_manifest_mode = stat.S_IMODE(manifest_path.stat().st_mode)
+    backups: list[str] = []
+    applied: list[dict[str, Any]] = []
+    try:
+        for write in planned_writes:
+            if write["resource"]["type"] == "skill":
+                base = root
+                relative_directory = Path(".agents") / "skills" / "frontend-design-director"
+                filename = "SKILL.md"
+            else:
+                base = safe_agents_root
+                relative_directory = agents_relative
+                filename = str(write["resource"]["name"])
+            directory = _safe_project_directory(base, relative_directory)
+            directory.mkdir(parents=True, exist_ok=True, mode=0o755)
+            directory = _safe_project_directory(base, relative_directory)
+            destination = directory / filename
+            write["destination"] = destination
+            component = next(item for item in selected if item["id"] == write["resource"]["id"])
+            component["destination"] = str(destination)
+            resources_for_manifest[write["resource"]["id"]]["destination"] = str(destination)
+            write["staged"] = _stage_codex_resource(destination, write["resource"]["content"], write["previous"].get("mode"))
+
+        for write in planned_writes:
+            destination = write["destination"]
+            previous = write["previous"]
+            current = _inspect_codex_resource(destination, None, write["bundled_sha256"])
+            if current["status"] == "invalid" or current.get("installed_sha256") != previous.get("installed_sha256"):
+                if previous["status"] == "missing" and current["status"] == "missing":
+                    pass
+                else:
+                    raise RuntimeError(f"Codex integration file changed during update planning: {destination}")
+            if previous["status"] != "missing":
+                backup = _create_codex_backup(destination, str(previous["installed_sha256"]))
+                backups.append(str(backup))
+                component = next(item for item in selected if item["id"] == write["resource"]["id"])
+                component["backup"] = str(backup)
+
+        for write in planned_writes:
+            destination = write["destination"]
+            previous = write["previous"]
+            if destination.is_symlink():
+                raise ValueError(f"Codex integration file became a symbolic link during update: {destination}")
+            if previous["status"] == "missing":
+                if destination.exists():
+                    raise RuntimeError(f"Codex integration file appeared during update: {destination}")
+            elif _file_sha256(destination) != previous["installed_sha256"]:
+                raise RuntimeError(f"Codex integration file changed during update: {destination}")
+            os.replace(write["staged"], destination)
+            applied.append(write)
+            if _file_sha256(destination) != write["bundled_sha256"]:
+                raise OSError(f"Verification failed after writing Codex integration file: {destination}")
+
+        manifest_changed = previous_manifest is None or previous_manifest.get("_migrated_from_schema") or json.loads(original_manifest_bytes or b"{}") != manifest
+        if manifest_changed:
+            _write_codex_manifest(manifest_path, manifest)
+        saved_manifest = _read_codex_manifest(manifest_path, scope=scope, root=root, agents_directory=agents_directory)
+        if saved_manifest is None:
+            raise OSError("Codex installation manifest was not created.")
+        for item in selected:
+            if item["status"] in {"installed", "updated", "backed_up_and_updated"} and _file_sha256(Path(item["destination"])) != item["bundled_sha256"]:
+                raise OSError(f"Final hash verification failed for {item['destination']}.")
+    except Exception as error:
+        rollback_errors: list[str] = []
+        for write in reversed(applied):
+            destination = write["destination"]
+            try:
+                if write["previous"]["status"] == "missing":
+                    if destination.is_symlink():
+                        raise ValueError(f"Refusing to remove a replacement that became a symlink: {destination}")
+                    destination.unlink(missing_ok=True)
+                else:
+                    _atomic_restore(destination, write["previous"]["content"], write["previous"].get("mode"))
+            except Exception as rollback_error:
+                rollback_errors.append(f"{destination}: {rollback_error}")
+        try:
+            if original_manifest_bytes is None:
+                if manifest_path.exists() and not manifest_path.is_symlink():
+                    manifest_path.unlink()
+            elif not manifest_path.is_symlink() and manifest_path.read_bytes() != original_manifest_bytes:
+                _atomic_restore(manifest_path, original_manifest_bytes, original_manifest_mode)
+        except Exception as rollback_error:
+            rollback_errors.append(f"{manifest_path}: {rollback_error}")
+        if rollback_errors:
+            raise RuntimeError(f"Codex update failed: {error}; rollback errors: {'; '.join(rollback_errors)}") from error
+        raise
+    finally:
+        for write in planned_writes:
+            staged = write.get("staged")
+            if staged:
+                Path(staged).unlink(missing_ok=True)
+
+    matched = sum(1 for item in selected if _file_sha256(Path(item["destination"])) == item["bundled_sha256"])
+    verification = {"passed": matched == len(selected), "matched": matched, "total": len(selected)}
+    unresolved_obsolete = [item for item in obsolete_resources if item["status"] != "obsolete_missing"]
+    result_status = "synchronized" if verification["passed"] and not unresolved_obsolete else "conflicts"
+    skill_component = next((item for item in selected if item["id"] == "skill"), None)
+    agent_components = [item for item in selected if item["type"] == "agent"]
+    skill = _component_install_result(skill_component) if skill_component else None
+    agents = _agent_install_result(agent_components, str(safe_agents_directory)) if include_agents else None
     return {
         "scope": scope,
         "root": str(root),
+        "status": result_status,
+        "components": selected,
+        "obsolete_resources": obsolete_resources,
+        "backups": backups,
+        "verification": verification,
         "skill": skill,
         "agents": agents,
-        "install_manifest": manifest_reference,
+        "install_manifest": str(manifest_path),
         "next_step": "Open a new Codex session to discover the installed skill and agents.",
+    }
+
+
+def _component_install_result(component: dict[str, Any] | None) -> dict[str, Any]:
+    if component is None:
+        return {"installed": False, "status": "not_selected"}
+    status = component["status"]
+    return {
+        "installed": status == "installed",
+        "updated": status in {"updated", "backed_up_and_updated"},
+        "current": status in {"current", "current_unmanaged"},
+        "status": status,
+        "path": component["destination"],
+        "backup": component["backup"],
+        "already_present_not_overwritten": component["destination"] if status in {"outdated", "modified_locally", "untracked_legacy", "invalid"} else None,
+    }
+
+
+def _agent_install_result(components: list[dict[str, Any]], directory: str) -> dict[str, Any]:
+    return {
+        "installed": [item["destination"] for item in components if item["status"] == "installed"],
+        "updated": [item["destination"] for item in components if item["status"] in {"updated", "backed_up_and_updated"}],
+        "current": [item["destination"] for item in components if item["status"] in {"current", "current_unmanaged"}],
+        "already_present_not_overwritten": [item["destination"] for item in components if item["status"] in {"outdated", "modified_locally", "untracked_legacy", "invalid"}],
+        "resources": components,
+        "path": directory,
+    }
+
+
+def _installation_doctor(
+    project: Path,
+    scope: str,
+    *,
+    expected_source: Path | None = None,
+) -> dict[str, Any]:
+    """Inspect runtime package metadata and Codex resource hashes without writing."""
+    if expected_source is None:
+        expected_source = _current_frontend_director_checkout()
+    try:
+        root, agents_root, agents_relative, agents_directory = _codex_install_locations(project, scope, create=False)
+        manifest_path = _codex_manifest_path(root, agents_directory)
+    except (OSError, ValueError) as error:
+        return _installation_doctor_path_error(project, scope, expected_source, str(error))
+    manifest_error: str | None = None
+    try:
+        manifest = _read_codex_manifest(manifest_path, scope=scope, root=root, agents_directory=agents_directory)
+    except ValueError as error:
+        manifest = None
+        manifest_error = str(error)
+    previous_resources = manifest.get("resources", {}) if manifest else {}
+    try:
+        skill_directory = _safe_project_directory(root, Path(".agents") / "skills" / "frontend-design-director")
+        safe_agents_directory = _safe_project_directory(agents_root.resolve(strict=False), agents_relative)
+    except (OSError, ValueError) as error:
+        return _installation_doctor_path_error(project, scope, expected_source, str(error), manifest_path=manifest_path, manifest_error=manifest_error)
+    bundled_resources = _bundled_codex_resources()
+    components: list[dict[str, Any]] = []
+    counts = {"current": 0, "outdated": 0, "modified": 0, "untracked": 0, "missing": 0, "invalid": 0, "obsolete": 0}
+
+    for resource in bundled_resources:
+        resource_id = str(resource["id"])
+        destination = skill_directory / "SKILL.md" if resource_id == "skill" else safe_agents_directory / str(resource["name"])
+        bundled_hash = hashlib.sha256(resource["content"]).hexdigest()
+        inspection = _inspect_codex_resource(destination, previous_resources.get(resource_id), bundled_hash)
+        status = inspection["status"]
+        if status in {"current", "current_unmanaged"}:
+            counts["current"] += 1
+        elif status == "outdated_unmodified":
+            counts["outdated"] += 1
+        elif status == "modified_locally":
+            counts["modified"] += 1
+        elif status == "untracked_legacy":
+            counts["untracked"] += 1
+        else:
+            counts["missing" if status == "missing" else "invalid"] += 1
+        components.append({
+            "id": resource_id,
+            "type": resource["type"],
+            "name": resource["name"],
+            "destination": str(destination),
+            "bundled_sha256": bundled_hash,
+            "installed_sha256": inspection.get("installed_sha256"),
+            "managed": bool(previous_resources.get(resource_id, {}).get("managed")),
+            "status": status,
+            "error": inspection.get("error"),
+        })
+
+    obsolete_resources = _inspect_obsolete_codex_resources(previous_resources, {str(item["id"]) for item in bundled_resources})
+    for resource in obsolete_resources:
+        if resource["status"] != "obsolete_missing":
+            counts["obsolete"] += 1
+        components.append({**resource, "bundled_sha256": None})
+
+    legacy_manifest = bool(manifest and manifest.get("_migrated_from_schema"))
+    if counts["modified"] or counts["untracked"] or counts["invalid"] or counts["obsolete"] or manifest_error:
+        codex_status = "conflicts"
+    elif counts["outdated"] or counts["missing"]:
+        codex_status = "update_available"
+    elif legacy_manifest:
+        codex_status = "manifest_update_available"
+    elif not manifest and counts["current"] == len(components):
+        codex_status = "current_unmanaged"
+    else:
+        codex_status = "current"
+    manifest_status = "invalid" if manifest_error else ("schema_v1" if legacy_manifest else ("present" if manifest else "missing"))
+    python_report = _python_installation_report(expected_source)
+    recommendations: list[str] = []
+    source_path = python_report.get("source_path")
+    if not python_report["supported_python"]:
+        recommendations.append("Use Python 3.11 or newer to run frontend-design-director.")
+    if not python_report["distribution_installed"] or python_report.get("distribution_version") != __version__ or python_report.get("source_matches_active") is False:
+        location = expected_source.expanduser().resolve() if expected_source else source_path
+        location_text = str(location) if location else "<path-to-frontend-orchestrator>"
+        operation = "Install" if not python_report["distribution_installed"] else "Refresh"
+        recommendations.append(f"{operation} the Python CLI from the intended checkout: pipx install --force --editable {location_text}")
+    if manifest_error:
+        recommendations.append(f"Inspect and back up the invalid install manifest before synchronizing: {manifest_path}")
+    elif codex_status in {"update_available", "manifest_update_available"}:
+        recommendations.append(f"Synchronize the installed Codex files: frontend-director update-codex --scope {scope}" + (f" --project {project}" if scope == "project" else ""))
+    elif codex_status == "current_unmanaged":
+        recommendations.append(f"Create an ownership manifest without replacing current files: frontend-director install-codex --scope {scope}" + (f" --project {project}" if scope == "project" else ""))
+    elif counts["modified"] or counts["untracked"]:
+        recommendations.append(f"To replace modified or legacy resource files, run frontend-director update-codex --scope {scope} --force" + (f" --project {project}" if scope == "project" else "") + ". Existing files will be backed up first.")
+    if counts["obsolete"]:
+        recommendations.append("Review obsolete or locally modified managed agent files listed in the resource inventory. They are preserved until you explicitly remove or uninstall them.")
+    if expected_source is not None and python_report.get("expected_source_matches") is False:
+        expected = str(expected_source.expanduser().resolve())
+        recommendations.append(f"The active package is not using the expected checkout. Reinstall with: pipx install --force --editable {expected}")
+    if not recommendations and codex_status == "current":
+        recommendations.append("The Python package and bundled Codex resources appear current.")
+
+    return {
+        "python": python_report,
+        "codex": {
+            "cli": {"available": shutil.which("codex") is not None, "path": shutil.which("codex")},
+            "scope": scope,
+            "user_home": str(Path.home()),
+            "codex_home": str(Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser().resolve(strict=False)),
+            "agents_directory": str(agents_directory),
+            "skill_directory": str(skill_directory),
+            "manifest": {
+                "present": manifest is not None or manifest_error is not None,
+                "schema_version": 1 if legacy_manifest else (manifest.get("schema_version") if manifest else None),
+                "path": str(manifest_path),
+                "status": manifest_status,
+                "error": manifest_error,
+            },
+            "status": codex_status,
+            "summary": {**counts, "total": len(components)},
+            "resources": components,
+        },
+        "recommendations": recommendations,
+        "status": "current" if codex_status == "current" and python_report["distribution_installed"] and python_report.get("source_matches_active") is not False and python_report.get("distribution_version") == __version__ and python_report.get("expected_source_matches") is not False else "action_recommended",
+    }
+
+
+def _installation_doctor_path_error(
+    project: Path,
+    scope: str,
+    expected_source: Path | None,
+    error: str,
+    *,
+    manifest_path: Path | None = None,
+    manifest_error: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "python": _python_installation_report(expected_source),
+        "codex": {
+            "cli": {"available": shutil.which("codex") is not None, "path": shutil.which("codex")},
+            "scope": scope,
+            "root": str(project.resolve(strict=False) if scope == "project" else Path.home().resolve(strict=False)),
+            "codex_home": str(Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser().resolve(strict=False)),
+            "manifest": {
+                "present": bool(manifest_path and manifest_path.is_file()),
+                "path": str(manifest_path) if manifest_path else None,
+                "status": "invalid" if manifest_error or error else "unknown",
+                "error": manifest_error,
+            },
+            "status": "conflicts",
+            "summary": {"current": 0, "outdated": 0, "modified": 0, "untracked": 0, "missing": 0, "invalid": 1, "obsolete": 0, "total": 0},
+            "resources": [],
+            "path_error": error,
+        },
+        "recommendations": [f"Resolve the unsafe or inaccessible Codex installation path before updating: {error}"],
+        "status": "action_recommended",
+    }
+
+
+def _source_checkout_root(active_module: Path) -> Path | None:
+    source_directory = active_module.parent.parent
+    if source_directory.name != "src":
+        return None
+    checkout = source_directory.parent
+    return checkout if (checkout / "pyproject.toml").is_file() else None
+
+
+def _current_frontend_director_checkout() -> Path | None:
+    manifest_path = Path.cwd() / "pyproject.toml"
+    try:
+        project = tomllib.loads(manifest_path.read_text(encoding="utf-8")).get("project", {})
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+    if isinstance(project, dict) and project.get("name") == "frontend-design-director":
+        return manifest_path.parent.resolve(strict=False)
+    return None
+
+
+def _python_installation_report(expected_source: Path | None) -> dict[str, Any]:
+    active_module = Path(__file__).resolve()
+    executable = Path(sys.argv[0]).expanduser().resolve(strict=False)
+    distribution_version: str | None = None
+    distribution_location: str | None = None
+    installation_mode = "source checkout" if _source_checkout_root(active_module) else "unknown"
+    distribution_source_path: Path | None = None
+    editable: bool | None = None
+    try:
+        distribution = metadata.distribution("frontend-design-director")
+    except metadata.PackageNotFoundError:
+        distribution = None
+    if distribution is not None:
+        distribution_version = distribution.version
+        distribution_location = str(Path(distribution.locate_file("")).resolve(strict=False))
+        direct_url_text = distribution.read_text("direct_url.json")
+        if direct_url_text:
+            try:
+                direct_url = json.loads(direct_url_text)
+                if not isinstance(direct_url, dict):
+                    raise ValueError("direct_url.json must contain an object")
+                dir_info = direct_url.get("dir_info", {})
+                if isinstance(dir_info, dict) and isinstance(dir_info.get("editable"), bool):
+                    editable = dir_info["editable"]
+                parsed = urlparse(str(direct_url.get("url", "")))
+                if parsed.scheme == "file":
+                    distribution_source_path = Path(unquote(parsed.path)).resolve(strict=False)
+                elif parsed.scheme == "" and parsed.path:
+                    distribution_source_path = Path(parsed.path).resolve(strict=False)
+            except (json.JSONDecodeError, OSError, TypeError, ValueError):
+                editable = None
+        installation_mode = (
+            "editable" if editable else "wheel or non-editable"
+        ) if editable is not None else "unknown"
+    inferred_checkout = _source_checkout_root(active_module)
+    editable_source_path = distribution_source_path if editable else None
+    source_path = distribution_source_path or inferred_checkout
+    source_matches_active = active_module.is_relative_to(editable_source_path) if editable_source_path else (True if inferred_checkout and distribution is None else None)
+    expected_root = expected_source.expanduser().resolve(strict=False) if expected_source else None
+    expected_source_matches = (
+        active_module.is_relative_to(expected_root) and (editable_source_path is None or editable_source_path == expected_root)
+        if expected_root
+        else None
+    )
+    return {
+        "runtime_version": sys.version.split()[0],
+        "package_version": __version__,
+        "distribution_version": distribution_version,
+        "distribution_installed": distribution is not None,
+        "installation_mode": installation_mode,
+        "editable": editable,
+        "source_path": str(source_path) if source_path else None,
+        "editable_source_path": str(editable_source_path) if editable_source_path else None,
+        "active_module_path": str(active_module),
+        "source_matches_active": source_matches_active,
+        "expected_source": str(expected_root) if expected_root else None,
+        "expected_source_matches": expected_source_matches,
+        "distribution_location": distribution_location,
+        "executable_path": str(executable),
+        "pipx_executable_path": shutil.which("pipx"),
+        "supported_python": sys.version_info >= (3, 11),
+        "virtual_environment": sys.prefix != sys.base_prefix,
     }
 
 
@@ -746,12 +1446,15 @@ def _uninstall_codex(project: Path, scope: str) -> dict[str, Any]:
         "preserved_modified": [],
         "preserved_symlinks": [],
         "preserved_non_files": [],
+        "preserved_unmanaged": [],
         "manifest": str(manifest_path),
     }
-    if manifest["skill_sha256"] is not None:
-        _remove_owned_file(skill_directory / "SKILL.md", manifest["skill_sha256"], result)
-    for name, digest in manifest["agent_sha256"].items():
-        _remove_owned_file(agents_directory / name, digest, result)
+    for resource in manifest["resources"].values():
+        path = Path(resource["destination"])
+        if resource["managed"]:
+            _remove_owned_file(path, resource["sha256"], result)
+        elif path.exists() or path.is_symlink():
+            result["preserved_unmanaged"].append(str(path))
 
     if manifest_path.is_symlink():
         raise ValueError(f"Codex installation manifest became a symbolic link: {manifest_path}")
@@ -765,7 +1468,7 @@ def _uninstall_codex(project: Path, scope: str) -> dict[str, Any]:
         manifest_path.parent,
     ):
         _remove_if_empty(directory)
-    if result["preserved_modified"] or result["preserved_symlinks"] or result["preserved_non_files"]:
+    if result["preserved_modified"] or result["preserved_symlinks"] or result["preserved_non_files"] or result["preserved_unmanaged"]:
         result["status"] = "uninstalled_with_preserved_files"
     elif not result["removed"]:
         result["status"] = "already_absent"

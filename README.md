@@ -11,7 +11,7 @@ Install the Python CLI from this checkout, then install its skill and specialist
 With `pipx` installed, run from this repository. The editable install keeps the global CLI linked to this checkout while you develop:
 
 ```bash
-pipx install --editable .
+pipx install --force --editable .
 frontend-director install-codex --scope user
 ```
 
@@ -30,9 +30,24 @@ python -m pip install -e /path/to/frontend-orchestrator
 frontend-director install-codex --scope project --project .
 ```
 
-On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`. Project installation places the skill in `.agents/skills/frontend-design-director/` and the specialist agents in `.codex/agents/`. Existing files are preserved; inspect them or remove them yourself if you intend to replace them.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`. Project installation places the skill in `.agents/skills/frontend-design-director/` and the specialist agents in `.codex/agents/`.
 
 `install-codex` installs both integrations. The separate `install-skill` and `install-agents` commands remain available. The command only copies bundled files to the selected Codex discovery paths; it does not install plugins, enable MCP servers, or make model calls.
+
+### Updating and checking installation health
+
+Refresh the Python CLI from this local checkout, synchronize the Codex skill and agents, then check package and resource status:
+
+```bash
+cd /path/to/frontend-orchestrator
+pipx install --force --editable .
+frontend-director update-codex --scope user --force
+frontend-director doctor --expected-source .
+```
+
+The `pipx` command refreshes the Python distribution and executable from this checkout. `update-codex` compares each installed file with the bundled SHA-256 hash. It updates unchanged files owned by an earlier install, and `--force` explicitly authorizes replacing differences at the exact Frontend Design Director skill and agent paths. Before replacement, it creates a unique `.bak.<timestamp>.<id>` copy and reports its path. Use `frontend-director update-codex --scope user` without `--force` to update managed files while preserving local modifications and untracked legacy files. The project equivalent is `frontend-director update-codex --scope project --project /path/to/frontend`; scopes do not overlap.
+
+`frontend-director doctor` is read-only. It reports Python/distribution versions, editable source path when available, active executable and module paths, Codex availability, the effective Codex directories, manifest status, per-resource hashes, and recommended commands. When run from this checkout, it detects the current repository as the expected source; use `--expected-source /path/to/frontend-orchestrator` when running elsewhere. Codex skill and agent files are copied resources, so updating the Python CLI alone does not synchronize them. Open a new Codex session after a successful integration update.
 
 ### Uninstall
 
@@ -46,7 +61,7 @@ frontend-director uninstall-codex --scope project --project /path/to/frontend
 frontend-director uninstall-codex --scope user
 ```
 
-The command asks you to type `UNINSTALL CODEX` unless you pass `--yes` for a scripted run. It removes only unchanged files recorded in the install manifest. Pre-existing, manually copied, and subsequently modified files are preserved. If user-scope agents were installed with a custom `CODEX_HOME`, run the uninstall with that same `CODEX_HOME` value. Older installs without a manifest are left untouched because the installer cannot establish ownership safely.
+The command asks you to type `UNINSTALL CODEX` unless you pass `--yes` for a scripted run. It removes only unchanged files marked as managed in the install manifest. Pre-existing, manually copied, and subsequently modified files are preserved. Backups made by forced updates are retained. If user-scope agents were installed with a custom `CODEX_HOME`, run the uninstall with that same `CODEX_HOME` value. Older installs without a manifest are left untouched because the installer cannot establish ownership safely.
 
 The Python package is removed separately after the Codex files. For a global `pipx` install, run `pipx uninstall frontend-design-director`; for a project virtual environment, activate it and run `python -m pip uninstall frontend-design-director`. Uninstalling the Codex files does not delete workflow state or project artifacts under `.agents/frontend-design-director/`.
 

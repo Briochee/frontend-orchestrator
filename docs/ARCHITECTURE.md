@@ -20,6 +20,14 @@ CLI
 
 The Python coordinator, not Codex, owns phase transitions and structured approval records. Specialist agents return findings; the coordinator validates them before persistence. An agent response cannot change a SQLite approval or count as human confirmation.
 
+## Codex resource installation
+
+The Python distribution and its copied Codex resources have separate update lifecycles. `pipx install --force --editable PATH` refreshes the CLI from a selected checkout; `update-codex` synchronizes the skill and agent files bundled inside the currently running distribution. Resource identity is content-based, not package-version-only.
+
+The installer classifies each expected file using its bundled SHA-256, current installed SHA-256, and prior manifest hash. It updates missing files and unchanged managed files; it reports and preserves modified or untracked legacy files unless `--force` is supplied. Force only affects the exact bundled skill path and `frontend-*.toml` agent paths, creates a unique backup first, stages replacements beside their destination, and atomically replaces files. The v2 manifest records scope, destination, resource hash, and ownership; v1 hash manifests are normalized and migrated on the next write. Uninstall removes only managed files that still match their recorded hash.
+
+`doctor` reads package distribution metadata and PEP 610 editable-source metadata when present, compares those with the active module and optional expected checkout, and hashes each expected Codex file against the active package resources. It does not modify the package, resource files, or manifest.
+
 ## State machine
 
 The active path is:
@@ -82,4 +90,4 @@ The coordinator never runs commands found in project manifests. `verify --comman
 - `mockups.py`: responsive static template, optional isolated Codex refinement, and path validation.
 - `implementation.py`: plans, baseline hashes, isolated patches, scope enforcement, and guarded application.
 - `verification.py`, `logging_setup.py`: explicit user-selected checks and bounded local JSONL logs.
-- `director.py`, `cli.py`: orchestration service and CLI gates.
+- `director.py`, `cli.py`: orchestration service, CLI gates, content-aware Codex resource install/update, manifest migration, and installation diagnostics.
