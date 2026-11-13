@@ -56,7 +56,7 @@ class UpdateCheckTests(unittest.TestCase):
         self.assertEqual(result["status"], "unavailable")
 
     def test_cli_checks_by_default_and_keeps_json_stdout_parseable(self) -> None:
-        result = {"status": "update_available", "current_version": "0.1.0", "latest_version": "0.2.0", "source": "github_release"}
+        result = {"status": "update_available", "current_version": "0.2.0", "latest_version": "0.3.0", "source": "github_release"}
         with tempfile.TemporaryDirectory() as temporary:
             stdout = io.StringIO()
             stderr = io.StringIO()
@@ -65,8 +65,8 @@ class UpdateCheckTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(json.loads(stdout.getvalue())["phase"], "INITIALIZED")
-        self.assertIn("0.1.0", stderr.getvalue())
         self.assertIn("0.2.0", stderr.getvalue())
+        self.assertIn("0.3.0", stderr.getvalue())
         check.assert_called_once_with()
 
     def test_cli_update_check_can_be_disabled(self) -> None:
@@ -83,7 +83,7 @@ class UpdateCheckTests(unittest.TestCase):
                 main(["--version"])
 
         self.assertEqual(exit_result.exception.code, 0)
-        self.assertEqual(stdout.getvalue(), "frontend-director 0.1.0\n")
+        self.assertEqual(stdout.getvalue(), "frontend-director 0.2.0\n")
         check.assert_not_called()
 
 
