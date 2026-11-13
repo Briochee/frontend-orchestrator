@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Northstar Studio Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="#main"><span class="brand-mark" aria-hidden="true">N</span>Northstar Studio</a>
+    <nav aria-label="Main navigation">
+      <a href="#overview" aria-current="page">Overview</a>
+      <a href="#projects">Projects</a>
+      <a href="#activity">Activity</a>
+    </nav>
+    <button class="profile" type="button" aria-label="Open profile menu">
+      <img src="avatar.svg" width="34" height="34">
+      <span>Jordan Lee</span>
+    </button>
+  </header>
+  <main id="main">
+    <section class="page-heading" id="overview" aria-labelledby="title">
+      <div><p class="eyebrow">Monday, October 19</p><h1 id="title">Good morning, Jordan</h1><p class="muted">Here is what is moving across your studio today.</p></div>
+      <button class="primary-button" type="button">Create project</button>
+    </section>
+    <section class="metrics" aria-label="Studio summary">
+      <article class="metric-card"><p>Active projects</p><strong>12</strong><span class="trend">+2 this month</span></article>
+      <article class="metric-card"><p>Tasks in review</p><strong>08</strong><span>Across 5 projects</span></article>
+      <article class="metric-card"><p>Team capacity</p><strong>84%</strong><span>Healthy this week</span></article>
+    </section>
+    <div class="content-layout">
+      <section class="panel projects" id="projects" aria-labelledby="projects-title">
+        <div class="panel-heading"><div><p class="eyebrow">Workspace</p><h2 id="projects-title">Recent projects</h2></div><a href="#projects">View all</a></div>
+        <ul class="project-list">
+          <li><span class="project-icon coral" aria-hidden="true">A</span><span class="project-name"><strong>Atlas rebrand</strong><small>Brand identity · Updated 2h ago</small></span><span class="badge in-progress">In progress</span></li>
+          <li><span class="project-icon blue" aria-hidden="true">M</span><span class="project-name"><strong>Meridian mobile</strong><small>Product design · Updated yesterday</small></span><span class="badge review">In review</span></li>
+          <li><span class="project-icon green" aria-hidden="true">S</span><span class="project-name"><strong>Solace launch</strong><small>Campaign · Updated Monday</small></span><span class="badge complete">Complete</span></li>
+        </ul>
+      </section>
+      <section class="panel activity" id="activity" aria-labelledby="activity-title">
+        <div class="panel-heading"><div><p class="eyebrow">Your team</p><h2 id="activity-title">Recent activity</h2></div></div>
+        <ol class="activity-list">
+          <li><span class="activity-dot"></span><p><strong>Maya Chen</strong> shared a new concept<small>Atlas rebrand · 18 minutes ago</small></p></li>
+          <li><span class="activity-dot"></span><p><strong>Sam Rivera</strong> requested your review<small>Meridian mobile · 1 hour ago</small></p></li>
+          <li><span class="activity-dot"></span><p><strong>You</strong> completed a task<small>Solace launch · Yesterday</small></p></li>
+        </ol>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
