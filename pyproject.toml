@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frontend-design-director"
+dynamic = ["version"]
+description = "A safety-conscious Codex workflow for frontend discovery, audits, mockups, and approved implementation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Frontend Design Director contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["playwright>=1.50,<2"]
+dev = ["pytest>=8.0,<9"]
+
+[project.scripts]
+frontend-director = "frontend_design_director.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.dynamic]
+version = { attr = "frontend_design_director.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+frontend_design_director = ["data/agents/*.toml", "data/skill/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
