@@ -151,10 +151,8 @@ def discover_skills(project_root: Path, extra_roots: tuple[Path, ...] = ()) -> t
 
 def discover_agents(project_root: Path) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     """Inspect documented Codex custom-agent files without executing their instructions."""
-    roots = [project_root / ".codex" / "agents", Path.home() / ".codex" / "agents"]
-    codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
-    if codex_home != roots[-1]:
-        roots.append(codex_home / "agents")
+    codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
+    roots = [project_root / ".codex" / "agents", codex_home / "agents"]
     found: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
     seen: set[Path] = set()
@@ -195,12 +193,22 @@ def discover_codex(project_root: Path, codex_executable: str | None = None) -> d
     """Report Codex CLI, auth mode, configured MCPs, and cached plugin state conservatively."""
     executable = codex_executable or shutil.which("codex")
     if not executable:
-        cli = {"installed": False, "version": None, "authenticated": False, "auth_mode": "unavailable"}
+        cli = {
+            "installed": False, "version": None, "authenticated": False, "auth_mode": "unavailable",
+            "codex_exec_supported": False, "structured_output_supported": False, "image_input_supported": False,
+        }
     else:
         version_result = _safe_probe([executable, "--version"])
         auth_result = _safe_probe([executable, "login", "status"])
+        exec_help = _safe_probe([executable, "exec", "--help"], stdout_limit=32_000)
         version_text = (version_result.get("stdout") or "").strip().splitlines()
         auth_text = ((auth_result.get("stdout") or "") + (auth_result.get("stderr") or "")).casefold()
+        exec_help_text = (exec_help.get("stdout") or "") + "\n" + (exec_help.get("stderr") or "")
+        required_exec_flags = (
+            "--ephemeral", "--skip-git-repo-check", "--ignore-user-config", "--cd", "--sandbox",
+            "--model", "--config", "--output-schema", "--output-last-message",
+        )
+        exec_supported = exec_help.get("returncode") == 0 and all(flag in exec_help_text for flag in required_exec_flags)
         chatgpt_auth = "logged in using chatgpt" in auth_text or "chatgpt account" in auth_text
         api_auth = "api key" in auth_text or "apikey" in auth_text
         cli = {
@@ -209,10 +217,11 @@ def discover_codex(project_root: Path, codex_executable: str | None = None) -> d
             "version": version_text[0] if version_text else None,
             "authenticated": auth_result.get("returncode") == 0 and (chatgpt_auth or api_auth),
             "auth_mode": "chatgpt_plan" if chatgpt_auth else "api_key" if api_auth else "unknown_or_signed_out",
-            "codex_exec_supported": version_result.get("returncode") == 0,
-            "structured_output_supported": version_result.get("returncode") == 0,
+            "codex_exec_supported": exec_supported,
+            "structured_output_supported": exec_supported and "--output-schema" in exec_help_text and "--output-last-message" in exec_help_text,
+            "image_input_supported": exec_supported and "--image" in exec_help_text,
             "sandbox_modes": ["read-only", "workspace-write"],
-            "probe_errors": [item for item in (version_result.get("error"), auth_result.get("error")) if item],
+            "probe_errors": [item for item in (version_result.get("error"), auth_result.get("error"), exec_help.get("error")) if item],
         }
     config = _codex_config()
     mcps: list[dict[str, Any]] = []
@@ -239,7 +248,13 @@ def build_capability_matrix(discovery: dict[str, Any], skills: list[dict[str, An
     """Choose usable tools from discovered evidence and explain capability gaps."""
     kinds = {capability for item in skills for capability in item["capabilities"]}
     agent_kinds = {capability for item in agents for capability in item.get("capabilities", [])}
-    codex_ready = bool(codex.get("cli", {}).get("installed") and codex.get("cli", {}).get("authenticated") and codex.get("cli", {}).get("auth_mode") == "chatgpt_plan")
+    codex_cli = codex.get("cli", {})
+    codex_ready = bool(
+        codex_cli.get("installed") and codex_cli.get("authenticated")
+        and codex_cli.get("auth_mode") == "chatgpt_plan"
+        and codex_cli.get("codex_exec_supported") and codex_cli.get("structured_output_supported")
+    )
+    codex_images_ready = bool(codex_ready and codex_cli.get("image_input_supported"))
     browser_installed = bool(importlib.util.find_spec("playwright"))
     screenshots = rendered_screenshots or []
     browser_ready = bool(browser_installed and screenshots)
@@ -263,11 +278,11 @@ def build_capability_matrix(discovery: dict[str, Any], skills: list[dict[str, An
         ),
         Capability(
             name="visual_auditing",
-            available=bool(codex_ready and screenshots),
-            selected_tool="Codex CLI plus rendered screenshots" if codex_ready and screenshots else None,
-            status="ready" if codex_ready and screenshots else "missing",
-            recommendation="Capture representative views with the browser-testing capability before making appearance claims. The same screenshots can be used for visual review; do not install an overlapping screenshot tool." if not screenshots else "Rendered screenshots are available, but Codex visual analysis is unavailable without saved ChatGPT sign-in." if not codex_ready else "Rendered screenshots are available for review; claims must stay limited to the captured routes and states.",
-            details={"rendered_evidence_count": len(screenshots), "codex_ready_with_chatgpt_sign_in": codex_ready},
+            available=bool(codex_images_ready and screenshots),
+            selected_tool="Codex CLI plus rendered screenshots" if codex_images_ready and screenshots else None,
+            status="ready" if codex_images_ready and screenshots else "missing",
+            recommendation="Capture representative views with the browser-testing capability before making appearance claims. The same screenshots can be used for visual review; do not install an overlapping screenshot tool." if not screenshots else "Rendered screenshots are available, but the installed Codex CLI does not have a verified image input interface." if not codex_images_ready else "Rendered screenshots are available for review; claims must stay limited to the captured routes and states.",
+            details={"rendered_evidence_count": len(screenshots), "codex_ready_with_chatgpt_sign_in": codex_ready, "image_input_supported": bool(codex_cli.get("image_input_supported"))},
         ),
         Capability(
             name="accessibility",
@@ -475,10 +490,10 @@ def _codex_config() -> dict[str, Any]:
     return _read_toml(home / "config.toml")
 
 
-def _safe_probe(command: list[str]) -> dict[str, Any]:
+def _safe_probe(command: list[str], *, stdout_limit: int = 4_000) -> dict[str, Any]:
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=12, check=False, env=_clean_codex_environment())
-        return {"returncode": result.returncode, "stdout": result.stdout[:4_000], "stderr": result.stderr[:2_000]}
+        return {"returncode": result.returncode, "stdout": result.stdout[:stdout_limit], "stderr": result.stderr[:2_000]}
     except (OSError, subprocess.TimeoutExpired) as error:
         return {"returncode": 1, "error": type(error).__name__}
 
@@ -501,6 +516,170 @@ def _clean_process_environment() -> dict[str, str]:
         if name.startswith("GIT_"):
             environment.pop(name, None)
     return environment
+
+
+def discover_claude_code(project_root: Path, claude_executable: str | None = None) -> dict[str, Any]:
+    """Discover Claude Code metadata and supported interfaces without running skills or agents."""
+    executable = claude_executable or shutil.which("claude")
+    if executable:
+        version = _safe_probe([executable, "--version"])
+        auth = _safe_probe([executable, "auth", "status", "--json"])
+        help_result = _safe_probe([executable, "--help"])
+        try:
+            auth_data = json.loads(auth.get("stdout", ""))
+        except json.JSONDecodeError:
+            auth_data = {}
+        logged_in = auth_data.get("loggedIn") is True
+        environment_auth = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        version_lines = [line.strip() for line in version.get("stdout", "").splitlines() if line.strip()]
+        help_text = help_result.get("stdout", "")
+        cli = {
+            "installed": version.get("returncode") == 0,
+            "path": executable,
+            "version": version_lines[0] if version_lines else None,
+            "authenticated": logged_in or environment_auth,
+            "auth_mode": "account" if logged_in else "api_key_environment" if environment_auth else "unknown_or_signed_out",
+            "print_mode_supported": "--print" in help_text or "-p, --print" in help_text,
+            "structured_output_supported": "--json-schema" in help_text and "--output-format" in help_text,
+            "named_agent_supported": "--agent" in help_text,
+            "tool_allowlist_supported": "--tools" in help_text,
+            "strict_mcp_config_supported": "--strict-mcp-config" in help_text,
+            "permission_mode_supported": "--permission-mode" in help_text,
+            "disallowed_tools_supported": "--disallowedTools" in help_text,
+            "setting_sources_supported": "--setting-sources" in help_text,
+            "mcp_config_supported": "--mcp-config" in help_text,
+        }
+    else:
+        cli = {"installed": False, "version": None, "authenticated": False, "auth_mode": "unavailable"}
+
+    config_home = Path(os.environ.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude")))
+    project_roots: list[Path] = []
+    current = project_root.resolve()
+    while True:
+        project_roots.append(current)
+        if (current / ".git").exists() or current.parent == current:
+            break
+        current = current.parent
+    skills = _discover_claude_markdown(project_roots, config_home, "skills", "SKILL.md")
+    agents = _discover_claude_markdown(project_roots, config_home, "agents", "*.md")
+    plugins = _discover_claude_plugins(executable, project_roots, config_home) if executable else []
+    mcp_servers = _discover_claude_mcp(project_roots, config_home)
+    return {
+        "cli": cli,
+        "skills": skills,
+        "agents": agents,
+        "plugins": plugins,
+        "mcp_servers": mcp_servers,
+        "discovery_boundary": "Metadata and local CLI capability checks only; skill/agent instructions and MCP tools were not executed.",
+    }
+
+
+def _discover_claude_markdown(project_roots: list[Path], config_home: Path, kind: str, pattern: str) -> list[dict[str, Any]]:
+    resources: list[dict[str, Any]] = []
+    roots = [root / ".claude" / kind for root in project_roots]
+    roots.append(config_home / kind)
+    seen: set[Path] = set()
+    count = 0
+    for root in roots:
+        if not root.is_dir():
+            continue
+        try:
+            files = sorted(root.rglob(pattern))
+        except OSError:
+            continue
+        for path in files:
+            count += 1
+            if count > MAX_SKILLS:
+                return resources
+            try:
+                resolved = path.resolve(strict=True)
+                if resolved in seen or not resolved.is_file() or resolved.stat().st_size > SKILL_LIMIT_BYTES:
+                    continue
+                seen.add(resolved)
+                text = resolved.read_text(encoding="utf-8", errors="replace")[:4_096]
+                metadata = _skill_frontmatter(text)
+                name = metadata.get("name") or (resolved.parent.name if resolved.name == "SKILL.md" else resolved.stem)
+                description = metadata.get("description", "")
+                capabilities = classify_skill(name, description)
+                if not capabilities:
+                    continue
+                resources.append({
+                    "name": name,
+                    "description": description,
+                    "source_path": str(resolved),
+                    "capabilities": capabilities,
+                    "metadata_only": True,
+                    "compatibility_confidence": "documented_claude_code_location",
+                    "metadata_valid": bool(description),
+                })
+            except (OSError, UnicodeError):
+                continue
+    return sorted(resources, key=lambda item: (item["name"].casefold(), item["source_path"]))
+
+
+def _discover_claude_plugins(executable: str, project_roots: list[Path], config_home: Path) -> list[dict[str, Any]]:
+    probe = _safe_probe([executable, "plugin", "list", "--json"], stdout_limit=100_000)
+    try:
+        payload = json.loads(probe.get("stdout", "")) if probe.get("returncode") == 0 else None
+    except json.JSONDecodeError:
+        payload = None
+    entries = payload if isinstance(payload, list) else payload.get("plugins", []) if isinstance(payload, dict) else []
+    installed = {str(item.get("id") or item.get("name")): item for item in entries if isinstance(item, dict)}
+
+    configured: dict[str, dict[str, Any]] = {}
+    settings_paths = [config_home / "settings.json"]
+    for root in project_roots:
+        settings_paths.extend([root / ".claude" / "settings.json", root / ".claude" / "settings.local.json"])
+    for path in settings_paths:
+        data = _read_json_object(path)
+        plugins = data.get("enabledPlugins", {})
+        if isinstance(plugins, dict):
+            for name, enabled in plugins.items():
+                configured[str(name)] = {"enabled": enabled is not False, "settings_path": str(path)}
+
+    result: dict[str, dict[str, Any]] = {}
+    for name, details in installed.items():
+        record = {"name": name, "installed": True, "configured": name in configured, "callable": "not_probed"}
+        record.update({key: details.get(key) for key in ("version", "scope", "status") if isinstance(details.get(key), (str, int, bool))})
+        if name in configured:
+            record["enabled"] = configured[name]["enabled"]
+        result[name] = record
+    for name, settings in configured.items():
+        result.setdefault(name, {"name": name, "installed": "unknown", "configured": True, "enabled": settings["enabled"], "callable": "not_probed"})
+    return sorted(result.values(), key=lambda item: item["name"].casefold())
+
+
+def _discover_claude_mcp(project_roots: list[Path], config_home: Path) -> list[dict[str, Any]]:
+    paths = [config_home.parent / ".claude.json", config_home / "settings.json"]
+    for root in project_roots:
+        paths.extend([root / ".mcp.json", root / ".claude" / "settings.json", root / ".claude" / "settings.local.json"])
+    found: dict[str, dict[str, Any]] = {}
+    for path in paths:
+        data = _read_json_object(path)
+        servers = data.get("mcpServers", {})
+        if not isinstance(servers, dict):
+            continue
+        for name, raw in servers.items():
+            if not isinstance(raw, dict):
+                continue
+            found.setdefault(str(name), {
+                "name": str(name),
+                "configured": True,
+                "callable": "not_probed",
+                "transport": "url" if raw.get("url") else "stdio" if raw.get("command") else "unknown",
+                "source_scope": "project" if path.is_relative_to(project_roots[0]) else "user",
+            })
+    return sorted(found.values(), key=lambda item: item["name"].casefold())
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_000_000:
+            return {}
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def _cached_plugins(config: dict[str, Any]) -> list[dict[str, Any]]:
