@@ -935,5 +935,3 @@ def _resource_exclusion_reason(item: CapabilityResource, phase: str, primary_pro
     if item.kind in {ResourceKind.SKILL, ResourceKind.PROJECT_GUIDANCE}:
         return "Metadata is a relevance hint only; instructions require review before use."
     return "No matching specialist role was needed for this task."
-
-
