@@ -155,16 +155,24 @@ def _supplemental_reports(
     executive.extend(["", "## Visual design identity", "", result.visual_analysis.get("design_identity", "Not interpreted by a screenshot-capable visual reasoning pass."), "", "## Important coverage limits", "", *[f"- {item}" for item in limitations], "", "Human decisions about design, behavior, and implementation remain pending at their existing approval gates."])
 
     color = ["# Color-system analysis", "", "Source declarations are distinguished from actual computed browser samples. Contrast is calculated only for opaque foreground/background pairs with an unambiguous computed background; it is not a complete WCAG audit.", "", "## Source color palette", "", "| Color | Declarations | Source files |", "|---|---:|---|"]
-    color.extend(f"| `{item['value']}` | {item['count']} | {', '.join(f'`{path}`' for path in item['files'])} |" for item in design["colors"])
+    color_limit = 120
+    color.extend(f"| `{item['value']}` | {item['count']} | {', '.join(f'`{path}`' for path in item['files'])} |" for item in design["colors"][:color_limit])
     if not design["colors"]:
         color.append("| No explicit CSS color literals found | 0 | — |")
+    elif len(design["colors"]) > color_limit:
+        color.extend(["", f"Showing the {color_limit} most frequent color literals; {len(design['colors']) - color_limit} additional values remain in `frontend-intelligence.json`."])
     color.extend(["", "## Color tokens", "", "| Token | Value | File |", "|---|---|---|"])
     color.extend(f"| `--{item['name']}` | `{item['value']}` | `{item['file']}` |" for item in design["color_tokens"])
     color.extend(["", "## Rendered contrast samples", ""])
     contrast_samples = [(screen, sample) for screen in runtime for sample in screen.get("contrast_samples", [])]
     if contrast_samples:
         color.extend(["| Route / viewport | Selector | Foreground / background | Ratio | Sampled threshold |", "|---|---|---|---:|---:|"])
-        color.extend(f"| `{screen['route']}` / `{screen['viewport']}` | `{sample['selector']}` | `{sample['foreground']}` / `{sample['background']}` | {sample['ratio']}:1 | {sample['threshold']}:1 ({sample['classification']}) |" for screen, sample in contrast_samples)
+        contrast_limit_per_screen = 12
+        for screen in runtime:
+            samples = screen.get("contrast_samples", [])
+            color.extend(f"| `{screen['route']}` / `{screen['viewport']}` | `{sample['selector']}` | `{sample['foreground']}` / `{sample['background']}` | {sample['ratio']}:1 | {sample['threshold']}:1 ({sample['classification']}) |" for sample in samples[:contrast_limit_per_screen])
+            if len(samples) > contrast_limit_per_screen:
+                color.append(f"| `{screen['route']}` / `{screen['viewport']}` | *{len(samples) - contrast_limit_per_screen} additional sampled pairs in `frontend-intelligence.json`* | — | — | — |")
     else:
         color.append("No reliable computed opaque foreground/background pairs were collected. Contrast remains unverified.")
 
@@ -174,7 +182,13 @@ def _supplemental_reports(
         typography.append("No font-family declarations were found in inspected stylesheets.")
     typography.extend(["", f"Source font-size values: {', '.join(f'`{item}`' for item in design['font_sizes']) or 'none detected'}", "", f"Source line-height values: {', '.join(f'`{item}`' for item in design['line_heights']) or 'none detected'}", "", "## Runtime samples", ""])
     if runtime:
-        typography.extend(f"- `{screen['route']}` / `{screen['viewport']}`: {', '.join(f'`{selector}` {style.get("fontFamily", "unknown")} at {style.get("fontSize", "unknown")} / {style.get("lineHeight", "unknown")}' for selector, style in screen.get('computed_styles', {}).items() if style.get('fontFamily'))}." for screen in runtime)
+        style_limit_per_screen = 12
+        for screen in runtime:
+            samples = [(selector, style) for selector, style in screen.get("computed_styles", {}).items() if style.get("fontFamily")]
+            summary = ", ".join(f"`{selector}` {style.get('fontFamily', 'unknown')} at {style.get('fontSize', 'unknown')} / {style.get('lineHeight', 'unknown')}" for selector, style in samples[:style_limit_per_screen])
+            typography.append(f"- `{screen['route']}` / `{screen['viewport']}`: {summary}.")
+            if len(samples) > style_limit_per_screen:
+                typography.append(f"  - {len(samples) - style_limit_per_screen} additional computed samples are preserved in `frontend-intelligence.json`.")
     else:
         typography.append("No browser-computed typography samples were collected; actual font loading and rendered typography are unverified.")
 

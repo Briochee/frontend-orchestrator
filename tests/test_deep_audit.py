@@ -68,6 +68,42 @@ class DeepProjectIntelligenceTests(unittest.TestCase):
         self.assertIn("frontend-architecture-map.md", intelligence_reports(intelligence))
         self.assertIn("component-inventory.md", intelligence_reports(intelligence))
 
+    def test_static_html_route_sources_scripts_manifests_and_tests_are_mapped(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "orders").mkdir()
+            (root / "src").mkdir()
+            (root / "tests").mkdir()
+            (root / "package.json").write_text('{"name":"catalog-ui"}', encoding="utf-8")
+            (root / "index.html").write_text(
+                '<main class="overview"><a href="orders/">Orders</a></main><script src="src/app.js"></script>',
+                encoding="utf-8",
+            )
+            (root / "orders" / "index.html").write_text(
+                '<main class="orders"><h1>Orders</h1></main><script src="../src/orders.js"></script>',
+                encoding="utf-8",
+            )
+            (root / "src" / "app.js").write_text("document.documentElement.dataset.ready = 'true';", encoding="utf-8")
+            (root / "src" / "components.js").write_text("export function renderNotice() { return '<aside></aside>'; }", encoding="utf-8")
+            (root / "src" / "orders.js").write_text("document.querySelector('.orders');", encoding="utf-8")
+            (root / "tests" / "smoke.test.mjs").write_text("export const smoke = true;", encoding="utf-8")
+
+            intelligence = build_project_intelligence(root, discover_project(root))
+
+        routes = {item["path"]: item for item in intelligence["routes"]}
+        self.assertEqual(routes["/"]["source"], "index.html")
+        self.assertEqual(routes["/orders/"]["source"], "orders/index.html")
+        self.assertEqual(routes["/"]["modules"], ["src/app.js"])
+        self.assertEqual(routes["/orders/"]["modules"], ["src/orders.js"])
+        architecture = intelligence["architecture"]
+        self.assertIn("index.html", architecture["application_entry_and_routes"])
+        self.assertIn("orders/index.html", architecture["application_entry_and_routes"])
+        self.assertIn("src/components.js", architecture["shared_components"])
+        self.assertIn("package.json", architecture["configuration_and_manifests"])
+        self.assertIn("tests/smoke.test.mjs", architecture["tests_and_story_catalogs"])
+        rendered = intelligence_reports(intelligence)["frontend-architecture-map.md"].decode()
+        self.assertIn("modules: `src/orders.js`", rendered)
+
     def test_dynamic_route_patterns_are_not_selected_for_browser_navigation(self) -> None:
         self.assertEqual(renderable_route_candidates({"routes": [{"path": "/"}, {"path": "/users/:id"}, {"path": "/settings"}]}), ["/", "/settings"])
 
@@ -114,6 +150,38 @@ class DeepProjectIntelligenceTests(unittest.TestCase):
         self.assertIn("Not a WCAG conformance certificate", reports["accessibility-audit.md"].decode())
         self.assertIn("not collected", reports["performance-audit.md"].decode())
         self.assertIn("compact task dashboard", reports["visual-audit.md"].decode())
+
+    def test_supplemental_reports_bound_runtime_tables_and_preserve_full_evidence(self) -> None:
+        project = discover_project(SAMPLE)
+        intelligence = build_project_intelligence(SAMPLE, project)
+        intelligence["design_system"]["colors"] = [
+            {"value": f"#{index:06x}", "count": 1, "files": ["styles.css"]}
+            for index in range(130)
+        ]
+        intelligence["runtime"] = [{
+            "route": "/", "viewport": "desktop", "width": 1440,
+            "document": {"width": 1440, "height": 1000}, "screenshot": "/tmp/dashboard.png",
+            "computed_styles": {
+                f".font-{index}": {"fontFamily": "Example Sans", "fontSize": "14px", "lineHeight": "20px"}
+                for index in range(15)
+            },
+            "contrast_samples": [{
+                "selector": f".contrast-{index}", "foreground": "#000", "background": "#fff",
+                "ratio": 21, "threshold": 4.5, "classification": "pass",
+            } for index in range(15)],
+        }]
+        result = AuditResult((), (), (), (), "static")
+
+        reports = audit_reports([], result, project, intelligence)
+        colors = reports["color-system-analysis.md"].decode()
+        typography = reports["typography-analysis.md"].decode()
+
+        self.assertIn("Showing the 120 most frequent color literals", colors)
+        self.assertIn("additional values remain in `frontend-intelligence.json`", colors)
+        self.assertEqual(colors.count("| `.contrast-"), 12)
+        self.assertIn("3 additional sampled pairs in `frontend-intelligence.json`", colors)
+        self.assertEqual(typography.count("`.font-"), 12)
+        self.assertIn("3 additional computed samples are preserved in `frontend-intelligence.json`", typography)
 
     def test_accessibility_categories_and_specialist_limitations_keep_their_scope(self) -> None:
         project = discover_project(SAMPLE)

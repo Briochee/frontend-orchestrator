@@ -20,8 +20,9 @@ from urllib.parse import unquote, urlsplit
 from .models import AuditType, Confidence, EvidenceReference, Finding, Severity, VerificationStatus
 
 
-SOURCE_SUFFIXES = {".html", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".astro"}
+SOURCE_SUFFIXES = {".html", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".astro"}
 STYLE_SUFFIXES = {".css", ".scss", ".sass", ".less"}
+ANALYSIS_SUFFIXES = SOURCE_SUFFIXES | STYLE_SUFFIXES | {".json", ".toml", ".yaml", ".yml"}
 IGNORED_DIRECTORIES = {
     ".git", ".agents", ".codex", ".frontend-design-director", "node_modules", "vendor",
     "dist", "build", "coverage", ".next", ".nuxt", ".svelte-kit", ".venv", "venv", "__pycache__",
@@ -41,6 +42,7 @@ FUNCTION_NAME = re.compile(r"\bfunction\s+([A-Z][\w$]*)\s*\(")
 ROUTE_LITERAL = re.compile(r"(?:path|to|href)\s*[:=]\s*[\"'](/[^\"']*)[\"']")
 ROUTE_RELATIVE_LITERAL = re.compile(r"(?i)path\s*:\s*[\"']([^/\"'][^\"']*)[\"']")
 HTML_ANCHOR_HREF = re.compile(r"<a\b[^>]*\bhref\s*=\s*[\"']([^\"']+)[\"']", re.I)
+HTML_SCRIPT_SRC = re.compile(r"<script\b[^>]*\bsrc\s*=\s*[\"']([^\"']+)[\"']", re.I)
 
 
 def build_project_intelligence(project_root: Path, project: dict[str, Any], screenshots: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -59,8 +61,20 @@ def build_project_intelligence(project_root: Path, project: dict[str, Any], scre
         source_path = route["source"]
         source_file = root / source_path
         linked: list[str] = []
+        modules: list[str] = []
         if source_file.suffix.casefold() == ".html":
             linked.extend(item["name"] for item in components if item.get("evidence_kind") == "static_html_structure" and item["source"] == source_path)
+            for module in HTML_SCRIPT_SRC.findall(file_text.get(source_path, "")):
+                parsed = urlsplit(module)
+                if parsed.scheme or parsed.netloc or module.startswith(("#", "javascript:")):
+                    continue
+                if parsed.path.startswith("/"):
+                    candidate = (root / unquote(parsed.path).lstrip("/")).resolve()
+                    resolved = candidate if candidate.is_relative_to(root) and candidate.is_file() and not candidate.is_symlink() else None
+                else:
+                    resolved = _resolve_import(source_file, unquote(parsed.path), root) if parsed.path else None
+                if resolved:
+                    modules.append(resolved.relative_to(root).as_posix())
         for module in IMPORT_SPECIFIER.findall(file_text.get(source_path, "")):
             if module.startswith("."):
                 resolved = _resolve_import(source_file, module, root)
@@ -70,6 +84,7 @@ def build_project_intelligence(project_root: Path, project: dict[str, Any], scre
                         linked.append(component_by_path[target]["name"])
                         component_by_path[target]["routes"].append(route["path"])
         route["components"] = sorted(set(linked))
+        route["modules"] = sorted(set(modules))
     for component in components:
         component["routes"] = sorted(set(component.get("routes", [])))
     design_system = _discover_design_system(root, style_files)
@@ -275,8 +290,9 @@ def intelligence_reports(intelligence: dict[str, Any]) -> dict[str, bytes]:
         architecture.append("No rendered browser evidence was collected. Runtime behavior and actual appearance remain unverified.")
     architecture.extend(["", "## Route relationships", ""])
     for route in routes:
-        linked = ", ".join(f"`{item}`" for item in route.get("components", [])) or "no imported component relationship inferred"
-        architecture.append(f"- `{route['path']}` ← `{route['source']}` ({route['classification']}; {route['confidence']} confidence); {linked}.")
+        linked = ", ".join(f"`{item}`" for item in route.get("components", [])) or "no component relationship inferred"
+        modules = ", ".join(f"`{item}`" for item in route.get("modules", [])) or "no local script module linked"
+        architecture.append(f"- `{route['path']}` ← `{route['source']}` ({route['classification']}; {route['confidence']} confidence); components: {linked}; modules: {modules}.")
     if not routes:
         architecture.append("No route declarations or link targets were recognized in the inspected source.")
 
@@ -374,7 +390,7 @@ def _project_files(root: Path) -> list[Path]:
         directories[:] = sorted(name for name in directories if name not in IGNORED_DIRECTORIES and not (Path(base) / name).is_symlink())
         for name in sorted(filenames):
             path = Path(base) / name
-            if path.is_symlink() or path.suffix.casefold() not in SOURCE_SUFFIXES | STYLE_SUFFIXES:
+            if path.is_symlink() or path.suffix.casefold() not in ANALYSIS_SUFFIXES:
                 continue
             try:
                 if path.stat().st_size <= MAX_FILE_BYTES:
@@ -404,7 +420,22 @@ def _discover_routes(root: Path, source_files: list[Path], contents: dict[str, s
         value = _normalize_route_path(value, root)
         if value is None:
             return
-        entry = routes.setdefault(value, {"path": value, "source": source.relative_to(root).as_posix(), "methods": [], "confidence": confidence, "classification": classification or _classify_route(value, source)})
+        source_priority = {"html_file": 3, "file_route": 3, "router_literal": 2, "internal_link": 1}
+        entry = routes.get(value)
+        if entry is None:
+            entry = {
+                "path": value,
+                "source": source.relative_to(root).as_posix(),
+                "methods": [],
+                "confidence": confidence,
+                "classification": classification or _classify_route(value, source),
+                "_source_priority": source_priority.get(method, 0),
+            }
+            routes[value] = entry
+        elif source_priority.get(method, 0) > entry["_source_priority"]:
+            entry["source"] = source.relative_to(root).as_posix()
+            entry["classification"] = classification or _classify_route(value, source)
+            entry["_source_priority"] = source_priority.get(method, 0)
         if method not in entry["methods"]:
             entry["methods"].append(method)
         if confidence == "high":
@@ -460,7 +491,7 @@ def _discover_routes(root: Path, source_files: list[Path], contents: dict[str, s
                     normalized = _normalize_route_path("/" + resolved_href, root)
                     if normalized:
                         add(normalized, source, "internal_link", "low")
-    return sorted((dict(item, methods=sorted(item["methods"])) for item in routes.values()), key=lambda item: (item["path"].count("/"), item["path"], item["source"]))
+    return sorted((dict({key: value for key, value in item.items() if not key.startswith("_")}, methods=sorted(item["methods"])) for item in routes.values()), key=lambda item: (item["path"].count("/"), item["path"], item["source"]))
 
 
 def _normalize_route_path(value: str, root: Path) -> str | None:
@@ -655,17 +686,18 @@ def _architecture_groups(root: Path, files: list[Path]) -> dict[str, list[str]]:
         value = relative.as_posix()
         if name in {"package.json", "pyproject.toml", "vite.config.js", "vite.config.ts", "next.config.js", "next.config.ts", "next.config.mjs", "angular.json", "astro.config.mjs", "svelte.config.js"}:
             groups["configuration_and_manifests"].add(value)
-        if path.suffix.casefold() in SOURCE_SUFFIXES and (parts & route_markers or name in {"main.ts", "main.js", "main.tsx", "index.ts", "index.js", "index.tsx", "app.tsx", "app.vue"}):
+        if path.suffix.casefold() in SOURCE_SUFFIXES and (parts & route_markers or path.suffix.casefold() == ".html" or name in {"main.ts", "main.js", "main.mjs", "main.tsx", "index.ts", "index.js", "index.mjs", "index.tsx", "app.js", "app.mjs", "app.tsx", "app.vue"}):
             groups["application_entry_and_routes"].add(value)
         if parts & {"layout", "layouts", "features", "modules"} or name in {"layout.tsx", "layout.vue", "layout.svelte"}:
             groups["layouts_and_features"].add(value)
-        if parts & {"components", "component", "widgets", "ui"}:
+        component_filename = path.stem.casefold() in {"component", "components"}
+        if parts & {"components", "component", "widgets", "ui"} or name.startswith(("component.", "components.")) or component_filename:
             groups["shared_components"].add(value)
         if parts & {"hooks", "composables"}:
             groups["hooks_and_composables"].add(value)
         if parts & {"services", "api", "clients", "repositories"} or any(term in name for term in ("api-client", "service")):
             groups["services_and_api_clients"].add(value)
-        if parts & {"store", "stores", "state", "models", "model", "types"}:
+        if parts & {"store", "stores", "state", "models", "model", "types", "data"} or name.startswith(("data.", "model.")):
             groups["state_and_models"].add(value)
         if path.suffix.casefold() in STYLE_SUFFIXES or "theme" in name or "token" in name:
             groups["styles_and_themes"].add(value)
