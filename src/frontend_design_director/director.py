@@ -79,6 +79,22 @@ def _codex_audit_recommendations(
     return tuple(dict.fromkeys((*base, *codex_recommendations)))
 
 
+def _visual_review_covers_expected_pairs(
+    specialist_runs: tuple[dict[str, Any], ...],
+    visual_analysis: dict[str, Any],
+    expected_pairs: list[tuple[str, str]],
+) -> bool:
+    """Require a completed visual pass and a validated assessment for every expected pair."""
+    run = next((item for item in specialist_runs if item.get("specialist") == "frontend_visual_auditor"), None)
+    if not run or run.get("status") != "completed" or not expected_pairs:
+        return False
+    assessed_pairs = {
+        (str(item.get("route")), str(item.get("viewport")))
+        for item in visual_analysis.get("route_assessments", [])
+    }
+    return set(expected_pairs).issubset(assessed_pairs)
+
+
 class FrontendDesignDirector:
     """High-level workflow service; approval transitions remain controlled in this process."""
 
@@ -362,9 +378,8 @@ class FrontendDesignDirector:
                     intelligence=intelligence, user_instructions=audit_instructions,
                     collaboration_mode=collaboration, collaboration_plan=collaboration_plan, review_backend=secondary_review,
                 )
-                visual_evidence_complete = (
-                    bool(codex_result.visual_delivery.get("validated"))
-                    and codex_result.visual_delivery.get("route_viewports_assessed", 0) >= len(expected_pairs)
+                visual_evidence_complete = _visual_review_covers_expected_pairs(
+                    codex_result.specialist_runs, codex_result.visual_analysis, expected_pairs,
                 )
                 result = AuditResult(
                     findings=tuple(_merge_findings(static_result.findings, codex_result.findings)),

@@ -12,7 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .backend import AgentBackend
-from .codex_backend import CodexCLIBackend
+from .codex_backend import BackendFailure, CodexCLIBackend
 from .collaboration import CollaborationMode, SpecialistChallenge, SpecialistContribution, adjudicate_challenges
 from .models import AuditType, Confidence, EvidenceReference, Finding, Severity, VerificationStatus
 from .snapshot import ProjectSnapshot, create_project_snapshot
@@ -615,23 +615,34 @@ def run_codex_audit(
                 recommendations.extend(response["recommendations"])
                 verification_instruction = start_instructions + f"Role: {role} evidence verifier.\nPass 2 — cross-validation. Re-check the assessment, every candidate, and citations against the source snapshot or screenshot. Verify route/component scope, line/screenshot reference, alternative explanations, confidence, and impact. Remove unsupported claims. Correct overstatements and preserve only distinct findings that evidence supports. Do not add general best practices. Return a revised evidence-backed `assessment` and at least one valid `assessment_evidence` citation, plus the complete revised list for this audit type in the same JSON schema. Audit type: {audit_type.value}. For source evidence, `kind` may be `source`, `code`, `manifest`, or `inventory`; every reference, including `inventory`, must exactly match an `included_files` path, with an optional valid line number. Do not cite the project evidence JSON by a generic name. Visual evidence must use kind `screenshot` and an exact attached image path/viewport.\n\nCandidate assessment (JSON):\n{json.dumps(first_assessment, indent=2)}\n\nCandidate findings (JSON):\n{json.dumps([item.to_dict() for item in first_pass], indent=2)}\n\nCandidate visual analysis (JSON):\n{json.dumps(first_visual_analysis, indent=2)}\n\nProject evidence inventory (JSON):\n{metadata}"
                 try:
-                    verified = agent.execute(working_directory=snapshot.root, instruction=verification_instruction, schema=response_schema, sandbox="read-only", images=image_set, specialist=f"{role} verifier")
-                    verified_findings = _validated_response_findings(verified, audit_type, f"{role} verifier", snapshot, screenshots)
-                    verified_assessment = _validated_specialist_assessment(verified, audit_type, role, "cross_validation", snapshot, screenshots)
+                    def validate_cross_response(value: dict[str, Any]) -> dict[str, Any]:
+                        findings = _validated_response_findings(value, audit_type, f"{role} verifier", snapshot, screenshots)
+                        assessment = _validated_specialist_assessment(value, audit_type, role, "cross_validation", snapshot, screenshots)
+                        checked_visual = {}
+                        if audit_type == AuditType.VISUAL:
+                            checked_visual = _validated_visual_analysis(value.get("visual_analysis"), screenshots)
+                            _validate_visual_assessment_coverage(checked_visual, visual_screenshots)
+                        return {"findings": findings, "assessment": assessment, "visual_analysis": checked_visual}
+
+                    verified, checked, retry_attempts = _execute_validated_with_retry(
+                        execute=lambda prompt: agent.execute(
+                            working_directory=snapshot.root,
+                            instruction=prompt,
+                            schema=response_schema,
+                            sandbox="read-only",
+                            images=image_set,
+                            specialist=f"{role} verifier",
+                        ),
+                        validate=validate_cross_response,
+                        instruction=verification_instruction,
+                    )
+                    run_state["cross_validation_retry_attempts"] = retry_attempts
+                    verified_findings = checked["findings"]
+                    verified_assessment = checked["assessment"]
                     specialist_assessments.append(verified_assessment)
                     verification_visual_valid = True
                     if audit_type == AuditType.VISUAL:
-                        try:
-                            visual_analysis = _validated_visual_analysis(verified.get("visual_analysis"), screenshots)
-                            _validate_visual_assessment_coverage(visual_analysis, visual_screenshots)
-                            if visual_analysis:
-                                first_visual_analysis = visual_analysis
-                        except ValueError as error:
-                            verification_visual_valid = False
-                            run_state["cross_validation"] = "invalid_visual_evidence"
-                            diagnostics.append(_specialist_diagnostic(role, audit_type, error, "visual_verification_validation", image_count=len(image_set), category="visual_analysis_unverified"))
-                            limitations.append(f"Visual analysis verifier returned invalid screenshot references; the validated first pass was retained: {str(error)[:200]}")
-                        visual_analysis = first_visual_analysis
+                        visual_analysis = checked["visual_analysis"] or first_visual_analysis
                     specialist_findings.extend(verified_findings)
                     if verification_visual_valid:
                         run_state["cross_validation"] = "valid"
@@ -925,18 +936,29 @@ def _run_visual_audit_by_route(
 
         verify_instruction = start_instructions + f"Role: {role} screenshot evidence verifier.\nPass 2 — re-check the first-pass visual assessment and findings against the attached screenshots for {route}. Reject unsupported appearance claims, verify every route/viewport/path, and return the complete corrected assessment and finding list. Preserve route-specific observations; do not substitute generic design advice.\n\nCandidate assessment (JSON):\n{json.dumps(first_analysis, indent=2)}\n\nCandidate findings (JSON):\n{json.dumps([item.to_dict() for item in first_findings], indent=2)}\n\nProject and screenshot evidence inventory (JSON):\n{metadata}"
         try:
-            verified = agent.execute(
-                working_directory=snapshot.root,
+            def validate_visual_cross_response(value: dict[str, Any]) -> dict[str, Any]:
+                findings = _validated_response_findings(value, AuditType.VISUAL, f"{role} verifier", snapshot, screenshots)
+                assessment = _validated_specialist_assessment(value, AuditType.VISUAL, role, "cross_validation", snapshot, screenshots)
+                analysis = _validated_visual_analysis(value.get("visual_analysis"), screenshots)
+                _validate_visual_assessment_coverage(analysis, route_screenshots)
+                return {"findings": findings, "assessment": assessment, "visual_analysis": analysis}
+
+            verified, checked, retry_attempts = _execute_validated_with_retry(
+                execute=lambda prompt: agent.execute(
+                    working_directory=snapshot.root,
+                    instruction=prompt,
+                    schema=schema,
+                    sandbox="read-only",
+                    images=image_set,
+                    specialist=f"{role} evidence verifier ({route})",
+                ),
+                validate=validate_visual_cross_response,
                 instruction=verify_instruction,
-                schema=schema,
-                sandbox="read-only",
-                images=image_set,
-                specialist=f"{role} evidence verifier ({route})",
             )
-            verified_findings = _validated_response_findings(verified, AuditType.VISUAL, f"{role} verifier", snapshot, screenshots)
-            verified_assessment = _validated_specialist_assessment(verified, AuditType.VISUAL, role, "cross_validation", snapshot, screenshots)
-            verified_analysis = _validated_visual_analysis(verified.get("visual_analysis"), screenshots)
-            _validate_visual_assessment_coverage(verified_analysis, route_screenshots)
+            route_state["cross_validation_retry_attempts"] = retry_attempts
+            verified_findings = checked["findings"]
+            verified_assessment = checked["assessment"]
+            verified_analysis = checked["visual_analysis"]
             route_state["cross_validation"] = "valid"
             cross_valid_routes += 1
             route_analyses.append(verified_analysis)
@@ -1179,6 +1201,54 @@ def _specialist_diagnostic(
         "message": str(error),
     })
     return diagnostic
+
+
+def _execute_validated_with_retry(
+    *,
+    execute: Any,
+    validate: Any,
+    instruction: str,
+) -> tuple[dict[str, Any], Any, int]:
+    """Retry one deterministic response-validation failure with its exact correction reason."""
+    prompt = instruction
+    for retry_attempts in range(2):
+        try:
+            response = execute(prompt)
+        except BackendFailure as error:
+            diagnostic = dict(getattr(error, "diagnostic", {}) or {})
+            retryable_backend_response = (
+                diagnostic.get("error_classification") == "invalid_model_response"
+            )
+            if retry_attempts == 0 and retryable_backend_response:
+                prompt = (
+                    f"{instruction}\n\nYour previous response failed deterministic validation: "
+                    f"{str(error)[:1000]}\nCorrect the cited paths, line numbers, and response structure using only the supplied evidence. "
+                    "Return a complete corrected JSON response matching the same schema."
+                )
+                continue
+            if diagnostic:
+                diagnostic["retry_attempts"] = retry_attempts
+                error.diagnostic = diagnostic
+            raise
+        try:
+            return response, validate(response), retry_attempts
+        except (ValueError, KeyError, TypeError) as error:
+            diagnostic = dict(getattr(error, "diagnostic", {}) or {})
+            if retry_attempts == 0:
+                prompt = (
+                    f"{instruction}\n\nYour previous response failed deterministic validation: "
+                    f"{str(error)[:1000]}\nCorrect the cited paths, line numbers, and response structure using only the supplied evidence. "
+                    "Return a complete corrected JSON response matching the same schema."
+                )
+                continue
+            diagnostic.update({
+                "error_classification": "invalid_model_response",
+                "failure_location": diagnostic.get("failure_location", "specialist.response_validation"),
+                "retry_attempts": retry_attempts,
+            })
+            error.diagnostic = diagnostic
+            raise
+    raise AssertionError("unreachable retry state")
 
 
 def _is_provider_quota_or_auth(error: Exception) -> bool:

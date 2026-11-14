@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from frontend_design_director.auditing import (
     FINDINGS_SCHEMA,
+    _execute_validated_with_retry,
     _analyze_html_sinks,
     _compact_project_intelligence,
     _validate_visual_assessment_coverage,
@@ -27,7 +28,7 @@ from frontend_design_director.codex_backend import (
 )
 from frontend_design_director.models import AuditType, Confidence, EvidenceReference, Finding, Severity, VerificationStatus
 from frontend_design_director.browser import capture_screenshots
-from frontend_design_director.director import FrontendDesignDirector, WorkflowBlocked, _codex_audit_limitations, _codex_audit_recommendations, _screenshot_integrity_error
+from frontend_design_director.director import FrontendDesignDirector, WorkflowBlocked, _codex_audit_limitations, _codex_audit_recommendations, _screenshot_integrity_error, _visual_review_covers_expected_pairs
 from frontend_design_director.discovery import discover_project
 from frontend_design_director.intelligence import build_project_intelligence, renderable_route_candidates
 from frontend_design_director.auditing import AuditResult
@@ -210,6 +211,20 @@ class StructuredFindingTests(unittest.TestCase):
 
 
 class AuditCompletenessTests(unittest.TestCase):
+    def test_visual_completeness_uses_the_actual_specialist_run_and_assessed_pairs(self) -> None:
+        runs = ({"specialist": "frontend_visual_auditor", "status": "completed"},)
+        analysis = {"route_assessments": [
+            {"route": "/", "viewport": "desktop"},
+            {"route": "/settings/", "viewport": "mobile"},
+        ]}
+        expected = [("/", "desktop"), ("/settings/", "mobile")]
+
+        self.assertTrue(_visual_review_covers_expected_pairs(runs, analysis, expected))
+        self.assertFalse(_visual_review_covers_expected_pairs(runs, analysis, [*expected, ("/orders/", "tablet")]))
+        self.assertFalse(_visual_review_covers_expected_pairs(
+            ({"specialist": "frontend_visual_auditor", "status": "incomplete"},), analysis, expected,
+        ))
+
     def test_codex_reports_replace_stale_static_only_gaps_after_evidence_passes(self) -> None:
         static_limitations = (
             "No project scripts, builds, dependency lifecycle hooks, or development servers were executed.",
@@ -251,6 +266,63 @@ class AuditCompletenessTests(unittest.TestCase):
             self.assertTrue(summary["retry_recommendation"])
             with self.assertRaises(WorkflowBlocked):
                 director.record_direction(session.id, visual="refine", behavior="preserve", scope="screens", human_confirmation=True)
+
+
+class StructuredResponseRetryTests(unittest.TestCase):
+    def test_deterministic_response_validation_retries_once_with_correction_context(self) -> None:
+        responses = iter([{"citation": "bad"}, {"citation": "src/app.js:4"}])
+        prompts: list[str] = []
+
+        def execute(prompt: str) -> dict[str, str]:
+            prompts.append(prompt)
+            return next(responses)
+
+        def validate(response: dict[str, str]) -> str:
+            if response["citation"] == "bad":
+                raise ValueError("citation line is beyond the end of src/app.js")
+            return response["citation"]
+
+        response, validated, retries = _execute_validated_with_retry(
+            execute=execute, validate=validate, instruction="Return an evidence-backed response.",
+        )
+
+        self.assertEqual(response["citation"], "src/app.js:4")
+        self.assertEqual(validated, "src/app.js:4")
+        self.assertEqual(retries, 1)
+        self.assertEqual(len(prompts), 2)
+        self.assertIn("beyond the end of src/app.js", prompts[1])
+
+    def test_provider_failures_are_not_retried_as_response_corrections(self) -> None:
+        calls = 0
+
+        def execute(_: str) -> dict[str, str]:
+            nonlocal calls
+            calls += 1
+            raise BackendFailure("provider quota reached", diagnostic={
+                "error_classification": "provider_quota_or_auth",
+            })
+
+        with self.assertRaises(BackendFailure):
+            _execute_validated_with_retry(
+                execute=execute, validate=lambda response: response, instruction="Review evidence.",
+            )
+
+        self.assertEqual(calls, 1)
+
+    def test_execution_configuration_errors_are_not_retried(self) -> None:
+        calls = 0
+
+        def execute(_: str) -> dict[str, str]:
+            nonlocal calls
+            calls += 1
+            raise ValueError("invalid sandbox configuration")
+
+        with self.assertRaisesRegex(ValueError, "invalid sandbox configuration"):
+            _execute_validated_with_retry(
+                execute=execute, validate=lambda response: response, instruction="Review evidence.",
+            )
+
+        self.assertEqual(calls, 1)
 
     def test_report_labels_uninterpreted_and_incomplete_visual_evidence(self) -> None:
         from frontend_design_director.reporting import audit_reports
