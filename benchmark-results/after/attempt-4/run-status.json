@@ -1,9 +1,0 @@
-{
-  "status": "incomplete",
-  "reason": "Stopped after review of the repository operating skill showed that visual interpretation must be followed by a screenshot evidence verification pass. This run used a version without that required pass.",
-  "process_exit_status": 143,
-  "codex_visual_request_active_at_stop": true,
-  "report_frozen": false,
-  "preserved_capture_artifacts": "captured-evidence/",
-  "recovery": "Restore route-specific screenshot verification and rerun exhaustive audit."
-}
