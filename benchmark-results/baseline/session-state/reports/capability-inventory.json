@@ -1,0 +1,2624 @@
+{
+  "agent_discovery_errors": [],
+  "agents": [
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_codex_agent_format",
+      "description": "Read-only specialist for frontend architecture, rendering, performance evidence, and maintainability.",
+      "instructions_loaded": false,
+      "name": "frontend_code_auditor",
+      "source_path": "/Users/rio/.codex/agents/frontend-code-auditor.toml",
+      "tool_permissions": {
+        "approval_policy": "inherited from parent session",
+        "features": {
+          "apps": false,
+          "memories": false,
+          "plugins": false,
+          "request_permissions_tool": false,
+          "shell_tool": false
+        },
+        "sandbox_mode": "inherited from parent session"
+      }
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "accessibility",
+        "ux"
+      ],
+      "compatibility_confidence": "documented_codex_agent_format",
+      "description": "Prototype specialist for approved directions; writes only static HTML/CSS and design-token artifacts in an isolated workspace.",
+      "instructions_loaded": false,
+      "name": "frontend_mockup_designer",
+      "source_path": "/Users/rio/.codex/agents/frontend-mockup-designer.toml",
+      "tool_permissions": {
+        "approval_policy": "inherited from parent session",
+        "features": {
+          "apps": false,
+          "memories": false,
+          "plugins": false,
+          "request_permissions_tool": false
+        },
+        "sandbox_mode": "inherited from parent session"
+      }
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "accessibility",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_codex_agent_format",
+      "description": "Read-only specialist for reviewing verification evidence, regression coverage, visual comparison, accessibility, and performance claims.",
+      "instructions_loaded": false,
+      "name": "frontend_qa_verifier",
+      "source_path": "/Users/rio/.codex/agents/frontend-qa-verifier.toml",
+      "tool_permissions": {
+        "approval_policy": "inherited from parent session",
+        "features": {
+          "apps": false,
+          "memories": false,
+          "plugins": false,
+          "request_permissions_tool": false,
+          "shell_tool": false
+        },
+        "sandbox_mode": "inherited from parent session"
+      }
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "accessibility",
+        "ux",
+        "browser"
+      ],
+      "compatibility_confidence": "documented_codex_agent_format",
+      "description": "Read-only specialist for frontend interaction behavior, accessibility, feedback, keyboard use, and responsive usability.",
+      "instructions_loaded": false,
+      "name": "frontend_ux_auditor",
+      "source_path": "/Users/rio/.codex/agents/frontend-ux-auditor.toml",
+      "tool_permissions": {
+        "approval_policy": "inherited from parent session",
+        "features": {
+          "apps": false,
+          "memories": false,
+          "plugins": false,
+          "request_permissions_tool": false,
+          "shell_tool": false
+        },
+        "sandbox_mode": "inherited from parent session"
+      }
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "ux",
+        "browser"
+      ],
+      "compatibility_confidence": "documented_codex_agent_format",
+      "description": "Screenshot-only specialist for visual hierarchy, typography, color, composition, congestion, and responsive appearance.",
+      "instructions_loaded": false,
+      "name": "frontend_visual_auditor",
+      "source_path": "/Users/rio/.codex/agents/frontend-visual-auditor.toml",
+      "tool_permissions": {
+        "approval_policy": "inherited from parent session",
+        "features": {
+          "apps": false,
+          "memories": false,
+          "plugins": false,
+          "request_permissions_tool": false,
+          "shell_tool": false
+        },
+        "sandbox_mode": "inherited from parent session"
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "available": true,
+      "details": {
+        "codex_ready_with_chatgpt_sign_in": true,
+        "frontend_skill_or_agent_detected": true
+      },
+      "evidence": [],
+      "name": "frontend_auditing",
+      "recommendation": "Codex and local source auditing are available; discovered skills are hints, not trusted instructions.",
+      "selected_tool": "Codex CLI read-only structured audit",
+      "status": "ready"
+    },
+    {
+      "available": false,
+      "details": {
+        "approval_required_before_install": true,
+        "browser_binary": "not_probed",
+        "python_package_installed": true,
+        "references": [
+          "https://playwright.dev/python/docs/intro",
+          "https://playwright.dev/python/docs/browsers"
+        ]
+      },
+      "evidence": [],
+      "name": "browser_testing",
+      "recommendation": "The Python package is present but Chromium has not been verified. Request a local capture; install browser binaries only after review if capture reports them missing.",
+      "selected_tool": "Playwright Python (unverified)",
+      "status": "installed_unverified"
+    },
+    {
+      "available": false,
+      "details": {
+        "codex_ready_with_chatgpt_sign_in": true,
+        "rendered_evidence_count": 0
+      },
+      "evidence": [],
+      "name": "visual_auditing",
+      "recommendation": "Capture representative views with the browser-testing capability before making appearance claims. The same screenshots can be used for visual review; do not install an overlapping screenshot tool.",
+      "selected_tool": null,
+      "status": "missing"
+    },
+    {
+      "available": true,
+      "details": {
+        "approval_required_before_install": true,
+        "references": [
+          "https://github.com/dequelabs/axe-core"
+        ]
+      },
+      "evidence": [],
+      "name": "accessibility",
+      "recommendation": "Static checks are available. If the project already has browser tests, consider axe-core for automated WCAG rule coverage; it complements rather than replaces keyboard, screen-reader, and manual checks.",
+      "selected_tool": "Static semantic checks",
+      "status": "ready"
+    },
+    {
+      "available": true,
+      "details": {
+        "codex_refinement_available": true
+      },
+      "evidence": [],
+      "name": "mockup_creation",
+      "recommendation": "Codex refinement is optional; the local responsive template works without credentials or model calls.",
+      "selected_tool": "Codex CLI isolated prototype",
+      "status": "ready"
+    }
+  ],
+  "codex": {
+    "agent_delegation": "Codex custom agents are available to an interactive or exec parent when multi-agent tools are enabled; agents inherit parent permissions.",
+    "cli": {
+      "auth_mode": "chatgpt_plan",
+      "authenticated": true,
+      "codex_exec_supported": true,
+      "installed": true,
+      "path": "/opt/homebrew/bin/codex",
+      "probe_errors": [],
+      "sandbox_modes": [
+        "read-only",
+        "workspace-write"
+      ],
+      "structured_output_supported": true,
+      "version": "codex-cli 0.167.1"
+    },
+    "custom_agents": "documented .codex/agents/*.toml and ~/.codex/agents/*.toml formats are supported",
+    "mcp_servers": [
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "name": "blender-mcp",
+        "transport": "stdio"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": false,
+        "name": "computer-use",
+        "transport": "stdio"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "name": "node_repl",
+        "transport": "stdio"
+      }
+    ],
+    "plugin_live_catalog": "not queried; Codex plugin listing may make a network request",
+    "plugins": [
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/adobe/.codex-plugin/plugin.json",
+        "name": "adobe"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/airtable/.codex-plugin/plugin.json",
+        "name": "airtable"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/atlassian-rovo/.codex-plugin/plugin.json",
+        "name": "atlassian-rovo"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/boltz-api-cli/.codex-plugin/plugin.json",
+        "name": "boltz-api-cli"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-bundled/browser/26.1111.21308/.codex-plugin/plugin.json",
+        "name": "browser"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/build-ios-apps/.codex-plugin/plugin.json",
+        "name": "build-ios-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/.codex-plugin/plugin.json",
+        "name": "build-ios-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/build-macos-apps/.codex-plugin/plugin.json",
+        "name": "build-macos-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/.codex-plugin/plugin.json",
+        "name": "build-macos-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/build-web-apps/.codex-plugin/plugin.json",
+        "name": "build-web-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/.codex-plugin/plugin.json",
+        "name": "build-web-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/.codex-plugin/plugin.json",
+        "name": "build-web-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/build-web-data-visualization/.codex-plugin/plugin.json",
+        "name": "build-web-data-visualization"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/canva/.codex-plugin/plugin.json",
+        "name": "canva"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/chatcut/.codex-plugin/plugin.json",
+        "name": "chatcut"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/circleci/.codex-plugin/plugin.json",
+        "name": "circleci"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/clickup/.codex-plugin/plugin.json",
+        "name": "clickup"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/cloudflare/.codex-plugin/plugin.json",
+        "name": "cloudflare"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/coderabbit/.codex-plugin/plugin.json",
+        "name": "coderabbit"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-bundled/codex-app-tools/26.1111.21308/.codex-plugin/plugin.json",
+        "name": "codex-app-tools"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/codex-security/.codex-plugin/plugin.json",
+        "name": "codex-security"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-bundled/computer-use/1.0.1001895/.codex-plugin/plugin.json",
+        "name": "computer-use"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/consensus/.codex-plugin/plugin.json",
+        "name": "consensus"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/creative-production/.codex-plugin/plugin.json",
+        "name": "creative-production"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/data-analytics/.codex-plugin/plugin.json",
+        "name": "data-analytics"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/datadog/.codex-plugin/plugin.json",
+        "name": "datadog"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/documents/26.1112.11217/.codex-plugin/plugin.json",
+        "name": "documents"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime/plugins/documents/.codex-plugin/plugin.json",
+        "name": "documents"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/dropbox/.codex-plugin/plugin.json",
+        "name": "dropbox"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/expo/.codex-plugin/plugin.json",
+        "name": "expo"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/figma/.codex-plugin/plugin.json",
+        "name": "figma"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/.codex-plugin/plugin.json",
+        "name": "figma"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/game-studio/.codex-plugin/plugin.json",
+        "name": "game-studio"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/.codex-plugin/plugin.json",
+        "name": "game-studio"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/github/.codex-plugin/plugin.json",
+        "name": "github"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated/github/1dc19589/.codex-plugin/plugin.json",
+        "name": "github"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/github/0.1.13-77c10e110b37/.codex-plugin/plugin.json",
+        "name": "github"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/gmail/.codex-plugin/plugin.json",
+        "name": "gmail"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/google-calendar/.codex-plugin/plugin.json",
+        "name": "google-calendar"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/google-drive/.codex-plugin/plugin.json",
+        "name": "google-drive"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/granola/.codex-plugin/plugin.json",
+        "name": "granola"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/higgsfield/.codex-plugin/plugin.json",
+        "name": "higgsfield"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/hyperframes/.codex-plugin/plugin.json",
+        "name": "hyperframes"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/life-science-research/.codex-plugin/plugin.json",
+        "name": "life-science-research"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/linear/.codex-plugin/plugin.json",
+        "name": "linear"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/lovable/.codex-plugin/plugin.json",
+        "name": "lovable"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/magicpath/.codex-plugin/plugin.json",
+        "name": "magicpath"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/plugin-eval/fixtures/minimal-plugin/.codex-plugin/plugin.json",
+        "name": "minimal-plugin"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/mixpanel-headless/.codex-plugin/plugin.json",
+        "name": "mixpanel-headless"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/monday-com/.codex-plugin/plugin.json",
+        "name": "monday-com"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/plugin-eval/fixtures/multi-skill-plugin/.codex-plugin/plugin.json",
+        "name": "multi-skill-plugin"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json",
+        "name": "ngs-analysis"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/notion/.codex-plugin/plugin.json",
+        "name": "notion"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/nvidia/.codex-plugin/plugin.json",
+        "name": "nvidia"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/openai-ads-conversions/.codex-plugin/plugin.json",
+        "name": "openai-ads-conversions"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/openai-developers/.codex-plugin/plugin.json",
+        "name": "openai-developers"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/.codex-plugin/plugin.json",
+        "name": "openai-developers"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/.codex-plugin/plugin.json",
+        "name": "openai-templates"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/outlook-calendar/.codex-plugin/plugin.json",
+        "name": "outlook-calendar"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/outlook-email/.codex-plugin/plugin.json",
+        "name": "outlook-email"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/pdf/26.1112.11217/.codex-plugin/plugin.json",
+        "name": "pdf"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime/plugins/pdf/.codex-plugin/plugin.json",
+        "name": "pdf"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/plugin-eval/.codex-plugin/plugin.json",
+        "name": "plugin-eval"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/plugin-management/0.1.0/.codex-plugin/plugin.json",
+        "name": "plugin-management"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/posthog/.codex-plugin/plugin.json",
+        "name": "posthog"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/presentations/26.1112.11217/.codex-plugin/plugin.json",
+        "name": "presentations"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime/plugins/presentations/.codex-plugin/plugin.json",
+        "name": "presentations"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/product-design/.codex-plugin/plugin.json",
+        "name": "product-design"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/public-equity-investing/.codex-plugin/plugin.json",
+        "name": "public-equity-investing"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/remotion/.codex-plugin/plugin.json",
+        "name": "remotion"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/sentry/.codex-plugin/plugin.json",
+        "name": "sentry"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/sharepoint/.codex-plugin/plugin.json",
+        "name": "sharepoint"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/shopify/.codex-plugin/plugin.json",
+        "name": "shopify"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/.codex-plugin/plugin.json",
+        "name": "sites"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/slack/.codex-plugin/plugin.json",
+        "name": "slack"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/spreadsheets/26.1112.11217/.codex-plugin/plugin.json",
+        "name": "spreadsheets"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime/plugins/spreadsheets/.codex-plugin/plugin.json",
+        "name": "spreadsheets"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/stripe/.codex-plugin/plugin.json",
+        "name": "stripe"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/supabase/.codex-plugin/plugin.json",
+        "name": "supabase"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/superpowers/.codex-plugin/plugin.json",
+        "name": "superpowers"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/teams/.codex-plugin/plugin.json",
+        "name": "teams"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/template-creator/26.1112.11217/.codex-plugin/plugin.json",
+        "name": "template-creator"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime/plugins/template-creator/.codex-plugin/plugin.json",
+        "name": "template-creator"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/temporal/.codex-plugin/plugin.json",
+        "name": "temporal"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/test-android-apps/.codex-plugin/plugin.json",
+        "name": "test-android-apps"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/twilio-developer-kit/.codex-plugin/plugin.json",
+        "name": "twilio-developer-kit"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-bundled/unified-computer-use/26.1111.21308/.codex-plugin/plugin.json",
+        "name": "unified-computer-use"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/vercel/.codex-plugin/plugin.json",
+        "name": "vercel"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-bundled/visualize/1.0.97/.codex-plugin/plugin.json",
+        "name": "visualize"
+      },
+      {
+        "callable": "not_probed",
+        "configured": true,
+        "enabled": true,
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/visualize/1.0.89/.codex-plugin/plugin.json",
+        "name": "visualize"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/work-pets/0.1.6/.codex-plugin/plugin.json",
+        "name": "work-pets"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/zoom/.codex-plugin/plugin.json",
+        "name": "zoom"
+      },
+      {
+        "callable": "not_probed",
+        "configured": false,
+        "enabled": "unknown_without_codex_plugin_list",
+        "installed": "unknown_without_codex_plugin_list",
+        "local_manifest_observed": true,
+        "manifest_path": "/Users/rio/.codex/.tmp/plugins/plugins/zotero/.codex-plugin/plugin.json",
+        "name": "zotero"
+      }
+    ]
+  },
+  "installation_policy": "No skill, plugin, dependency, or browser was installed.",
+  "project": {
+    "application_commands": {
+      "dev": "python3 -m http.server 8765",
+      "test": "node --test tests/smoke.test.mjs"
+    },
+    "application_description": "Dependency-free multi-route frontend audit benchmark with synthetic data",
+    "browser_automation": [],
+    "build_tools": [],
+    "component_libraries": [],
+    "css_file_count": 1,
+    "documentation_paths": [
+      "README.md"
+    ],
+    "file_count": 16,
+    "frameworks": [
+      "Static HTML/CSS/JavaScript (detected from files)"
+    ],
+    "inspection_boundary": "Manifest and source-file inspection only. No project script, build, server, or dependency lifecycle was executed.",
+    "languages": [
+      "CSS",
+      "HTML",
+      "JavaScript"
+    ],
+    "manifest_paths": [
+      "package.json"
+    ],
+    "project_name": "northstar-ops-audit-fixture",
+    "project_root": "/private/tmp/frontend-director-benchmark-20261114/demo-app",
+    "route_files": [],
+    "routing": [],
+    "source_file_count": 7,
+    "state_management": [],
+    "styling": {
+      "css_file_count": 1,
+      "custom_property_count": 23,
+      "focus_selector_count": 2,
+      "media_query_count": 3,
+      "methods": [
+        "CSS / CSS modules"
+      ],
+      "reduced_motion_rule_count": 0
+    },
+    "test_infrastructure": [
+      "package.json test script",
+      "test/spec source paths"
+    ]
+  },
+  "schema_version": 1,
+  "skill_discovery_errors": [
+    {
+      "error": "missing name or description frontmatter",
+      "path": "/Users/rio/.agents/skills/skill-stocktake/SKILL.md"
+    },
+    {
+      "error": "missing name or description frontmatter",
+      "path": "/Users/rio/.agents/skills/vercel-react-native-skills/SKILL.md"
+    }
+  ],
+  "skills": [
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Design and optimize AI agent action spaces, tool definitions, and observation formatting for higher completion rates.",
+      "metadata_only": true,
+      "name": "agent-harness-construction",
+      "source_path": "/Users/rio/.agents/skills/agent-harness-construction/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build an evidence-backed ECC install plan for a specific repo by sorting skills, commands, rules, hooks, and extras into DAILY vs LIBRARY buckets using parallel repo-aware review passes. Use when ECC should be trimmed to what a project actually needs instead of loading the full bundle.",
+      "metadata_only": true,
+      "name": "agent-sort",
+      "source_path": "/Users/rio/.agents/skills/agent-sort/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build agent apps with the Agents API or Agents SDK. Use when adding tools, sessions, sandboxes, handoffs, guardrails, evals, or deployment.",
+      "metadata_only": true,
+      "name": "agents",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/skills/agents/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build a new API connector or provider by matching the target repo's existing integration pattern exactly. Use when adding one more integration without inventing a second architecture.",
+      "metadata_only": true,
+      "name": "api-connector-builder",
+      "source_path": "/Users/rio/.agents/skills/api-connector-builder/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "REST API design patterns including resource naming, status codes, pagination, filtering, error responses, versioning, and rate limiting for production APIs.",
+      "metadata_only": true,
+      "name": "api-design",
+      "source_path": "/Users/rio/.agents/skills/api-design/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Bridge macOS SwiftUI into AppKit narrowly. Use when implementing representables, reaching NSWindow or panels, handling menus, or using the responder chain.",
+      "metadata_only": true,
+      "name": "appkit-interop",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/appkit-interop/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Write articles, guides, blog posts, tutorials, newsletter issues, and other long-form content in a distinctive voice derived from supplied examples or brand guidance. Use when the user wants polished written content longer than a paragraph, especially when voice consistency, structure, and credibility matter.",
+      "metadata_only": true,
+      "name": "article-writing",
+      "source_path": "/Users/rio/.agents/skills/article-writing/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a spreadsheet using the Analytics Dashboard template and its retained reference file. Use when the user selects or names Analytics Dashboard. Monitor acquisition, engagement, retention, revenue, and conversion funnel KPIs with charts.",
+      "metadata_only": true,
+      "name": "artifact-template-analytics-dashboard",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-analytics-dashboard/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a presentation using the Business Review template and its retained reference file. Use when the user selects or names Business Review. Review business performance, KPIs, segment results, strategic priorities, decisions, and outlook.",
+      "metadata_only": true,
+      "name": "artifact-template-business-review",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-business-review/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a document using the Design Report template and its retained reference file. Use when the user selects or names Design Report. Produce design reports with an executive summary, key findings, implications, recommendations, and appendix.",
+      "metadata_only": true,
+      "name": "artifact-template-design-report",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-design-report/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a document using the Minimal Letterhead template and its retained reference file. Use when the user selects or names Minimal Letterhead. Write professional business letters with sender, recipient, message, and signature fields in a minimal letterhead layout.",
+      "metadata_only": true,
+      "name": "artifact-template-minimal-letterhead",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-minimal-letterhead/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a presentation using the Simple Dark Mode template and its retained reference file. Use when the user selects or names Simple Dark Mode. Create clean dark-mode presentations with bold typography, simple sections, charts, and imagery.",
+      "metadata_only": true,
+      "name": "artifact-template-simple-dark-mode",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-dark-mode/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a presentation using the Simple Light Mode template and its retained reference file. Use when the user selects or names Simple Light Mode. Create clean light-mode presentations with spacious typography, simple sections, charts, and imagery.",
+      "metadata_only": true,
+      "name": "artifact-template-simple-light-mode",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-light-mode/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a document using the System Design template and its retained reference file. Use when the user selects or names System Design. Document system architecture, requirements, components, data flows, APIs, tradeoffs, and operational considerations.",
+      "metadata_only": true,
+      "name": "artifact-template-system-design",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-system-design/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create a spreadsheet using the Three-Statement Forecast template and its retained reference file. Use when the user selects or names Three-Statement Forecast. Build an integrated income statement, balance sheet, and cash flow forecast with assumptions, checks, and an executive summary.",
+      "metadata_only": true,
+      "name": "artifact-template-three-statement-forecast",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-three-statement-forecast/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Backend architecture patterns, API design, database optimization, and server-side best practices for Node.js, Express, and Next.js API routes.",
+      "metadata_only": true,
+      "name": "backend-patterns",
+      "source_path": "/Users/rio/.agents/skills/backend-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build a source-derived writing style profile from real posts, essays, launch notes, docs, or site copy, then reuse that profile across content, outreach, and social workflows. Use when the user wants voice consistency without generic AI writing tropes.",
+      "metadata_only": true,
+      "name": "brand-voice",
+      "source_path": "/Users/rio/.agents/skills/brand-voice/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build, run, and debug macOS apps with shell-first Xcode and Swift workflows. Use when launching apps or diagnosing build, startup, or runtime failures.",
+      "metadata_only": true,
+      "name": "build-run-debug",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/build-run-debug/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "ClickHouse database patterns, query optimization, analytics, and data engineering best practices for high-performance analytical workloads.",
+      "metadata_only": true,
+      "name": "clickhouse-io",
+      "source_path": "/Users/rio/.agents/skills/clickhouse-io/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Anthropic Codex API patterns for Python and TypeScript. Covers Messages API, streaming, tool use, vision, extended thinking, batches, prompt caching, and Codex Agent SDK. Use when building applications with the Codex API or Anthropic SDKs.",
+      "metadata_only": true,
+      "name": "Codex-api",
+      "source_path": "/Users/rio/.agents/skills/claude-api/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Baseline cross-project coding conventions for naming, readability, immutability, and code-quality review. Use detailed frontend or backend skills for framework-specific patterns.",
+      "metadata_only": true,
+      "name": "coding-standards",
+      "source_path": "/Users/rio/.agents/skills/coding-standards/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Compose Multiplatform and Jetpack Compose patterns for KMP projects — state management, navigation, theming, performance, and platform-specific UI.",
+      "metadata_only": true,
+      "name": "compose-multiplatform-patterns",
+      "source_path": "/Users/rio/.agents/skills/compose-multiplatform-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Interactive installer for Everything Codex — guides users through selecting and installing skills and rules to user-level or project-level directories, verifies paths, and optionally optimizes installed files.",
+      "metadata_only": true,
+      "name": "configure-ecc",
+      "source_path": "/Users/rio/.agents/skills/configure-ecc/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "C++ coding standards based on the C++ Core Guidelines (isocpp.github.io). Use when writing, reviewing, or refactoring C++ code to enforce modern, safe, and idiomatic practices.",
+      "metadata_only": true,
+      "name": "cpp-coding-standards",
+      "source_path": "/Users/rio/.agents/skills/cpp-coding-standards/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "ux"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create, repair, validate, preview, upload, or activate an animated v2 pet in ChatGPT Work mode from a character idea, brand cue, or reference image. Use for new ChatGPT Pets, custom mascots, non-pixel styles, and unattached sprite sheets requiring nine animation states plus sixteen look directions. Preserve Library artifacts and Pets MCP lifecycle behavior. Exclude real pets, standalone images, and other-app pets; clarify before invoking.",
+      "metadata_only": true,
+      "name": "create-pet",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/work-pets/0.1.6/skills/create-pet/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build monitoring dashboards that answer real operator questions for Grafana, SigNoz, and similar platforms. Use when turning metrics into a working dashboard instead of a vanity board.",
+      "metadata_only": true,
+      "name": "dashboard-builder",
+      "source_path": "/Users/rio/.agents/skills/dashboard-builder/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build a fully automated AI-powered data collection agent for any public source — job boards, prices, news, GitHub, sports, anything. Scrapes on a schedule, enriches data with a free LLM (Gemini Flash), stores results in Notion/Sheets/Supabase, and learns from user feedback. Runs 100% free on GitHub Actions. Use when the user wants to monitor, collect, or track any public data automatically.",
+      "metadata_only": true,
+      "name": "data-scraper-agent",
+      "source_path": "/Users/rio/.agents/skills/data-scraper-agent/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Multi-source deep research using firecrawl and exa MCPs. Searches the web, synthesizes findings, and delivers cited reports with source attribution. Use when the user wants thorough research on any topic with evidence and citations.",
+      "metadata_only": true,
+      "name": "deep-research",
+      "source_path": "/Users/rio/.agents/skills/deep-research/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Security checklist for Solidity AMM contracts, liquidity pools, and swap flows. Covers reentrancy, CEI ordering, donation or inflation attacks, oracle manipulation, slippage, admin controls, and integer math.",
+      "metadata_only": true,
+      "name": "defi-amm-security",
+      "source_path": "/Users/rio/.agents/skills/defi-amm-security/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Deployment workflows, CI/CD pipeline patterns, Docker containerization, health checks, rollback strategies, and production readiness checklists for web applications.",
+      "metadata_only": true,
+      "name": "deployment-patterns",
+      "source_path": "/Users/rio/.agents/skills/deployment-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Help with OpenAI DevDay attendance, onsite logistics, session schedules, personal plans, livestreams, recordings, and DevDay Exchanges. Use for DevDay-specific questions, not general OpenAI API or app development.",
+      "metadata_only": true,
+      "name": "devday-guide",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/skills/devday-guide/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Django architecture patterns, REST API design with DRF, ORM best practices, caching, signals, middleware, and production-grade Django apps.",
+      "metadata_only": true,
+      "name": "django-patterns",
+      "source_path": "/Users/rio/.agents/skills/django-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "ux"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Multi-agent orchestration using dmux (tmux pane manager for AI agents). Patterns for parallel agent workflows across Codex, Codex, OpenCode, and other harnesses. Use when running multiple agent sessions in parallel or coordinating multi-agent development workflows.",
+      "metadata_only": true,
+      "name": "dmux-workflows",
+      "source_path": "/Users/rio/.agents/skills/dmux-workflows/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create, edit, redline, and comment on `.docx`, Word, and Google Docs-targeted document artifacts inside the container, with a strict render-and-verify workflow. Use `render_docx.py` to generate page PNGs (and optional PDF) for visual QA, then iterate until layout is flawless before delivering the final document.",
+      "metadata_only": true,
+      "name": "documents",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/documents/26.1112.11217/skills/documents/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Idiomatic C# and .NET patterns, conventions, dependency injection, async/await, and best practices for building robust, maintainable .NET applications.",
+      "metadata_only": true,
+      "name": "dotnet-patterns",
+      "source_path": "/Users/rio/.agents/skills/dotnet-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "browser"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.",
+      "metadata_only": true,
+      "name": "e2e-testing",
+      "source_path": "/Users/rio/.agents/skills/e2e-testing/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Tailor an existing resume or create application materials for engineering job descriptions and role types, including forward deployed, backend, frontend, and full stack roles.",
+      "metadata_only": true,
+      "name": "engineering-resume-tailor",
+      "source_path": "/Users/rio/.codex/skills/engineering-resume-tailor/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Neural search via Exa MCP for web, code, and company research. Use when the user needs web search, code examples, company intel, people lookup, or AI-powered deep research with Exa's neural search engine.",
+      "metadata_only": true,
+      "name": "exa-search",
+      "source_path": "/Users/rio/.agents/skills/exa-search/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Creates and maintains Figma Code Connect template files that map Figma components to code snippets. Use when the user mentions Code Connect, Figma component mapping, design-to-code translation, or asks to create/update .figma.ts or .figma.js files.",
+      "metadata_only": true,
+      "name": "figma-code-connect",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-code-connect/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Import or upload local HTML or project files into Figma, choose editable Design frames, runnable Code Layers or standalone Code (also known as Make), and repair imported previews. Use only when the user explicitly names editable Design layers, a runnable Code Layer, or a standalone Code/Make file, or supplies a Figma file key/link as the import destination. Generic code or code-component requests need output clarification before using this workflow.",
+      "metadata_only": true,
+      "name": "figma-code-workflows",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-code-workflows/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Always use this skill when the user wants to create a new Figma Design, FigJam, or Slides file. You MUST invoke this skill BEFORE every `create_new_file` tool call.",
+      "metadata_only": true,
+      "name": "figma-create-new-file",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-create-new-file/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE calling the `get_design_context` Figma MCP tool. You MUST trigger this skill whenever the user wants to implement, build, port, or code up a Figma design as code. Example prompts (not exhaustive) are 'implement this Figma design', 'build this screen from Figma', 'turn this Figma into code', 'design to code'. This skill provides critical instructions and steps to the agent on how to correctly implement Figma designs in code and must NOT be skipped.",
+      "metadata_only": true,
+      "name": "figma-design-to-code",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-design-to-code/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use this skill alongside figma-use when the task involves translating an application page, view, or multi-section layout into Figma. Triggers: 'write to Figma', 'create in Figma from code', 'push page to Figma', 'take this app/page and build it in Figma', 'create a screen', 'build a landing page in Figma', 'update the Figma screen to match code', 'convert this modal/dialog/drawer/panel to Figma'. This is the preferred workflow skill whenever the user wants to build or update a full page, modal, dialog, drawer, sidebar, panel, form, dashboard, list, table, card, header, message preview, or other composed product UI in Figma from code or a description—even when the user calls that composed UI a component. Discovers design system components, variables, and styles from Code Connect files, existing screens, and library search, then imports them and assembles views incrementally section-by-section using design system tokens instead of hardcoded values.",
+      "metadata_only": true,
+      "name": "figma-generate-design",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-generate-design/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "MANDATORY prerequisite — load this skill BEFORE every `generate_diagram` tool call. NEVER call `generate_diagram` directly without loading this skill first. Trigger whenever the user asks to create, generate, draw, render, sketch, or build a diagram — flowchart, architecture diagram, sequence diagram, ERD or entity-relationship diagram, state diagram or state machine, gantt chart, or timeline. Also trigger when the user mentions Mermaid syntax or wants a system architecture, decision tree, dependency graph, API call flow, auth handshake, schema, or pipeline visualized in FigJam. Routes to type-specific guidance, sets universal Mermaid constraints, and tells you when to use a different diagram type or skip the tool entirely (mindmaps, pie charts, class diagrams, etc.).",
+      "metadata_only": true,
+      "name": "figma-generate-diagram",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-generate-diagram/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build or update a professional-grade design system in Figma from a codebase. Use when the user wants to create variables/tokens, build component libraries, create individual components with proper variant sets and variable bindings, set up theming (light/dark modes), document foundations, or reconcile gaps between code and Figma. Also use when the user asks to create or generate any component in Figma — even a single one — since components require proper variable foundations, variant states, and design token bindings to be production-quality. This skill teaches WHAT to build and in WHAT ORDER — it complements the `figma-use` skill which teaches HOW to call the Plugin API. Both skills should be loaded together.",
+      "metadata_only": true,
+      "name": "figma-generate-library",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-generate-library/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "**MANDATORY prerequisite** — load this skill before calling `create_generative_plugin` or `update_generative_plugin`. Use when the user asks to create, author, change, fix, or extend a reusable generative Figma plugin.",
+      "metadata_only": true,
+      "name": "figma-generative-plugins",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-generative-plugins/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Translates Figma motion and animations into production-ready application code. Use when implementing animation/motion from a Figma design — user mentions \"implement this motion\", \"add animation from Figma\", \"animate this component\", provides a Figma URL whose node is animated, or when `get_design_context` returns motion data or instructs you to call `get_motion_context`.",
+      "metadata_only": true,
+      "name": "figma-implement-motion",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-implement-motion/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "**MANDATORY prerequisite** — load this skill before calling `create_shader` or `update_shader`. Use when the user asks to create, author, change, fix, or iterate on a shader effect, shader fill, custom effect, custom fill, or procedural shader in Figma.",
+      "metadata_only": true,
+      "name": "figma-shaders",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-shaders/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "This skill is required to create, read, edit, review, or comment on Figma specs. You must read it when working on a PRD, brief, RFC or any kind of document in either a standalone Figma spec or a Figma spec embedded in a Figma Design or Figjam file.",
+      "metadata_only": true,
+      "name": "figma-spec",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-spec/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "SwiftUI ↔ Figma translation. Use whenever the user mentions Swift, SwiftUI, iOS, iPhone, or iPad — in EITHER direction — translating a Figma design into SwiftUI (design → code), or pushing SwiftUI views / screens / tokens back into a Figma file (code → design). Triggers on phrases like 'implement this Figma design in SwiftUI', 'build this screen in Swift', 'push this SwiftUI view to Figma', 'mirror my Swift code in a Figma file', or whenever a Figma URL appears alongside `.swift` files / an `.xcodeproj`. Routes to a direction-specific reference doc; loads alongside `figma-use` for the code → design path.",
+      "metadata_only": true,
+      "name": "figma-swiftui",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-swiftui/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "**MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `use_figma` tool call. NEVER call `use_figma` directly without loading this skill first. Skipping it causes common, hard-to-debug failures. Trigger whenever the user wants to perform a write action or a unique read action that requires JavaScript execution in the Figma file context — e.g. create/edit/delete nodes, set up variables or tokens, build components and variants, modify auto-layout or fills, bind variables to properties, or inspect file structure programmatically.",
+      "metadata_only": true,
+      "name": "figma-use",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-use/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "This skill helps agents use Figma's use_figma MCP tool in the FigJam context. Can be used alongside figma-use which has foundational context for using the use_figma tool.",
+      "metadata_only": true,
+      "name": "figma-use-figjam",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-use-figjam/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Motion / animation context for the `use_figma` MCP tool — animating Figma nodes via manual keyframes, animation styles, easing, and timeline duration. Load alongside figma-use whenever a task involves adding, editing, or inspecting animation on a node. Also covers working with custom animation styles.",
+      "metadata_only": true,
+      "name": "figma-use-motion",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-use-motion/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "This skill helps agents use Figma's use_figma MCP tool in the Slides context. Can be used alongside figma-use which has foundational context for using the use_figma tool.",
+      "metadata_only": true,
+      "name": "figma-use-slides",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/figma/18.0.0/skills/figma-use-slides/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Apple FoundationModels framework for on-device LLM — text generation, guided generation with @Generable, tool calling, and snapshot streaming in iOS 26+.",
+      "metadata_only": true,
+      "name": "foundation-models-on-device",
+      "source_path": "/Users/rio/.agents/skills/foundation-models-on-device/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use for new frontend applications, dashboards, games, creative websites, hero sections, and visually driven UI from scratch, or when the user explicitly asks for a redesign/restyle/modernization. Builds from clean, airy, high-taste, readable image-generated concept design with section-specific references, faithful implementation, and browser testing.",
+      "metadata_only": true,
+      "name": "frontend-app-builder",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/frontend-app-builder/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use for new frontend applications, dashboards, games, creative websites, hero sections, and visually driven UI from scratch, or when the user explicitly asks for a redesign/restyle/modernization. Builds from clean, airy, high-taste, readable image-generated concept design with section-specific references, faithful implementation, and browser testing.",
+      "metadata_only": true,
+      "name": "frontend-app-builder",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/frontend-app-builder/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use when the user asks to build web components, pages, or applications and the visual direction matters as much as the code quality.",
+      "metadata_only": true,
+      "name": "frontend-design",
+      "source_path": "/Users/rio/.agents/skills/frontend-design/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Run the persistent local Python frontend discovery, rendered-evidence audit, human-guided design review, isolated mockup, and separately authorized implementation workflow.",
+      "metadata_only": true,
+      "name": "frontend-design-director",
+      "source_path": "/Users/rio/.agents/skills/frontend-design-director/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Frontend development patterns for React, Next.js, state management, performance optimization, and UI best practices.",
+      "metadata_only": true,
+      "name": "frontend-patterns",
+      "source_path": "/Users/rio/.agents/skills/frontend-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presentation, convert a PPT/PPTX to web, or create slides for a talk/pitch. Helps non-designers discover their aesthetic through visual exploration rather than abstract choices.",
+      "metadata_only": true,
+      "name": "frontend-slides",
+      "source_path": "/Users/rio/.agents/skills/frontend-slides/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "ux",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use when testing, debugging, or making targeted improvements to rendered frontend apps through the Build Web Apps or web dev plugin: local dev servers, UI regressions, interaction bugs, console errors, responsive layout, and visual QA. Check whether the Browser plugin is available and use it first when it is; otherwise use regular Playwright with the recorded reason.",
+      "metadata_only": true,
+      "name": "frontend-testing-debugging",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/frontend-testing-debugging/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "ux",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use when testing, debugging, or making targeted improvements to rendered frontend apps through the Build Web Apps or web dev plugin: local dev servers, UI regressions, interaction bugs, console errors, responsive layout, and visual QA. Check whether the Browser plugin is available and use it first when it is; otherwise use regular Playwright with the recorded reason.",
+      "metadata_only": true,
+      "name": "frontend-testing-debugging",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/frontend-testing-debugging/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Run browser-game playtests and frontend QA. Use when the user asks for smoke tests, screenshot-based verification, browser automation, HUD or overlay review, or structured issue-finding in a browser game.",
+      "metadata_only": true,
+      "name": "game-playtest",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/game-playtest/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Route early browser-game work. Use when the user needs stack selection and workflow planning across design, implementation, assets, and playtesting before moving to a specialist skill.",
+      "metadata_only": true,
+      "name": "game-studio",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/game-studio/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "ux",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Design UI surfaces for browser games. Use when the user asks for HUDs, menus, overlays, responsive layouts, or visual direction that must protect the playfield.",
+      "metadata_only": true,
+      "name": "game-ui-frontend",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/game-ui-frontend/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Idiomatic Go patterns, best practices, and conventions for building robust, efficient, and maintainable Go applications.",
+      "metadata_only": true,
+      "name": "golang-patterns",
+      "source_path": "/Users/rio/.agents/skills/golang-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Design skill for websites and new pages that look designed, not generated. Use when the user asks to build or design something new, or names Hallmark. Never use it on an existing design unless the user names Hallmark, as in `/hallmark redesign <path>`.",
+      "metadata_only": true,
+      "name": "hallmark",
+      "source_path": "/Users/rio/.agents/skills/hallmark/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "HIPAA-specific entrypoint for healthcare privacy and security work. Use when a task is explicitly framed around HIPAA, PHI handling, covered entities, BAAs, breach posture, or US healthcare compliance requirements.",
+      "metadata_only": true,
+      "name": "hipaa-compliance",
+      "source_path": "/Users/rio/.agents/skills/hipaa-compliance/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "This skill should be used when the user asks to create a hookify rule, write a hook rule, configure hookify, add a hookify rule, or needs guidance on hookify rule syntax and patterns.",
+      "metadata_only": true,
+      "name": "hookify-rules",
+      "source_path": "/Users/rio/.agents/skills/hookify-rules/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, textures, sprites, mockups, or transparent-background cutouts. Use when Codex should create a brand-new image, transform an existing image, or derive visual variants from references, and the output should be a bitmap asset rather than repo-native code or vector. Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas.",
+      "metadata_only": true,
+      "name": "imagegen",
+      "source_path": "/Users/rio/.codex/skills/.system/imagegen/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Design App Intents, app entities, and App Shortcuts for iOS system surfaces. Use when exposing app actions or content to Shortcuts, Siri, Spotlight, widgets, or controls.",
+      "metadata_only": true,
+      "name": "ios-app-intents",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/ios-app-intents/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "ux"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build, run, and debug iOS apps on Simulator with XcodeBuildMCP. Use when launching an app, inspecting simulator UI or logs, or diagnosing runtime behavior.",
+      "metadata_only": true,
+      "name": "ios-debugger-agent",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/ios-debugger-agent/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Capture and interpret iOS Simulator ETTrace profiles. Use when profiling launch or runtime latency, comparing traces, or finding CPU-heavy stacks.",
+      "metadata_only": true,
+      "name": "ios-ettrace-performance",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/ios-ettrace-performance/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Mirror an iOS Simulator into the Codex in-app browser and render SwiftUI previews from importable Swift packages in that simulator with hot reload. Use when a user wants to watch or interact with an iOS app in the browser, see a SwiftUI preview outside Xcode Canvas, iterate live on a preview, or capture browser-visible simulator proof.",
+      "metadata_only": true,
+      "name": "ios-simulator-browser",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/ios-simulator-browser/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Java coding standards for Spring Boot services: naming, immutability, Optional usage, streams, exceptions, generics, and project layout.",
+      "metadata_only": true,
+      "name": "java-coding-standards",
+      "source_path": "/Users/rio/.agents/skills/java-coding-standards/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Use this skill when retrieving Jira tickets, analyzing requirements, updating ticket status, adding comments, or transitioning issues. Provides Jira API patterns via MCP or direct REST calls.",
+      "metadata_only": true,
+      "name": "jira-integration",
+      "source_path": "/Users/rio/.agents/skills/jira-integration/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "JPA/Hibernate patterns for entity design, relationships, query optimization, transactions, auditing, indexing, pagination, and pooling in Spring Boot.",
+      "metadata_only": true,
+      "name": "jpa-patterns",
+      "source_path": "/Users/rio/.agents/skills/jpa-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Ktor server patterns including routing DSL, plugins, authentication, Koin DI, kotlinx.serialization, WebSockets, and testApplication testing.",
+      "metadata_only": true,
+      "name": "kotlin-ktor-patterns",
+      "source_path": "/Users/rio/.agents/skills/kotlin-ktor-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Idiomatic Kotlin patterns, best practices, and conventions for building robust, efficient, and maintainable Kotlin applications with coroutines, null safety, and DSL builders.",
+      "metadata_only": true,
+      "name": "kotlin-patterns",
+      "source_path": "/Users/rio/.agents/skills/kotlin-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Implement and review macOS SwiftUI Liquid Glass UI. Use when adopting system glass, removing conflicting custom chrome, or building glass surfaces.",
+      "metadata_only": true,
+      "name": "liquid-glass",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/liquid-glass/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "iOS 26 Liquid Glass design system — dynamic glass material with blur, reflection, and interactive morphing for SwiftUI, UIKit, and WidgetKit.",
+      "metadata_only": true,
+      "name": "liquid-glass-design",
+      "source_path": "/Users/rio/.agents/skills/liquid-glass-design/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Security patterns for autonomous trading agents with wallet or transaction authority. Covers prompt injection, spend limits, pre-send simulation, circuit breakers, MEV protection, and key handling.",
+      "metadata_only": true,
+      "name": "llm-trading-agent-security",
+      "source_path": "/Users/rio/.agents/skills/llm-trading-agent-security/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build reusable Manim explainers for technical concepts, graphs, system diagrams, and product walkthroughs, then hand off to the wider ECC video stack if needed. Use when the user wants a clean animated explainer rather than a generic talking-head script.",
+      "metadata_only": true,
+      "name": "manim-video",
+      "source_path": "/Users/rio/.agents/skills/manim-video/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Build MCP servers with Node/TypeScript SDK — tools, resources, prompts, Zod validation, stdio vs Streamable HTTP. Use Context7 or official MCP docs for latest API.",
+      "metadata_only": true,
+      "name": "mcp-server-patterns",
+      "source_path": "/Users/rio/.agents/skills/mcp-server-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Operate and extend NanoClaw v2, ECC's zero-dependency session-aware REPL built on Codex -p.",
+      "metadata_only": true,
+      "name": "nanoclaw-repl",
+      "source_path": "/Users/rio/.agents/skills/nanoclaw-repl/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "ux"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Audit and migrate existing AI integrations to current OpenAI APIs and models, preserving behavior and upgrading where efficiency gains are possible. Use for legacy APIs, provider migrations, or Responses API improvements.",
+      "metadata_only": true,
+      "name": "openai-api-migration",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/skills/openai-api-migration/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build or debug an application that uses OpenAI SDK computer or browser tools to operate a user-provided environment.",
+      "metadata_only": true,
+      "name": "openai-computer-use",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/skills/openai-computer-use/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use when Codex is asked to build, run, test, debug, or configure an OpenAI-backed or provider-unspecified AI app, UI, script, CLI, generator, or tool, especially requests phrased only as \"using AI\" or generators driven by forms/user input; also use for OPENAI_API_KEY or sk-proj setup. Treat this as the credential gate: inspect safely, ask reuse-vs-new before API work, and never expose plaintext.",
+      "metadata_only": true,
+      "name": "openai-platform-api-key",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/openai-developers/1.3.16/skills/openai-platform-api-key/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Prepare macOS packaging and notarization workflows. Use when archiving apps, validating bundles, or explaining distribution-only failures.",
+      "metadata_only": true,
+      "name": "packaging-notarization",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/packaging-notarization/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Read, create, inspect, render, and verify PDF files where visual layout matters, including fillable AcroForms. Use Poppler rendering plus Python tools such as reportlab, pdfplumber, and pypdf for generation and extraction.",
+      "metadata_only": true,
+      "name": "pdf",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/pdf/26.1112.11217/skills/pdf/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Modern Perl 5.36+ idioms, best practices, and conventions for building robust, maintainable Perl applications.",
+      "metadata_only": true,
+      "name": "perl-patterns",
+      "source_path": "/Users/rio/.agents/skills/perl-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Comprehensive Perl security covering taint mode, input validation, safe process execution, DBI parameterized queries, web security (XSS/SQLi/CSRF), and perlcritic security policies.",
+      "metadata_only": true,
+      "name": "perl-security",
+      "source_path": "/Users/rio/.agents/skills/perl-security/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Implement 2D browser games with Phaser. Use when the user wants a Phaser, TypeScript, and Vite stack for scenes, gameplay systems, cameras, sprite animation, and DOM-overlay HUD patterns.",
+      "metadata_only": true,
+      "name": "phaser-2d-game",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/phaser-2d-game/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "PostgreSQL database patterns for query optimization, schema design, indexing, and security. Based on Supabase best practices.",
+      "metadata_only": true,
+      "name": "postgres-patterns",
+      "source_path": "/Users/rio/.agents/skills/postgres-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Translate PRD intent, roadmap asks, or product discussions into an implementation-ready capability plan that exposes constraints, invariants, interfaces, and unresolved decisions before multi-service work starts. Use when the user needs an ECC-native PRD-to-SRS lane instead of vague planning prose.",
+      "metadata_only": true,
+      "name": "product-capability",
+      "source_path": "/Users/rio/.agents/skills/product-capability/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Pythonic idioms, PEP 8 standards, type hints, and best practices for building robust, efficient, and maintainable Python applications.",
+      "metadata_only": true,
+      "name": "python-patterns",
+      "source_path": "/Users/rio/.agents/skills/python-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Python testing strategies using pytest, TDD methodology, fixtures, mocking, parametrization, and coverage requirements.",
+      "metadata_only": true,
+      "name": "python-testing",
+      "source_path": "/Users/rio/.agents/skills/python-testing/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimization, or performance improvements.",
+      "metadata_only": true,
+      "name": "react-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/react-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimization, or performance improvements.",
+      "metadata_only": true,
+      "name": "react-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/react-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build React-hosted 3D browser games with React Three Fiber. Use when the user wants pmndrs-based scene composition, shared React state, and 3D HUD integration inside a React app.",
+      "metadata_only": true,
+      "name": "react-three-fiber-game",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/react-three-fiber-game/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Evidence-first current-state research workflow for ECC. Use when the user wants fresh facts, comparisons, enrichment, or a recommendation built from current public evidence and any supplied local context.",
+      "metadata_only": true,
+      "name": "research-ops",
+      "source_path": "/Users/rio/.agents/skills/research-ops/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "ux",
+        "browser",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Reverse engineer native, managed, Electron/JavaScript, packaged, firmware, and browser targets with REA, and build agent environments (AgentEnv bundles) of web applications from a live instance or a capture, and of Linux desktop apps with a task from a request. Use shipped-artifact or requested runtime evidence to explain features, compare versions, decompile code, or guide a reconstruction. Skip REA for ordinary source-repository architecture analysis.",
+      "metadata_only": true,
+      "name": "reverse-engineer-anything",
+      "source_path": "/Users/rio/.agents/skills/reverse-engineer-anything/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Idiomatic Rust patterns, ownership, error handling, traits, concurrency, and best practices for building safe, performant applications.",
+      "metadata_only": true,
+      "name": "rust-patterns",
+      "source_path": "/Users/rio/.agents/skills/rust-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Audit, plan, and implement SEO improvements across technical SEO, on-page optimization, structured data, Core Web Vitals, and content strategy. Use when the user wants better search visibility, SEO remediation, schema markup, sitemap/robots work, or keyword mapping.",
+      "metadata_only": true,
+      "name": "seo",
+      "source_path": "/Users/rio/.agents/skills/seo/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI. Provides project context, component docs, and usage examples. Applies when working with shadcn/ui, component registries, presets, --preset codes, or any project with a components.json file. Also triggers for \"shadcn init\", \"create an app with --preset\", or \"switch to --preset\".",
+      "metadata_only": true,
+      "name": "shadcn",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/shadcn-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI. Provides project context, component docs, and usage examples. Applies when working with shadcn/ui, component registries, presets, --preset codes, or any project with a components.json file. Also triggers for \"shadcn init\", \"create an app with --preset\", or \"switch to --preset\".",
+      "metadata_only": true,
+      "name": "shadcn",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/shadcn-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use Sites when the user wants a website built for them (including a landing page, portfolio, dashboard, portal, tracker, hub, game, event registration, or tool), requests changes to a website already built with Sites, wants to publish a website with Sites, or wants to manage Sites hosting.",
+      "metadata_only": true,
+      "name": "sites",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/skills/sites/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Remix a Site built with the Sites plugin into a new Site. Use when the user has identified the source Site and asks to remix it.",
+      "metadata_only": true,
+      "name": "sites-remix",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/skills/sites-remix/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Use skill when user requests to create, modify, analyze, visualize, or work with spreadsheet files (`.xlsx`, `.xls`, `.csv`, `.tsv`) or Google Sheets with formulas, formatting, charts, tables, and recalculation. Do not use for live controlling Microsoft Excel app or a live Excel session.",
+      "metadata_only": true,
+      "name": "Spreadsheets",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/spreadsheets/26.1112.11217/skills/spreadsheets/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Spring Boot architecture patterns, REST API design, layered services, data access, caching, async processing, and logging. Use for Java Spring Boot backend work.",
+      "metadata_only": true,
+      "name": "springboot-patterns",
+      "source_path": "/Users/rio/.agents/skills/springboot-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Verification loop for Spring Boot projects: build, static analysis, tests with coverage, security scans, and diff review before release or PR.",
+      "metadata_only": true,
+      "name": "springboot-verification",
+      "source_path": "/Users/rio/.agents/skills/springboot-verification/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Generate and normalize 2D sprite animations. Use when the user asks for full-strip generation from approved source frames, consistent anchor and scale normalization, or preview assets for browser-game animation.",
+      "metadata_only": true,
+      "name": "sprite-pipeline",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/sprite-pipeline/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Guides Stripe integration decisions — API selection (Checkout Sessions vs PaymentIntents), Connect platform setup (Accounts v2, controller properties), billing/subscriptions, Treasury financial accounts, integration surfaces (Checkout, Payment Element), and migrating from deprecated Stripe APIs. Use when building, modifying, or reviewing any Stripe integration — including accepting payments, building marketplaces, integrating Stripe, processing payments, setting up subscriptions, or creating connected accounts.",
+      "metadata_only": true,
+      "name": "stripe-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/stripe-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Guides Stripe integration decisions — API selection (Checkout Sessions vs PaymentIntents), Connect platform setup (Accounts v2, controller properties), billing/subscriptions, Treasury financial accounts, integration surfaces (Checkout, Payment Element), and migrating from deprecated Stripe APIs. Use when building, modifying, or reviewing any Stripe integration — including accepting payments, building marketplaces, integrating Stripe, processing payments, setting up subscriptions, or creating connected accounts.",
+      "metadata_only": true,
+      "name": "stripe-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/stripe-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Postgres performance optimization and best practices from Supabase. Use this skill when writing, reviewing, or optimizing Postgres queries, schema designs, or database configurations.",
+      "metadata_only": true,
+      "name": "supabase-postgres-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-web-apps/1dc19589/skills/supabase-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Postgres performance optimization and best practices from Supabase. Use this skill when writing, reviewing, or optimizing Postgres queries, schema designs, or database configurations.",
+      "metadata_only": true,
+      "name": "supabase-postgres-best-practices",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/build-web-apps/0.1.2/skills/supabase-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Thread-safe data persistence in Swift using actors — in-memory cache with file-backed storage, eliminating data races by design.",
+      "metadata_only": true,
+      "name": "swift-actor-persistence",
+      "source_path": "/Users/rio/.agents/skills/swift-actor-persistence/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build, run, and test SwiftPM macOS packages and executables. Use when the repo is package-first or has no Xcode project.",
+      "metadata_only": true,
+      "name": "swiftpm-macos",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/swiftpm-macos/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Implement and review iOS 26+ SwiftUI Liquid Glass UI. Use when adopting Liquid Glass or checking its correctness, performance, and design fit.",
+      "metadata_only": true,
+      "name": "swiftui-liquid-glass",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/swiftui-liquid-glass/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "SwiftUI architecture patterns, state management with @Observable, view composition, navigation, performance optimization, and modern iOS/macOS UI best practices.",
+      "metadata_only": true,
+      "name": "swiftui-patterns",
+      "source_path": "/Users/rio/.agents/skills/swiftui-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build macOS SwiftUI scenes and components with desktop patterns. Use when shaping windows, commands, toolbars, settings, split views, or inspectors.",
+      "metadata_only": true,
+      "name": "swiftui-patterns",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/swiftui-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Audit SwiftUI runtime performance from code first. Use when diagnosing slow rendering, janky scrolling, expensive updates, or profiling needs.",
+      "metadata_only": true,
+      "name": "swiftui-performance-audit",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/swiftui-performance-audit/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Build and refactor SwiftUI UI with component patterns and examples. Use when shaping navigation, state, layouts, controls, or screen composition.",
+      "metadata_only": true,
+      "name": "swiftui-ui-patterns",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/swiftui-ui-patterns/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Refactor SwiftUI view files into stable, testable structure. Use when splitting large views, tightening data flow, or cleaning Observation ownership.",
+      "metadata_only": true,
+      "name": "swiftui-view-refactor",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-ios-apps/1dc19589/skills/swiftui-view-refactor/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Interactive agent picker for composing and dispatching parallel teams",
+      "metadata_only": true,
+      "name": "team-builder",
+      "source_path": "/Users/rio/.agents/skills/team-builder/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create or update a reusable personal Codex artifact-template skill. Use when the user invokes $template-creator or asks in natural language to create a reusable template from a reference document, presentation, spreadsheet, Google Docs, Slides, or Sheets link, ImageGen or Product Design image, email, Slack message, or Site project, or explicitly asks to edit or update a passed artifact-template skill. Do not use for one-off creation from an existing template.",
+      "metadata_only": true,
+      "name": "template-creator",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-primary-runtime/template-creator/26.1112.11217/skills/template-creator/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Implement browser-game runtimes with plain Three.js. Use when the user wants imperative scene control in TypeScript or Vite with GLB assets, loaders, physics, and low-level WebGL debugging.",
+      "metadata_only": true,
+      "name": "three-webgl-game",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/three-webgl-game/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Record polished UI demo videos using Playwright. Use when the user asks to create a demo, walkthrough, screen recording, or tutorial video of a web application. Produces WebM videos with visible cursor, natural pacing, and professional feel.",
+      "metadata_only": true,
+      "name": "ui-demo",
+      "source_path": "/Users/rio/.agents/skills/ui-demo/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "ux",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Use for Vercel cost and performance optimization on deployed projects, especially Next.js, SvelteKit, Nuxt, and limited Astro apps. Collect Vercel metrics, usage, project config, and code scan results first; investigate only metric-backed candidates; produce ranked recommendations grounded in verified files and version-aware Vercel/framework docs. Trigger for Vercel bill reduction, slow or expensive routes, caching opportunities, Function Invocations, Build Minutes, Fast Data Transfer, Core Web Vitals, Bot Management, Fluid compute, or cost breakdown requests.",
+      "metadata_only": true,
+      "name": "vercel-optimize",
+      "source_path": "/Users/rio/.agents/skills/vercel-optimize/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "performance"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimization, or performance improvements.",
+      "metadata_only": true,
+      "name": "vercel-react-best-practices",
+      "source_path": "/Users/rio/.agents/skills/vercel-react-best-practices/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Guide for implementing smooth, native-feeling animations using React's View Transition API (`<ViewTransition>` component, `addTransitionType`, and CSS view transition pseudo-elements). Use this skill whenever the user wants to add page transitions, animate route changes, create shared element animations, animate enter/exit of components, animate list reorder, implement directional (forward/back) navigation animations, or integrate view transitions in Next.js. Also use when the user mentions view transitions, `startViewTransition`, `ViewTransition`, transition types, or asks about animating between UI states in React without third-party animation libraries.",
+      "metadata_only": true,
+      "name": "vercel-react-view-transitions",
+      "source_path": "/Users/rio/.agents/skills/vercel-react-view-transitions/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "AI-assisted video editing workflows for cutting, structuring, and augmenting real footage. Covers the full pipeline from raw capture through FFmpeg, Remotion, ElevenLabs, fal.ai, and final polish in Descript or CapCut. Use when the user wants to edit video, cut footage, create vlogs, or build video content.",
+      "metadata_only": true,
+      "name": "video-editing",
+      "source_path": "/Users/rio/.agents/skills/video-editing/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "See, Understand, Act on video and audio. See- ingest from local files, URLs, RTSP/live feeds, or live record desktop; return realtime context and playable stream links. Understand- extract frames, build visual/semantic/temporal indexes, and search moments with timestamps and auto-clips. Act- transcode and normalize (codec, fps, resolution, aspect ratio), perform timeline edits (subtitles, text/image overlays, branding, audio overlays, dubbing, translation), generate media assets (image, audio, video), and create real time alerts for events from live streams or desktop capture.",
+      "metadata_only": true,
+      "name": "videodb",
+      "source_path": "/Users/rio/.agents/skills/videodb/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Refactor macOS SwiftUI views and scenes into stable structure. Use when splitting large views, tightening scene state, or narrowing AppKit escapes.",
+      "metadata_only": true,
+      "name": "view-refactor",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/view-refactor/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create visualizations and interactive tools directly in conversation. Proactively use to show how something works; explore 'what happens when', 'what changes', or 'help me understand'; compare or inspect; create simulations, maps, charts, graphs, and mockups. Use standard tools for static scientific figures.",
+      "metadata_only": true,
+      "name": "visualize",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-bundled/visualize/1.0.97/skills/visualize/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "visual"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Create visualizations and interactive tools directly in conversation. Proactively use to show how something works; explore 'what happens when', 'what changes', or 'help me understand'; compare or inspect; create simulations, maps, charts, graphs, and mockups. Use standard tools for static scientific figures.",
+      "metadata_only": true,
+      "name": "visualize",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated-remote/visualize/1.0.89/skills/visualize/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Prepare and optimize browser-game 3D assets. Use when the user asks for GLB or glTF shipping work, including Blender cleanup and export, collision or LOD setup, compression, texture packaging, and runtime validation.",
+      "metadata_only": true,
+      "name": "web-3d-asset-pipeline",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/web-3d-asset-pipeline/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "visual",
+        "accessibility",
+        "ux"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", \"review UX\", or \"check my site against best practices\".",
+      "metadata_only": true,
+      "name": "web-design-guidelines",
+      "source_path": "/Users/rio/.agents/skills/web-design-guidelines/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "browser",
+        "performance"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Set browser-game architecture before implementation. Use when the user needs engine choice, simulation and render boundaries, input model, asset organization, or save/debug/performance strategy.",
+      "metadata_only": true,
+      "name": "web-game-foundations",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/game-studio/1dc19589/skills/web-game-foundations/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend",
+        "ux"
+      ],
+      "compatibility_confidence": "observed_install_location",
+      "description": "Customize macOS SwiftUI windows and scene behavior. Use when tuning window chrome, drag regions, placement, restoration, launch behavior, or borderless windows.",
+      "metadata_only": true,
+      "name": "window-management",
+      "source_path": "/Users/rio/.codex/plugins/cache/openai-curated/build-macos-apps/1dc19589/skills/window-management/SKILL.md"
+    },
+    {
+      "capabilities": [
+        "frontend"
+      ],
+      "compatibility_confidence": "documented_location",
+      "description": "Review docs/prose for Writing Guidelines compliance. Use when asked to \"review my docs\", \"check writing style\", \"audit prose\", \"review docs voice and tone\", or \"check this page against the writing handbook\".",
+      "metadata_only": true,
+      "name": "writing-guidelines",
+      "source_path": "/Users/rio/.agents/skills/writing-guidelines/SKILL.md"
+    }
+  ]
+}

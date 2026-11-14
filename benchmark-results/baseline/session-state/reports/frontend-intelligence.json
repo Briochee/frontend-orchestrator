@@ -1,0 +1,6329 @@
+{
+  "architecture": {
+    "application_entry_and_routes": [],
+    "configuration_and_manifests": [],
+    "hooks_and_composables": [],
+    "layouts_and_features": [],
+    "services_and_api_clients": [],
+    "shared_components": [],
+    "state_and_models": [],
+    "styles_and_themes": [
+      "assets/styles.css"
+    ],
+    "tests_and_story_catalogs": []
+  },
+  "audit_depth": "deep",
+  "browser_navigation_failures": [],
+  "capture_route_paths": [],
+  "capture_route_policy": "all_static_candidates",
+  "components": [
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-link",
+      "occurrence_count": 5,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "article",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-card",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-head",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-icon",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-value",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-trend",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "article",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title-row",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "h2",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-subtitle",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "activity-item",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "activity-icon",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "progress-label",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "track",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "avatar",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5,
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content-grid",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "body",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "dashboard-page",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "app-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "aside",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand-mark",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-label",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "nav",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-count",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar-footer",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mobile-backdrop",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "main",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "header",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "topbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button.mobile-menu",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "crumb",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "status-pill",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "live-beacon.status-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-profile",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "main",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "eyebrow",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "h1",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-subtitle",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "heading-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-primary",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "grid-4",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-small",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "svg",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "chart-svg",
+      "occurrence_count": 1,
+      "role": "img",
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "chart-legend",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "i",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "legend-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "i",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "gray.legend-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "link",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "active.badge",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "progress-list",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "notice",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "hint",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "footer-note",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toast",
+      "occurrence_count": 1,
+      "role": "status",
+      "routes": [],
+      "source": "index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-link",
+      "occurrence_count": 5,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "progress-label",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "track",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title-row",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "h2",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-subtitle",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mini-stat",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "avatar",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5,
+        6
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "article",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "body",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "analytics-page",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "app-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "aside",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand-mark",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-label",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "nav",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-count",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar-footer",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mobile-backdrop",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "main",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "header",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "topbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button.mobile-menu",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "crumb",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "status-pill",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "live-beacon.status-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-profile",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "main",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "eyebrow",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "h1",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-subtitle",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "heading-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-primary",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "layout-2",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mini-caption",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "chart-frame",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "svg",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "chart-svg",
+      "occurrence_count": 1,
+      "role": "img",
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "progress-list",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "metric-detail",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "range-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "hint",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "footer-note",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toast",
+      "occurrence_count": 1,
+      "role": "status",
+      "routes": [],
+      "source": "analytics/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "avatar",
+      "occurrence_count": 8,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5,
+        6,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button",
+      "occurrence_count": 7,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "article",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "customer-card",
+      "occurrence_count": 6,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "customer-card-top",
+      "occurrence_count": 6,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "customer-stats",
+      "occurrence_count": 6,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-link",
+      "occurrence_count": 5,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "body",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "customers-page",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "app-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "aside",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand-mark",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-label",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "nav",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-count",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar-footer",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mobile-backdrop",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "main",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "header",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "topbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button.mobile-menu",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "crumb",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "status-pill",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "live-beacon.status-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-profile",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "main",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "eyebrow",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "h1",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-subtitle",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "heading-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-primary",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toolbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "search-box",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toolbar-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "customer-grid",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "footer-note",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toast",
+      "occurrence_count": 1,
+      "role": "status",
+      "routes": [],
+      "source": "customers/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn",
+      "occurrence_count": 6,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-link",
+      "occurrence_count": 5,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "avatar",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5,
+        6
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-primary",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "hint",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "body",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "orders-page",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "app-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "aside",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand-mark",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-label",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "nav",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-count",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar-footer",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mobile-backdrop",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "main",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "header",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "topbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button.mobile-menu",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "crumb",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "status-pill",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "live-beacon.status-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-profile",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "main",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "eyebrow",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "h1",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-subtitle",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "heading-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toolbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "search-box",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toolbar-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "label",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "hint",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-danger",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "table-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "table",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "table",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "modal-overlay",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "modal-card",
+      "occurrence_count": 1,
+      "role": "dialog",
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "modal-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "footer-note",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toast",
+      "occurrence_count": 1,
+      "role": "status",
+      "routes": [],
+      "source": "orders/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-link",
+      "occurrence_count": 5,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "section",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "h2",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "field",
+      "occurrence_count": 4,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-title-row",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-subtitle",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "switch-row",
+      "occurrence_count": 3,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "switch",
+      "occurrence_count": 3,
+      "role": "switch",
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "avatar",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5,
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "stack",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "notice",
+      "occurrence_count": 2,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7,
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "body",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "settings-page",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "app-shell",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "aside",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        3
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "a",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "brand-mark",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        4
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-label",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "nav",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "nav-count",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "sidebar-footer",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        5
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "mobile-backdrop",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "main",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "header",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "topbar",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "navigation",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button.mobile-menu",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "crumb",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-actions",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "status-pill",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "data display",
+      "confidence": "high",
+      "element": "span",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "live-beacon.status-dot",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "icon-button",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "top-profile",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        6
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "main",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "content",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "eyebrow",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "h1",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-heading",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "page-subtitle",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "settings-grid",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "form",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "form",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "fixed-field-row.form-row",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "layout",
+      "confidence": "high",
+      "element": "hr",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "panel-divider",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "field-hint",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "subtle-text",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn.btn-primary",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "form control",
+      "confidence": "high",
+      "element": "button",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "btn",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "p",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "hint",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "shared or feature component",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "footer-note",
+      "occurrence_count": 1,
+      "role": null,
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    },
+    {
+      "classification": "overlay or feedback",
+      "confidence": "high",
+      "element": "div",
+      "evidence_kind": "static_html_structure",
+      "exports": [],
+      "line_count": 8,
+      "local_imports": [],
+      "name": "toast",
+      "occurrence_count": 1,
+      "role": "status",
+      "routes": [],
+      "source": "settings/index.html",
+      "source_lines": [
+        7
+      ]
+    }
+  ],
+  "coverage": {
+    "browser_navigation_failures": 0,
+    "component_profiles": 228,
+    "evidence_boundary": "Source inventories are static observations. Visual appearance claims require linked rendered screenshots.",
+    "rendered_evidence_available": false,
+    "rendered_viewports": [],
+    "routes_discovered": 26,
+    "routes_rendered": 0,
+    "screenshots_captured": 0,
+    "source_files_inspected": 13
+  },
+  "design_system": {
+    "breakpoints": [
+      "1180px",
+      "520px",
+      "800px"
+    ],
+    "color_tokens": [
+      {
+        "file": "assets/styles.css",
+        "name": "border",
+        "value": "#e3e8ef"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-100",
+        "value": "#d9f0ec"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-600",
+        "value": "#147d79"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-700",
+        "value": "#0e6561"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "canvas",
+        "value": "#f5f7fb"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "gold",
+        "value": "#d98a1b"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-400",
+        "value": "#8693a5"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-600",
+        "value": "#59667a"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-700",
+        "value": "#3c4a5e"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-900",
+        "value": "#202c3b"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "red",
+        "value": "#bd4849"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "shadow",
+        "value": "0 4px 16px rgba(31,46,69,.04)"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "surface",
+        "value": "#ffffff"
+      }
+    ],
+    "colors": [
+      {
+        "count": 2,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#5850b5"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#167c87"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#182936"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#236e74"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#238a70"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#24645f"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#253e48"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#25585b"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#255f69"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#263d4c"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#277d78"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#2b7b5c"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#314653"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#31837e"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#36a98b"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#36b4a3"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#3a786d"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#435267"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#486b75"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#526174"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#5d6b7b"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#7d8b9c"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#8390a0"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#8d9aab"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#8ea3b2"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#94a6b6"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#96a2b1"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#97620f"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#97a3b1"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#9aafbc"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#a84444"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#a9b5c2"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#afc0cc"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#b5bfcb"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#b5c0cb"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#bd4849"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#bfcad4"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#cbd8e2"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#ccd7df"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#d0e7e3"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#e0f2e9"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#eaf5f3"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#ecf5f6"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#edf1f6"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#eef1f5"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#f0fdfb"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#f1cecc"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#f1f5f8"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#f1fafb"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#f3faf7"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#fbfcfe"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#fbfdfd"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#fde5e4"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "#fff0d5"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "rgba(12,24,38,.45)"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "rgba(12,24,38,.55)"
+      }
+    ],
+    "custom_properties": [
+      {
+        "file": "assets/styles.css",
+        "name": "border",
+        "occurrences": 1,
+        "value": "#e3e8ef"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-100",
+        "occurrences": 1,
+        "value": "#d9f0ec"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-600",
+        "occurrences": 1,
+        "value": "#147d79"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "brand-700",
+        "occurrences": 1,
+        "value": "#0e6561"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "canvas",
+        "occurrences": 1,
+        "value": "#f5f7fb"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "font-ui",
+        "occurrences": 1,
+        "value": "Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "gold",
+        "occurrences": 1,
+        "value": "#d98a1b"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-400",
+        "occurrences": 1,
+        "value": "#8693a5"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-600",
+        "occurrences": 1,
+        "value": "#59667a"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-700",
+        "occurrences": 1,
+        "value": "#3c4a5e"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "ink-900",
+        "occurrences": 1,
+        "value": "#202c3b"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "radius-card",
+        "occurrences": 1,
+        "value": "14px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "radius-input",
+        "occurrences": 1,
+        "value": "9px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "red",
+        "occurrences": 1,
+        "value": "#bd4849"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "shadow",
+        "occurrences": 1,
+        "value": "0 4px 16px rgba(31,46,69,.04)"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-1",
+        "occurrences": 1,
+        "value": "4px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-2",
+        "occurrences": 1,
+        "value": "8px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-3",
+        "occurrences": 1,
+        "value": "12px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-4",
+        "occurrences": 1,
+        "value": "16px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-5",
+        "occurrences": 1,
+        "value": "20px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-6",
+        "occurrences": 1,
+        "value": "24px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "space-8",
+        "occurrences": 1,
+        "value": "32px"
+      },
+      {
+        "file": "assets/styles.css",
+        "name": "surface",
+        "occurrences": 1,
+        "value": "#ffffff"
+      }
+    ],
+    "font_families": [
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "Georgia,serif"
+      },
+      {
+        "count": 1,
+        "files": [
+          "assets/styles.css"
+        ],
+        "value": "var(--font-ui)"
+      }
+    ],
+    "font_sizes": [
+      "10px",
+      "11px",
+      "12px",
+      "13px",
+      "14px",
+      "15px",
+      "16px",
+      "17px",
+      "21px",
+      "25px",
+      "27px",
+      "29px",
+      "35px"
+    ],
+    "line_heights": [
+      "1.2",
+      "1.5"
+    ],
+    "repeated_dimensions": [
+      [
+        "12px",
+        29
+      ],
+      [
+        "10px",
+        20
+      ],
+      [
+        "1px",
+        18
+      ],
+      [
+        "11px",
+        14
+      ],
+      [
+        "14px",
+        13
+      ],
+      [
+        "15px",
+        13
+      ],
+      [
+        "9px",
+        12
+      ],
+      [
+        "18px",
+        11
+      ],
+      [
+        "100%",
+        10
+      ],
+      [
+        "20px",
+        9
+      ],
+      [
+        "16px",
+        8
+      ],
+      [
+        "13px",
+        8
+      ],
+      [
+        "8px",
+        7
+      ],
+      [
+        "17px",
+        7
+      ],
+      [
+        "4px",
+        6
+      ],
+      [
+        "32px",
+        6
+      ],
+      [
+        "7px",
+        6
+      ],
+      [
+        "2px",
+        5
+      ],
+      [
+        "6px",
+        5
+      ],
+      [
+        "50%",
+        5
+      ],
+      [
+        "34px",
+        5
+      ],
+      [
+        "3px",
+        5
+      ],
+      [
+        "22px",
+        5
+      ],
+      [
+        "25px",
+        4
+      ],
+      [
+        "29px",
+        4
+      ],
+      [
+        "30px",
+        4
+      ],
+      [
+        "24px",
+        3
+      ],
+      [
+        "36px",
+        3
+      ],
+      [
+        "5px",
+        3
+      ],
+      [
+        "39px",
+        3
+      ],
+      [
+        "99px",
+        3
+      ],
+      [
+        "100vh",
+        2
+      ],
+      [
+        "35px",
+        2
+      ],
+      [
+        "999px",
+        2
+      ],
+      [
+        "38px",
+        2
+      ],
+      [
+        "42px",
+        2
+      ]
+    ],
+    "stylesheet_files": [
+      "assets/styles.css"
+    ]
+  },
+  "project": {
+    "build_tools": [],
+    "description": "Dependency-free multi-route frontend audit benchmark with synthetic data",
+    "frameworks": [
+      "Static HTML/CSS/JavaScript (detected from files)"
+    ],
+    "languages": [
+      "CSS",
+      "HTML",
+      "JavaScript"
+    ],
+    "name": "northstar-ops-audit-fixture",
+    "root": "/private/tmp/frontend-director-benchmark-20261114/demo-app",
+    "routing_signals": [],
+    "source_file_count": 12,
+    "stylesheet_count": 1
+  },
+  "routes": [
+    {
+      "classification": "static page",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "high",
+      "methods": [
+        "html_file"
+      ],
+      "path": "/",
+      "source": "index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "high",
+      "methods": [
+        "html_file",
+        "internal_link"
+      ],
+      "path": "/analytics",
+      "source": "index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "high",
+      "methods": [
+        "html_file",
+        "internal_link"
+      ],
+      "path": "/customers",
+      "source": "index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/index.html",
+      "source": "index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "high",
+      "methods": [
+        "html_file",
+        "internal_link"
+      ],
+      "path": "/orders",
+      "source": "index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "active.badge",
+        "activity-icon",
+        "activity-item",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "btn.btn-small",
+        "chart-legend",
+        "chart-svg",
+        "content",
+        "content-grid",
+        "crumb",
+        "dashboard-page",
+        "eyebrow",
+        "footer-note",
+        "gray.legend-dot",
+        "grid-4",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "legend-dot",
+        "link",
+        "live-beacon.status-dot",
+        "main",
+        "metric-card",
+        "metric-head",
+        "metric-icon",
+        "metric-trend",
+        "metric-value",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "high",
+      "methods": [
+        "html_file",
+        "internal_link"
+      ],
+      "path": "/settings",
+      "source": "index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "analytics-page",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn.btn-primary",
+        "chart-frame",
+        "chart-svg",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "layout-2",
+        "live-beacon.status-dot",
+        "main",
+        "metric-detail",
+        "mini-caption",
+        "mini-stat",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "range-row",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/analytics/../analytics",
+      "source": "analytics/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "analytics-page",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn.btn-primary",
+        "chart-frame",
+        "chart-svg",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "layout-2",
+        "live-beacon.status-dot",
+        "main",
+        "metric-detail",
+        "mini-caption",
+        "mini-stat",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "range-row",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/analytics/../customers",
+      "source": "analytics/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "analytics-page",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn.btn-primary",
+        "chart-frame",
+        "chart-svg",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "layout-2",
+        "live-beacon.status-dot",
+        "main",
+        "metric-detail",
+        "mini-caption",
+        "mini-stat",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "range-row",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/analytics/../index.html",
+      "source": "analytics/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "analytics-page",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn.btn-primary",
+        "chart-frame",
+        "chart-svg",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "layout-2",
+        "live-beacon.status-dot",
+        "main",
+        "metric-detail",
+        "mini-caption",
+        "mini-stat",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "range-row",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/analytics/../orders",
+      "source": "analytics/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "analytics-page",
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn.btn-primary",
+        "chart-frame",
+        "chart-svg",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "layout-2",
+        "live-beacon.status-dot",
+        "main",
+        "metric-detail",
+        "mini-caption",
+        "mini-stat",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "progress-label",
+        "progress-list",
+        "range-row",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar",
+        "track"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/analytics/../settings",
+      "source": "analytics/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "customer-card",
+        "customer-card-top",
+        "customer-grid",
+        "customer-stats",
+        "customers-page",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/customers/../analytics",
+      "source": "customers/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "customer-card",
+        "customer-card-top",
+        "customer-grid",
+        "customer-stats",
+        "customers-page",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/customers/../customers",
+      "source": "customers/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "customer-card",
+        "customer-card-top",
+        "customer-grid",
+        "customer-stats",
+        "customers-page",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/customers/../index.html",
+      "source": "customers/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "customer-card",
+        "customer-card-top",
+        "customer-grid",
+        "customer-stats",
+        "customers-page",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/customers/../orders",
+      "source": "customers/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "customer-card",
+        "customer-card-top",
+        "customer-grid",
+        "customer-stats",
+        "customers-page",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/customers/../settings",
+      "source": "customers/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-danger",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "modal-actions",
+        "modal-card",
+        "modal-overlay",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "orders-page",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "table",
+        "table-shell",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/orders/../analytics",
+      "source": "orders/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-danger",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "modal-actions",
+        "modal-card",
+        "modal-overlay",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "orders-page",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "table",
+        "table-shell",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/orders/../customers",
+      "source": "orders/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-danger",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "modal-actions",
+        "modal-card",
+        "modal-overlay",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "orders-page",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "table",
+        "table-shell",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/orders/../index.html",
+      "source": "orders/index.html"
+    },
+    {
+      "classification": "page",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-danger",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "modal-actions",
+        "modal-card",
+        "modal-overlay",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "orders-page",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "table",
+        "table-shell",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/orders/../orders",
+      "source": "orders/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-danger",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "footer-note",
+        "heading-actions",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "modal-actions",
+        "modal-card",
+        "modal-overlay",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "orders-page",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "search-box",
+        "sidebar",
+        "sidebar-footer",
+        "status-pill",
+        "table",
+        "table-shell",
+        "toast",
+        "toolbar",
+        "toolbar-actions",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/orders/../settings",
+      "source": "orders/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "field",
+        "field-hint",
+        "fixed-field-row.form-row",
+        "footer-note",
+        "form",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-divider",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "settings-grid",
+        "settings-page",
+        "sidebar",
+        "sidebar-footer",
+        "stack",
+        "status-pill",
+        "subtle-text",
+        "switch",
+        "switch-row",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/settings/../analytics",
+      "source": "settings/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "field",
+        "field-hint",
+        "fixed-field-row.form-row",
+        "footer-note",
+        "form",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-divider",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "settings-grid",
+        "settings-page",
+        "sidebar",
+        "sidebar-footer",
+        "stack",
+        "status-pill",
+        "subtle-text",
+        "switch",
+        "switch-row",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/settings/../customers",
+      "source": "settings/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "field",
+        "field-hint",
+        "fixed-field-row.form-row",
+        "footer-note",
+        "form",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-divider",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "settings-grid",
+        "settings-page",
+        "sidebar",
+        "sidebar-footer",
+        "stack",
+        "status-pill",
+        "subtle-text",
+        "switch",
+        "switch-row",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/settings/../index.html",
+      "source": "settings/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "field",
+        "field-hint",
+        "fixed-field-row.form-row",
+        "footer-note",
+        "form",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-divider",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "settings-grid",
+        "settings-page",
+        "sidebar",
+        "sidebar-footer",
+        "stack",
+        "status-pill",
+        "subtle-text",
+        "switch",
+        "switch-row",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/settings/../orders",
+      "source": "settings/index.html"
+    },
+    {
+      "classification": "settings screen",
+      "components": [
+        "app-shell",
+        "avatar",
+        "brand",
+        "brand-mark",
+        "btn",
+        "btn.btn-primary",
+        "content",
+        "crumb",
+        "eyebrow",
+        "field",
+        "field-hint",
+        "fixed-field-row.form-row",
+        "footer-note",
+        "form",
+        "hint",
+        "icon-button",
+        "icon-button.mobile-menu",
+        "live-beacon.status-dot",
+        "main",
+        "mobile-backdrop",
+        "nav",
+        "nav-count",
+        "nav-label",
+        "nav-link",
+        "notice",
+        "page-heading",
+        "page-heading-row",
+        "page-subtitle",
+        "panel",
+        "panel-divider",
+        "panel-subtitle",
+        "panel-title",
+        "panel-title-row",
+        "settings-grid",
+        "settings-page",
+        "sidebar",
+        "sidebar-footer",
+        "stack",
+        "status-pill",
+        "subtle-text",
+        "switch",
+        "switch-row",
+        "toast",
+        "top-actions",
+        "top-profile",
+        "topbar"
+      ],
+      "confidence": "low",
+      "methods": [
+        "internal_link"
+      ],
+      "path": "/settings/../settings",
+      "source": "settings/index.html"
+    }
+  ],
+  "runtime": [],
+  "schema_version": 1
+}

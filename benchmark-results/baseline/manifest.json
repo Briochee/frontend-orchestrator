@@ -1,0 +1,153 @@
+{
+  "frozen_at": "2026-11-14T15:41:34+00:00",
+  "session_id": "3b79d641-3803-493d-8ed7-5551e0828bfc",
+  "project_isolation": "Only the copied demo-app directory was supplied as the audit project root.",
+  "command": "PYTHONPATH=src python3 -m frontend_design_director --no-update-check audit --project <isolated-demo-app> --url http://127.0.0.1:8765/ --depth deep --codex --json",
+  "source_file_hashes": {
+    "README.md": "c0e2f5cbe75075dee4261dec1133d943f722697e57bf5b581f8bdab0833d22b2",
+    "analytics/index.html": "47ac5bae49adbf75ac45c0314bfcdbb1fb868893fffdca5f0f56bafb582d29c7",
+    "assets/styles.css": "e6f11a417e6bb7f99b49e8d3786e8be8056b88e4079efaf7f748ab2692ea8ca5",
+    "customers/index.html": "c1a2dffb87255bbdb82b51bb54c04a5e6152c744516f684c426dd2e164e0885a",
+    "index.html": "b63123d27e6c237923740a53faa320a387cb65dd192139baaed92c501ef56928",
+    "orders/index.html": "3e2389f07b3b2f5472b0d0eb2ee22484be3f2ff9e6d602c80f15c18b9818a006",
+    "package.json": "322606ba16ba90a0d23cb6214288c46bbffc2ae056ccd775d7680a806a0755a8",
+    "settings/index.html": "f034f8beee658ee931ef835cd33faf9b1d61b3780f703a1555362b06f688c463",
+    "src/analytics.js": "db2e8109cd6ca5e2d8e9d7b09d5f5e1dec1c472a6a1e137032efe1a68e79721a",
+    "src/app.js": "e5e29cc297fe48cb5d384e231fe6f48a4454471b59d86f5dbe5f518403c7723c",
+    "src/components.js": "489e3a38615ce2ac94af87e14828deb5a8d954b938b8d73293a15387040dc505",
+    "src/customers.js": "03d8eb9a83a8d9685d3f3e9de2625a0b6d773f66b7a4a2c10746359603ee55aa",
+    "src/data.js": "a7441ece7092fbfca19cabcda9ee634bca3a454e612fdc8c22f8b654251dbf84",
+    "src/orders.js": "ce4696ae744b8f4f7faee530bfacca91849dac58dd8c2974477c9f0e82938cbb",
+    "src/settings.js": "a0e21bcbd639ec9440fc69ea2e431108f37dd01b37a64bdaa82feb5d3c618053",
+    "tests/smoke.test.mjs": "3b5299e17134e80bce075c94be4cfcbcc745a32daa492d56956e1139813772ff"
+  },
+  "audit": {
+    "backend_label": "codex_cli_plus_static",
+    "findings_count": 3,
+    "by_audit_type": {
+      "technical": 3,
+      "visual": 0,
+      "behavioral": 0
+    },
+    "depth": "deep",
+    "coverage": {
+      "source_files_inspected": 13,
+      "routes_discovered": 26,
+      "routes_rendered": 0,
+      "screenshots_captured": 0,
+      "rendered_viewports": [],
+      "component_profiles": 228,
+      "rendered_evidence_available": false,
+      "evidence_boundary": "Source inventories are static observations. Visual appearance claims require linked rendered screenshots.",
+      "browser_navigation_failures": 0
+    },
+    "screenshots_in_full_audit": 0,
+    "reports": [
+      "accessibility-audit.md",
+      "application-overview.md",
+      "audit-index.md",
+      "audit-summary.md",
+      "behavioral-audit.md",
+      "color-system-analysis.md",
+      "component-inventory.md",
+      "coverage-and-limitations.md",
+      "design-system-analysis.md",
+      "executive-summary.md",
+      "findings.json",
+      "frontend-architecture-map.md",
+      "frontend-intelligence.json",
+      "interaction-behavior-audit.md",
+      "layout-and-density-analysis.md",
+      "performance-audit.md",
+      "responsive-design-analysis.md",
+      "route-and-screen-inventory.md",
+      "runtime-evidence.md",
+      "technical-audit.md",
+      "typography-analysis.md",
+      "visual-audit.md"
+    ],
+    "limitations": [
+      "No project scripts, builds, dependency lifecycle hooks, or development servers were executed.",
+      "No runtime, bundle-size, Web Vitals, network, or interaction measurements were collected.",
+      "Source inspection cannot establish behavior on authenticated routes or runtime states.",
+      "No rendered screenshots or equivalent browser evidence were available. The visual audit makes no claims about the application's appearance.",
+      "frontend_code_auditor did not return a valid structured result: BackendFailure: Codex exited with status 1: Return only JSON matching the supplied schema. Do not report visual appearance unless screenshot evidence is attached. ERROR: {\"type\":\"error\",\"error\":{\"message\":\"Invalid sc",
+      "frontend_ux_auditor did not return a valid structured result: BackendFailure: Codex exited with status 1: Return only JSON matching the supplied schema. Do not report visual appearance unless screenshot evidence is attached. ERROR: {\"type\":\"error\",\"error\":{\"message\":\"Invalid sc",
+      "The visual auditor was not invoked because no rendered screenshots were available.",
+      "Browser evidence was unavailable: ValueError: Route must be an exact same-origin absolute path without query or traversal: '/analytics/../analytics'."
+    ],
+    "route_candidates": [
+      "/",
+      "/analytics",
+      "/customers",
+      "/index.html",
+      "/orders",
+      "/settings",
+      "/analytics/../analytics",
+      "/analytics/../customers",
+      "/analytics/../index.html",
+      "/analytics/../orders",
+      "/analytics/../settings",
+      "/customers/../analytics",
+      "/customers/../customers",
+      "/customers/../index.html",
+      "/customers/../orders",
+      "/customers/../settings",
+      "/orders/../analytics",
+      "/orders/../customers",
+      "/orders/../index.html",
+      "/orders/../orders",
+      "/orders/../settings",
+      "/settings/../analytics",
+      "/settings/../customers",
+      "/settings/../index.html",
+      "/settings/../orders",
+      "/settings/../settings"
+    ],
+    "browser_capture_failure": "Route must be an exact same-origin absolute path without query or traversal: /analytics/../analytics",
+    "visual_agent_invoked": false,
+    "code_and_ux_agents_failed": true,
+    "phase_reported_as_completed_despite_missing_visual_and_failed_specialists": true
+  },
+  "codex_schema_reproduction": {
+    "cli_version": "0.167.1",
+    "result": "reproduced invalid_json_schema",
+    "full_redacted_stderr": "diagnostics/codex-schema-findings.stderr.redacted.txt",
+    "exact_cause": "schema.properties.findings.items.properties.evidence.items.required must include every key in properties; missing 'line'"
+  },
+  "one_image_integration": {
+    "status": "success",
+    "schema": {
+      "type": "object",
+      "required": [
+        "observation",
+        "route",
+        "viewport"
+      ],
+      "additionalProperties": false
+    },
+    "image": "one-image-integration/desktop.png",
+    "route": "/",
+    "viewport": "desktop",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "observation": "The page has a dark navy left sidebar with \u201cOverview\u201d highlighted in teal. The main area uses a pale gray background and a grid of white rounded cards for metrics, a revenue chart, activity, and operational notes.",
+    "grounding_check": "Names and styling details correspond to visible screenshot content; response was returned by Codex CLI 0.167.1 with --image attached."
+  },
+  "environment": {
+    "python_version": "3.15.2",
+    "package_version": "0.2.0",
+    "installed_executable": "/Users/rio/.local/bin/frontend-director",
+    "installed_source_mode": "editable; active source matches repository checkout",
+    "pipx_venv": "/Users/rio/Library/Application Support/pipx/venvs/frontend-design-director",
+    "installed_venv_playwright": false,
+    "host_python_playwright": "1.65.1",
+    "playwright_browsers": "Chromium/Firefox/WebKit available in host cache",
+    "codex_cli": "0.167.1",
+    "pytest": "70 passed, 3 skipped, 17 subtests passed with PYTHONPATH=src",
+    "plain_pytest": "collection failed because checkout src/ was absent from sys.path"
+  },
+  "private_evaluator_accessed": false
+}

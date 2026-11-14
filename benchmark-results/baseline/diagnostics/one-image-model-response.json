@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "schema": {
+    "type": "object",
+    "required": [
+      "observation",
+      "route",
+      "viewport"
+    ],
+    "additionalProperties": false
+  },
+  "image": "one-image-integration/desktop.png",
+  "route": "/",
+  "viewport": "desktop",
+  "dimensions": [
+    1440,
+    1000
+  ],
+  "observation": "The page has a dark navy left sidebar with \u201cOverview\u201d highlighted in teal. The main area uses a pale gray background and a grid of white rounded cards for metrics, a revenue chart, activity, and operational notes.",
+  "grounding_check": "Names and styling details correspond to visible screenshot content; response was returned by Codex CLI 0.167.1 with --image attached."
+}
