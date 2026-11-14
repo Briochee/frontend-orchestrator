@@ -1,0 +1,9 @@
+{
+  "status": "incomplete",
+  "reason": "Stopped after discovering that full-page screenshots expanded to the page scroll width and failed requested viewport dimensions.",
+  "process_exit_status": 143,
+  "codex_visual_request_active_at_stop": true,
+  "report_frozen": false,
+  "preserved_capture_artifacts": "captured-evidence/",
+  "recovery": "Rerun with exact viewport-sized screenshots; document scroll width is retained as a separate responsive overflow measurement."
+}

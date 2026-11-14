@@ -1,0 +1,9 @@
+{
+  "status": "incomplete",
+  "reason": "Stopped before visual review because exhaustive depth adds optional viewports and does not match the deep baseline viewport configuration.",
+  "process_exit_status": 143,
+  "codex_visual_request_active_at_stop": false,
+  "report_frozen": false,
+  "preserved_capture_artifacts": "captured-evidence/",
+  "recovery": "Run deep at 1440x1000, 768x1024, and 390x844 to match the frozen baseline."
+}

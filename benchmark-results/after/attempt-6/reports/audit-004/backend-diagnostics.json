@@ -1,0 +1,15 @@
+{
+  "diagnostics": [
+    {
+      "audit_type": "technical",
+      "error_classification": "invalid_model_response",
+      "failure_location": "specialist.cross_validation",
+      "failure_stage": "cross_validation",
+      "images_attached": 0,
+      "message": "technical finding used unsupported evidence kind: inventory",
+      "retry_attempts": 0,
+      "specialist": "frontend_code_auditor"
+    }
+  ],
+  "schema_version": 1
+}
