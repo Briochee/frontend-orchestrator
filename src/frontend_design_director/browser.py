@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 from html import escape
 import ipaddress
@@ -66,18 +67,37 @@ def capture_screenshots(
     parsed_base = urlsplit(url)
     base_path = parsed_base.path or "/"
     approved_routes = [(base_path, url)]
+    invalid_routes: list[tuple[str, str]] = []
     seen_paths = {base_path}
     for route_path in route_paths:
         parsed_route = urlsplit(route_path)
         decoded_segments = unquote(parsed_route.path).split("/")
         if parsed_route.scheme or parsed_route.netloc or not parsed_route.path.startswith("/") or ".." in decoded_segments or "\\" in parsed_route.path or parsed_route.query or parsed_route.fragment:
-            raise ValueError(f"Route must be an exact same-origin absolute path without query or traversal: {route_path!r}.")
+            invalid_routes.append((route_path, "Route must be an exact same-origin absolute path without query or traversal."))
+            continue
         normalized = parsed_route.path or "/"
         if normalized not in seen_paths:
             approved_routes.append((normalized, urlunsplit((parsed_base.scheme, parsed_base.netloc, normalized, "", ""))))
             seen_paths.add(normalized)
 
-    evidence: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = [
+        {
+            "route": route_path,
+            "viewport": f"{_route_slug(route_path)}:{label}",
+            "viewport_label": label,
+            "width": VIEWPORTS[label]["width"],
+            "height": VIEWPORTS[label]["height"],
+            "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "evidence_type": "browser_navigation_failure",
+            "error_classification": "invalid_route",
+            "error": f"{reason} Route was skipped; other approved paths will still be attempted.",
+            "console_errors": [],
+            "page_errors": [],
+            "failed_requests": [],
+        }
+        for route_path, reason in invalid_routes
+        for label in selected_viewports
+    ]
     with sync_playwright() as playwright:
         try:
             browser = playwright.chromium.launch(headless=True)
@@ -118,7 +138,9 @@ def capture_screenshots(
                         browser_observation = _inspect_page(page)
                         suffix = f"-{route_slug}-{label}" if len(approved_routes) > 1 else f"-{label}"
                         screenshot_path = output_directory / f"{suffix.lstrip('-')}.png"
-                        page.screenshot(path=str(screenshot_path), full_page=True, animations="disabled")
+                        page.screenshot(path=str(screenshot_path), full_page=False, animations="disabled")
+                        image_metadata = _screenshot_metadata(screenshot_path)
+                        visual_status = _visual_evidence_status(response.status if response else None, browser_observation, image_metadata, viewport)
                         evidence.append({
                             "path": str(screenshot_path.resolve()),
                             "viewport": viewport_name,
@@ -131,6 +153,9 @@ def capture_screenshots(
                             "http_status": response.status if response else None,
                             "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                             "evidence_type": "rendered_browser_screenshot",
+                            "capture_status": "captured" if visual_status == "valid" else "captured_invalid",
+                            "visual_evidence_status": visual_status,
+                            **image_metadata,
                             "readiness": readiness,
                             "document": browser_observation["document"],
                             "landmarks": browser_observation["landmarks"],
@@ -149,10 +174,11 @@ def capture_screenshots(
                                 focus_target = _inspect_focus(page)
                                 if focus_target and focus_target.get("tag") != "body":
                                     focus_path = output_directory / f"{suffix.lstrip('-')}-focus.png"
-                                    page.screenshot(path=str(focus_path), full_page=True, animations="disabled")
+                                    page.screenshot(path=str(focus_path), full_page=False, animations="disabled")
                                     evidence.append({
                                         **evidence[-1],
                                         "path": str(focus_path.resolve()),
+                                        **_screenshot_metadata(focus_path),
                                         "viewport": f"{viewport_name}:focus-1",
                                         "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                         "interaction_state": "keyboard_focus_after_one_tab",
@@ -170,6 +196,7 @@ def capture_screenshots(
                             "height": viewport["height"],
                             "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                             "evidence_type": "browser_navigation_failure",
+                            "error_classification": "browser_navigation_failed",
                             "error": f"{type(error).__name__}: {_safe_message(str(error))}",
                             "console_errors": console_errors,
                             "page_errors": page_errors,
@@ -273,8 +300,14 @@ def _inspect_page(page: Any) -> dict[str, Any]:
             return !element.labels?.length && !element.getAttribute('aria-label') && !element.getAttribute('aria-labelledby') && !(id && document.querySelector(`label[for="${CSS.escape(id)}"]`));
           }).length;
           const timing = performance.getEntriesByType('navigation')[0];
+          const visibleContentNodes = [...document.querySelectorAll('body *')].filter(element => {
+            const rect = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0;
+          }).length;
+          const bodyTextCharacters = (document.body?.innerText || '').trim().length;
           return {
-            document: { title: document.title, width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, readyState: document.readyState },
+            document: { title: document.title, width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, viewport_width: window.innerWidth, horizontal_overflow_px: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), readyState: document.readyState, body_text_characters: bodyTextCharacters, visible_content_nodes: visibleContentNodes },
             landmarks: { main: count('main,[role="main"]'), nav: count('nav,[role="navigation"]'), header: count('header,[role="banner"]'), footer: count('footer,[role="contentinfo"]'), aside: count('aside,[role="complementary"]'), h1: count('h1'), dialogs: count('dialog,[role="dialog"]'), forms: count('form') },
             internal_links: [...new Set(links)].slice(0, 100),
             controls: { buttons: count('button,[role="button"]'), links: count('a[href]'), inputs: inputs.length, inputs_without_associated_label: unlabeledInputs, forms: count('form'), selects: count('select'), textareas: count('textarea'), headings: count('h1,h2,h3,h4,h5,h6') },
@@ -287,6 +320,32 @@ def _inspect_page(page: Any) -> dict[str, Any]:
             "document": {}, "landmarks": {}, "internal_links": [], "controls": {},
             "computed_styles": {}, "navigation_timing": {}, "inspection_error": type(error).__name__,
         }
+
+
+def _screenshot_metadata(path: Path) -> dict[str, Any]:
+    content = path.read_bytes()
+    width = int.from_bytes(content[16:20], "big") if content.startswith(b"\x89PNG\r\n\x1a\n") and len(content) >= 24 else None
+    height = int.from_bytes(content[20:24], "big") if width is not None else None
+    return {
+        "image_format": "png" if width is not None else "unknown",
+        "image_dimensions": {"width": width, "height": height} if width is not None else None,
+        "image_byte_size": len(content),
+        "image_sha256": hashlib.sha256(content).hexdigest(),
+    }
+
+
+def _visual_evidence_status(status: int | None, observation: dict[str, Any], image: dict[str, Any], viewport: dict[str, int]) -> str:
+    dimensions = image.get("image_dimensions") or {}
+    document = observation.get("document", {})
+    document_height = document.get("height")
+    minimum_height = min(viewport["height"], document_height) if isinstance(document_height, int) and document_height > 0 else 1
+    if image.get("image_format") != "png" or dimensions.get("width") != viewport["width"] or not isinstance(dimensions.get("height"), int) or dimensions["height"] < minimum_height:
+        return "invalid_screenshot"
+    if status is None or status < 200 or status >= 400:
+        return "http_error_page"
+    if not document.get("body_text_characters") and not document.get("visible_content_nodes"):
+        return "blank_page"
+    return "valid"
 
 
 def _inspect_focus(page: Any) -> dict[str, Any] | None:

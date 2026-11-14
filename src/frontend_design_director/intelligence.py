@@ -9,12 +9,13 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import posixpath
 import re
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from .models import AuditType, Confidence, EvidenceReference, Finding, Severity, VerificationStatus
 
@@ -97,6 +98,7 @@ def build_project_intelligence(project_root: Path, project: dict[str, Any], scre
             "routes_discovered": len(routes),
             "routes_rendered": len({item["route"] for item in runtime}),
             "screenshots_captured": len(runtime),
+            "screenshots_valid": sum(item.get("visual_evidence_status", "valid") == "valid" for item in runtime),
             "rendered_viewports": sorted({item.get("viewport_label", item["viewport"]) for item in runtime if item.get("viewport")}),
             "component_profiles": len(components),
             "rendered_evidence_available": bool(runtime),
@@ -107,12 +109,17 @@ def build_project_intelligence(project_root: Path, project: dict[str, Any], scre
 
 def renderable_route_candidates(intelligence: dict[str, Any]) -> list[str]:
     """Return deduplicated static route paths; dynamic parameter patterns are never invented."""
-    return sorted({
-        route["path"] for route in intelligence.get("routes", [])
-        if isinstance(route.get("path"), str)
-        and route["path"].startswith("/")
-        and not any(segment.startswith(":") for segment in route["path"].split("/"))
-    })
+    routes = set()
+    for route in intelligence.get("routes", []):
+        value = route.get("path")
+        if not isinstance(value, str) or not value.startswith("/") or "\\" in value or "?" in value or "#" in value:
+            continue
+        decoded = unquote(value)
+        segments = decoded.split("/")
+        if any(segment in {".", ".."} for segment in segments) or any(segment.startswith(":") for segment in segments):
+            continue
+        routes.add(value)
+    return sorted(routes)
 
 
 def attach_runtime_evidence(intelligence: dict[str, Any], screenshots: list[dict[str, Any]]) -> dict[str, Any]:
@@ -121,11 +128,18 @@ def attach_runtime_evidence(intelligence: dict[str, Any], screenshots: list[dict
     runtime = _runtime_records(screenshots)
     result["runtime"] = runtime
     coverage = result["coverage"]
+    valid_default = [
+        item for item in runtime
+        if item.get("visual_evidence_status", "valid") == "valid"
+        and item.get("interaction_state", "default") == "default"
+    ]
     coverage.update({
-        "routes_rendered": len({item["route"] for item in runtime}),
+        "routes_rendered": len({item["route"] for item in valid_default}),
         "screenshots_captured": len(runtime),
-        "rendered_viewports": sorted({item.get("viewport_label", item["viewport"]) for item in runtime if item.get("viewport")}),
-        "rendered_evidence_available": bool(runtime),
+        "screenshots_valid": sum(item.get("visual_evidence_status", "valid") == "valid" for item in runtime),
+        "rendered_viewports": sorted({item.get("viewport_label", item["viewport"]) for item in valid_default if item.get("viewport")}),
+        "rendered_evidence_available": bool(valid_default),
+        "valid_route_viewport_pairs": len({(item["route"], item.get("viewport_label", item["viewport"])) for item in valid_default}),
     })
     return result
 
@@ -145,6 +159,12 @@ def _runtime_records(screenshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "screenshot": item.get("path"),
             "rendered_url": item.get("rendered_url"),
             "captured_at": item.get("captured_at"),
+            "capture_status": item.get("capture_status"),
+            "visual_evidence_status": item.get("visual_evidence_status", "valid"),
+            "image_format": item.get("image_format"),
+            "image_dimensions": item.get("image_dimensions"),
+            "image_byte_size": item.get("image_byte_size"),
+            "image_sha256": item.get("image_sha256"),
             "http_status": item.get("http_status"),
             "readiness": item.get("readiness", {}),
             "page_errors": item.get("page_errors", []),
@@ -166,6 +186,8 @@ def runtime_findings(intelligence: dict[str, Any]) -> list[Finding]:
     """Turn objective browser observations into scoped, evidence-linked findings."""
     observations: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for item in intelligence.get("runtime", []):
+        if item.get("visual_evidence_status", "valid") != "valid":
+            continue
         route = item.get("route", "/")
         screenshot = item.get("screenshot")
         viewport = item.get("viewport")
@@ -377,9 +399,11 @@ def _discover_routes(root: Path, source_files: list[Path], contents: dict[str, s
     def add(path: str, source: Path, method: str, confidence: str, classification: str | None = None) -> None:
         value = path.strip()
         value = re.sub(r"[?#].*$", "", value)
-        if not value.startswith("/") or value.startswith("//") or "{" in value or "}" in value or len(value) > 240:
+        if not value.startswith("/") or value.startswith("//") or "\\" in value or "{" in value or "}" in value or len(value) > 240:
             return
-        value = re.sub(r"/+:?", "/", value) if value != "/" else "/"
+        value = _normalize_route_path(value, root)
+        if value is None:
+            return
         entry = routes.setdefault(value, {"path": value, "source": source.relative_to(root).as_posix(), "methods": [], "confidence": confidence, "classification": classification or _classify_route(value, source)})
         if method not in entry["methods"]:
             entry["methods"].append(method)
@@ -395,7 +419,7 @@ def _discover_routes(root: Path, source_files: list[Path], contents: dict[str, s
             if html_route == "index.html":
                 html_route = ""
             elif html_route.endswith("/index.html"):
-                html_route = html_route[: -len("index.html")].rstrip("/")
+                html_route = html_route[: -len("index.html")]
             add("/" + html_route.strip("/"), source, "html_file", "high", "static page")
         if "app" in folded and (source.stem.casefold() == "page" or source.suffix.casefold() == ".html"):
             route_parts = []
@@ -432,9 +456,42 @@ def _discover_routes(root: Path, source_files: list[Path], contents: dict[str, s
                 if href.startswith("/"):
                     add(href, source, "internal_link", "medium")
                 elif not parsed.scheme and not href.startswith(("#", "?")):
-                    resolved_href = (relative.parent / parsed.path).as_posix()
-                    add("/" + resolved_href, source, "internal_link", "low")
+                    resolved_href = posixpath.join(relative.parent.as_posix(), unquote(parsed.path))
+                    normalized = _normalize_route_path("/" + resolved_href, root)
+                    if normalized:
+                        add(normalized, source, "internal_link", "low")
     return sorted((dict(item, methods=sorted(item["methods"])) for item in routes.values()), key=lambda item: (item["path"].count("/"), item["path"], item["source"]))
+
+
+def _normalize_route_path(value: str, root: Path) -> str | None:
+    """Resolve dot segments, reject paths that escape the project, and canonicalize static indexes."""
+    decoded = unquote(value)
+    if not decoded.startswith("/") or "\\" in decoded:
+        return None
+    segments: list[str] = []
+    for segment in decoded.split("/"):
+        if segment in {"", "."}:
+            continue
+        if segment == "..":
+            if not segments:
+                return None
+            segments.pop()
+        else:
+            segments.append(segment)
+    if segments and segments[-1].casefold() in {"index.html", "index.htm"}:
+        segments.pop()
+        if not segments:
+            return "/"
+        return "/" + "/".join(segments) + "/"
+    normalized = "/" + "/".join(segments)
+    if normalized == "/":
+        return normalized
+    target = root.joinpath(*segments)
+    if target.is_dir() and (target / "index.html").is_file():
+        return normalized.rstrip("/") + "/"
+    if decoded.endswith("/"):
+        return normalized.rstrip("/") + "/"
+    return normalized
 
 
 def _discover_components(root: Path, source_files: list[Path], contents: dict[str, str], routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
