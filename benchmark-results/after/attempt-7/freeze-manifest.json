@@ -1,0 +1,275 @@
+{
+  "frozen_at_utc": "2026-11-14T18:42:46.557070+00:00",
+  "audit_id": "audit-005",
+  "completion_status": "completed",
+  "expected_route_viewport_pairs": 15,
+  "valid_route_viewport_pairs": 15,
+  "model_screenshots_attached": 15,
+  "files": [
+    {
+      "path": "audit-cli.json",
+      "bytes": 1313694,
+      "sha256": "4ebcdc30ab7144153d5994c043d5b2ebf95a3ae1407848a723531f692bb5bfe6"
+    },
+    {
+      "path": "audit-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "config.json",
+      "bytes": 682,
+      "sha256": "d9f086b1192c56e743ba263d629cd0a6ab18d25d0719b7a3efbf982bc8e2fc60"
+    },
+    {
+      "path": "evidence/screenshot-gallery.html",
+      "bytes": 3956,
+      "sha256": "6155e7ef08bddaf38dffb62abe6177c6068ce8a6ddb280bc93c468b1fa6b9922"
+    },
+    {
+      "path": "evidence/screenshot-manifest.json",
+      "bytes": 10797,
+      "sha256": "948cba1282b8178885e5a585735cf82fe0d7cecc66c78439ffe67567ca0eadf8"
+    },
+    {
+      "path": "evidence/screenshots/analytics-5e175e-desktop-keyboard-focus.png",
+      "bytes": 100920,
+      "sha256": "183dfa7cbe293d10b1c51390b4441ccb29b8bdc981e5c9d0bf4f7d4cb4627c03"
+    },
+    {
+      "path": "evidence/screenshots/analytics-5e175e-desktop.png",
+      "bytes": 100533,
+      "sha256": "20c45a1584c05b6653694b7c4a43ede5b9c5db6cd46675ebff5c3ac6da34ffbc"
+    },
+    {
+      "path": "evidence/screenshots/analytics-5e175e-mobile.png",
+      "bytes": 35267,
+      "sha256": "9814589be7e7381434c24804f9ecb8c9cd44e22b5fdb1cbdc5efe8fd07325316"
+    },
+    {
+      "path": "evidence/screenshots/analytics-5e175e-tablet.png",
+      "bytes": 52958,
+      "sha256": "e6d9cce13e2e4ed73fc8401d2c1e857262889b0b3fab6ae211882bcbcff700ba"
+    },
+    {
+      "path": "evidence/screenshots/customers-fdeb23-desktop-keyboard-focus.png",
+      "bytes": 98465,
+      "sha256": "1281bd275d56a15f2ee01b88642180eee7eac93275579802c3349e128a92c40e"
+    },
+    {
+      "path": "evidence/screenshots/customers-fdeb23-desktop.png",
+      "bytes": 98120,
+      "sha256": "28da1ce7b4e276ae4594596e6ccfa81e8839a2731eed9316d8abf066d926d627"
+    },
+    {
+      "path": "evidence/screenshots/customers-fdeb23-mobile.png",
+      "bytes": 45903,
+      "sha256": "e30f52b4a3c079b6f50801ef491caf25cd68446d907515f5890ef67ad400fdca"
+    },
+    {
+      "path": "evidence/screenshots/customers-fdeb23-tablet.png",
+      "bytes": 67419,
+      "sha256": "e2858b56729852693cdcd68c38e9c780733f83de078c8645372e565ab6d6789c"
+    },
+    {
+      "path": "evidence/screenshots/home-8a5eda-desktop-keyboard-focus.png",
+      "bytes": 159553,
+      "sha256": "293fd05d39e89e84be5cbdcd0a29c76fdd0dc882e89f6dc9baed9ca9c6b194aa"
+    },
+    {
+      "path": "evidence/screenshots/home-8a5eda-desktop.png",
+      "bytes": 159166,
+      "sha256": "3bda670e7bd4c2f179735b48634730e4c80a8ac6190f1738f364b89469b102df"
+    },
+    {
+      "path": "evidence/screenshots/home-8a5eda-mobile.png",
+      "bytes": 50476,
+      "sha256": "6f56bd86b4dc6c5b634e68e0e4b4de544cf995a8205b8d89e8572c8668eae256"
+    },
+    {
+      "path": "evidence/screenshots/home-8a5eda-tablet.png",
+      "bytes": 80688,
+      "sha256": "aa0eb657f4619e1dd634968bca96e65283de1231c87ac93cae4988fdb49c39a0"
+    },
+    {
+      "path": "evidence/screenshots/orders-c6dc6d-desktop-keyboard-focus.png",
+      "bytes": 152032,
+      "sha256": "c11c013416661daacaf266de2d9182be673c950164d2c349781281ccb2a96bb7"
+    },
+    {
+      "path": "evidence/screenshots/orders-c6dc6d-desktop.png",
+      "bytes": 151646,
+      "sha256": "8f53811cb5ba12702853e5a7a3b3ec556968a89c915b4245cbbb3b4d106df422"
+    },
+    {
+      "path": "evidence/screenshots/orders-c6dc6d-mobile.png",
+      "bytes": 61580,
+      "sha256": "b8ace9fe6a7bb1069c097d04cb207869e311c509c4efb25984b9ee1e964961e5"
+    },
+    {
+      "path": "evidence/screenshots/orders-c6dc6d-tablet.png",
+      "bytes": 111537,
+      "sha256": "462711c60054a4ae1b0c6e58c6498938465cf1819f82e217b663b510ae48ed94"
+    },
+    {
+      "path": "evidence/screenshots/settings-c325fa-desktop-keyboard-focus.png",
+      "bytes": 131653,
+      "sha256": "8ed39181b8b788ef92233473ff5705bcd350b7a3695478d9e8e2292aecc82fb0"
+    },
+    {
+      "path": "evidence/screenshots/settings-c325fa-desktop.png",
+      "bytes": 131241,
+      "sha256": "9f3143f28f9a441b7de8c6d6373470d79d4fb6d8d3a49b01717a310352bf9dc9"
+    },
+    {
+      "path": "evidence/screenshots/settings-c325fa-mobile.png",
+      "bytes": 49403,
+      "sha256": "17d38f568fee914f0d0510bd5f887b62bd00c67778a12432216cb2a0ea9454de"
+    },
+    {
+      "path": "evidence/screenshots/settings-c325fa-tablet.png",
+      "bytes": 72436,
+      "sha256": "5c4df0d558f576fc8bae8068a9a9a7e86867e290811b215812aa70b368865bcf"
+    },
+    {
+      "path": "reports/audit-005/accessibility-audit.md",
+      "bytes": 45704,
+      "sha256": "1e32effeb88088582391789dd7344d55c7622d6f42257af1e30249cf2f2963b8"
+    },
+    {
+      "path": "reports/audit-005/application-overview.md",
+      "bytes": 1065,
+      "sha256": "50bc47dd1a7ae1a070f674a6e6d308eccb7835b4dc694e683864477ca26bd12e"
+    },
+    {
+      "path": "reports/audit-005/audit-execution.json",
+      "bytes": 50774,
+      "sha256": "0091d4126aa3e39da861268b87e8baef78cea97261dfb5a7d6bcdfd668eca00f"
+    },
+    {
+      "path": "reports/audit-005/audit-index.md",
+      "bytes": 1267,
+      "sha256": "6577637eaa53f7df938e800739630358db5325889c2c18662772f35c7ad08c80"
+    },
+    {
+      "path": "reports/audit-005/audit-summary.md",
+      "bytes": 8040,
+      "sha256": "eda4f1c853b7b5acf9b91772cd7aea3e35c78fa0b2d364acc536f59af02c46ed"
+    },
+    {
+      "path": "reports/audit-005/backend-diagnostics.json",
+      "bytes": 46,
+      "sha256": "ed63f1050179ba66c528ab199e65f532c470c53e64e37bea5cf107f6f4de5c82"
+    },
+    {
+      "path": "reports/audit-005/behavioral-audit.md",
+      "bytes": 22229,
+      "sha256": "8bf93aedfa659f1c55525ffbf291fe3ca18ccd11b6f8916ea845090d0a2dc869"
+    },
+    {
+      "path": "reports/audit-005/color-system-analysis.md",
+      "bytes": 79657,
+      "sha256": "4f8d008552ff721c21da0531fd8c429412a27e01ff6f1337b6f5ec313d9bf9ed"
+    },
+    {
+      "path": "reports/audit-005/component-inventory.md",
+      "bytes": 88820,
+      "sha256": "fbc3a57648f5f25ad19ecaee89dfeb38aa40f78c21467a1d23719fafa8133283"
+    },
+    {
+      "path": "reports/audit-005/coverage-and-limitations.md",
+      "bytes": 856,
+      "sha256": "8693a92bfb75c0700bbff3ddfeb665ca509d5d4fe6a6ce3a29d506e7e96ab55a"
+    },
+    {
+      "path": "reports/audit-005/design-system-analysis.md",
+      "bytes": 73751,
+      "sha256": "f0befda4642003900f23f5d37f62aada8a26eaf993997f89e5c3a1d23c214d83"
+    },
+    {
+      "path": "reports/audit-005/executive-summary.md",
+      "bytes": 3486,
+      "sha256": "b5e247d8301c8de6e4b1662f4645b0285e07ad304968fd9f72ca188ab017b574"
+    },
+    {
+      "path": "reports/audit-005/findings.json",
+      "bytes": 1399740,
+      "sha256": "d89c95b415a6d78ca8c1059c7ba313a3f60e39141a25c377f47c5714071c3295"
+    },
+    {
+      "path": "reports/audit-005/frontend-architecture-map.md",
+      "bytes": 5392,
+      "sha256": "9e6729ee4c15adf449537d605fecb07b15fd7624cbace816ebeabc0778ed1574"
+    },
+    {
+      "path": "reports/audit-005/frontend-intelligence.json",
+      "bytes": 1618751,
+      "sha256": "c486e58d4619aa35e975df6fa280fde57ead6ef4f82b28d543367db4ce8f2f7c"
+    },
+    {
+      "path": "reports/audit-005/interaction-behavior-audit.md",
+      "bytes": 22596,
+      "sha256": "bf8bb32c92b7bbe2cf81df7856676967ad613f2dd99a1fd50721239b2e8580d8"
+    },
+    {
+      "path": "reports/audit-005/layout-and-density-analysis.md",
+      "bytes": 4181,
+      "sha256": "d63f77cbf551dfdbfa1434ba7fc1d6c37bfcfcc797c02d0848b054aa2b0ce102"
+    },
+    {
+      "path": "reports/audit-005/performance-audit.md",
+      "bytes": 1301,
+      "sha256": "b9037d6a52a1aabbb64e3332ca72c430dc864606f93a7f69fc011c4c1ec96d2f"
+    },
+    {
+      "path": "reports/audit-005/responsive-design-analysis.md",
+      "bytes": 5035,
+      "sha256": "7eaa459c9e9c5e3fa5f1ce9ad66c3328ed99dda0dba180520a6f34837b96a6ac"
+    },
+    {
+      "path": "reports/audit-005/route-and-screen-inventory.md",
+      "bytes": 904,
+      "sha256": "4956b2435f80be1183ebe4835dacb1a8521963716814e07adcd3a22cc5b80ad9"
+    },
+    {
+      "path": "reports/audit-005/runtime-evidence.md",
+      "bytes": 10886,
+      "sha256": "d4ec4cd3a6adbced8e6b241607ecb11a135234046d0f453b05ec3a851702ce54"
+    },
+    {
+      "path": "reports/audit-005/security-data-flow.md",
+      "bytes": 1876,
+      "sha256": "8271a5ff28b9e8c7ce9cc16d700db45408e0194d05a203fdf3e77c8a7324a232"
+    },
+    {
+      "path": "reports/audit-005/specialist-assessments.json",
+      "bytes": 39818,
+      "sha256": "26da58217829d0499ac1f521bc1ac35b080e48a0a563abab4ecebf0c901c1b29"
+    },
+    {
+      "path": "reports/audit-005/technical-audit.md",
+      "bytes": 23469,
+      "sha256": "6bea81e5d641de2f35ed27da57fdf1758e18e5abbac622d354696bd06b571e92"
+    },
+    {
+      "path": "reports/audit-005/typography-analysis.md",
+      "bytes": 161393,
+      "sha256": "ac84ca75b0ac8de047092ad579374a4d0b244179e8ae548e2276cde178351a93"
+    },
+    {
+      "path": "reports/audit-005/visual-analysis.json",
+      "bytes": 31819,
+      "sha256": "9e3dd1585758633c5bdf4eb839b561f04ed08f03d4c79d0b8244c6c3be0817eb"
+    },
+    {
+      "path": "reports/audit-005/visual-audit.md",
+      "bytes": 42933,
+      "sha256": "06174e7ad59802dcdf72eb614e00f8e42f5dff76b2696948c7483f392e67f7fd"
+    },
+    {
+      "path": "run-status.json",
+      "bytes": 210,
+      "sha256": "2152a24f69e82adb69a2748cf907d33f261d63907d8acd67d797c8123521764d"
+    }
+  ]
+}

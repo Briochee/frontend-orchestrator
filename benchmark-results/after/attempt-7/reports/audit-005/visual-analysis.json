@@ -1,0 +1,417 @@
+{
+  "concerns": [
+    {
+      "claim": "Capture limitation: three KPI cards are fully visible and part of a fourth appears; the chart and activity panels are below the captured area. This frame alone does not demonstrate a layout failure.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Capture limitation: the desktop screenshot cuts off the lower portions of the fulfillment and operational notes panels.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Rendered observation: the Acquisition mix panel is mostly beyond the right edge of the tablet capture. The supplied runtime measurement reports a document width of 1080 px at a 768 px viewport.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "Rendered observation: the mobile chart extends beyond the right edge, hiding later bars and labels. The supplied runtime measurement reports a document width of 741 px at a 390 px viewport.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Assessment-reported source observation: the second customer card has a smaller corner radius than its peers at all supplied viewport sizes. The visible content does not explain the distinction.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Capture limitation: only the top of the customer list is shown; the appearance below Jordan Lee's partially visible card cannot be assessed from this frame.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Rendered observation: the wide Orders table retains its columns at narrow widths, cropping later fields and row actions. The supplied runtime measurements report document widths of 891 px at a 768 px tablet viewport and 886 px at a 390 px mobile viewport.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Rendered observation: at tablet width the Orders toolbar wraps, and the View action column falls outside the visible area.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "Rendered observation: the Settings Workspace details panel and form are cropped at the right edge on mobile. The supplied runtime measurement reports a document width of 781 px at a 390 px viewport.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Rendered observation: the Settings Workspace details panel reaches the right edge at tablet width, leaving its right boundary outside the capture. The supplied runtime measurement reports a document width of 786 px at a 768 px viewport.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "Rendered observation: on desktop, content in the left Settings column extends behind right-side cards, weakening the separation between sections.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    }
+  ],
+  "consistency_patterns": [
+    {
+      "claim": "The shared shell is stable across routes: desktop uses a dark rail and white top bar, while tablet and mobile use a compact white header; both retain the pale workspace and dark text.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "White panels and cards, fine borders, rounded corners, and muted supporting text recur across the routes. Settings assessments also report faint panel shadows.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "Teal consistently signals emphasis in active navigation, page eyebrows, charts, icons, and primary actions. Settings is a route-specific exception for the save action, which is violet.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The overview keeps the date eyebrow, greeting, and supporting sentence in the same order at all supplied sizes; actions move from beside the greeting on desktop to below the introduction at smaller sizes.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "The Customers card structure and palette persist from desktop through tablet to mobile as the grid changes from three columns to two and then one; the reported second-card radius exception persists at each size.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Orders controls retain white surfaces, light borders, and dark labels, while teal emphasizes the New order action across supplied sizes. At narrower widths, the table keeps its wide column structure and is cropped.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-tablet.png",
+      "viewport": "tablet"
+    }
+  ],
+  "design_identity": "A restrained, data-focused operations dashboard. Across routes, the visual system uses a pale blue-gray workspace, white panels and controls, dark slate text, fine borders, and teal accents, with a dark blue-gray navigation rail on desktop and a compact white header at tablet and mobile widths. Settings adds a serif page title and violet save action, creating a route-specific variation within the shared system. The polished, businesslike character is an inference from the reported page hierarchy and surfaces.",
+  "design_identity_evidence": [
+    {
+      "claim": "Rendered observation: the desktop overview pairs a dark navigation rail and pale workspace; teal appears in the active navigation treatment, icons, chart, and primary action.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Rendered observation: at tablet and mobile widths, the overview shows a compact white top bar above the pale canvas, with white KPI cards and teal emphasis.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Rendered observation: Analytics shares the desktop rail, white top bar, pale canvas, teal active navigation treatment, and neutral panel palette.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Rendered observation: Customers uses the shared blue-gray rail, pale workspace, white cards, and teal accents.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Rendered observation: Orders uses the shared desktop shell and neutral workspace, with teal for the active navigation treatment and primary action.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Rendered observation: Settings keeps the shared rail, light canvas, and white cards; its title is serif and its save action is violet.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    }
+  ],
+  "experience_character": "The supplied assessments describe a calm, information-forward operations interface. Page titles and section labels establish context, while repeated cards, aligned values, and compact status treatments organize operational data. This is a visual inference only; the supplied default-state views do not establish interaction behavior.",
+  "limitations": [
+    "This is a synthesis of the supplied cross-validated assessments; screenshots were not reopened during this pass.",
+    "Rendered observations, measurements, and inferences are identified in the claims where relevant. No new visual measurements were computed.",
+    "The supplied assessments provide screenshot paths but no repository line numbers for source claims.",
+    "The captures show default states only; interactive states and behavior were not assessed.",
+    "Several mobile and tablet captures end before lower-page content is visible, so those sections cannot be assessed from the supplied frames."
+  ],
+  "preserve": [
+    {
+      "claim": "Keep the distinct dark desktop rail and compact top-bar treatment at smaller viewport sizes.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Retain the overview’s repeated KPI hierarchy and teal icon accents.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Preserve Analytics’ title hierarchy, neutral palette, teal data emphasis, and desktop panel arrangement.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Keep Customers’ cool-gray canvas, white bordered cards, teal eyebrow and primary action, and the mobile sequence of heading, invite, search and filters, then cards.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Preserve the Orders desktop title hierarchy, neutral workspace, aligned table rows, and compact status colors.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Keep the Settings title’s serif contrast with sans-serif controls and panel headings, along with the restrained shared palette and card treatment.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    }
+  ],
+  "reconsider_with_human_approval": [
+    {
+      "claim": "Decide whether to keep the reported smaller corner radius on the second Customers card. If it is intentional, clarify the visible reason for the distinct treatment.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-desktop.png",
+      "viewport": "desktop"
+    }
+  ],
+  "refine": [
+    {
+      "claim": "At tablet width, fit both Analytics panels within the viewport; stacking them would reveal the Acquisition mix panel in the available width.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "At mobile width, fit the Analytics chart to its panel or provide a clearly indicated contained scroll area so remaining bars and labels can be reached.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Make the Orders table fields and row action reachable at narrow widths. Restoring horizontal scrolling preserves the current table structure; stacked rows would take more vertical space.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "Allow the Settings form row and panel to fit the available width when the layout stacks so the form fields and panel boundary remain visible.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "route_assessments": [
+    {
+      "density": "The visible upper dashboard is moderately dense, with clear gaps between cards and panels. The lower row is only partly captured.",
+      "hierarchy": "The sidebar and top bar frame the workspace. The greeting and actions lead into four equally presented KPI cards. The revenue chart and recent activity share the next row, with fulfillment and notes starting below.",
+      "responsive_notes": "The dark navigation rail is visible. KPIs form one row, and chart and activity panels are side by side. The screenshot ends partway through the lower panels.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "The KPI and chart areas have visible spacing. The chart takes most of the width before the capture reaches the activity section.",
+      "hierarchy": "A compact top bar precedes the greeting and actions. Four KPIs occupy two rows of two, followed by a wide revenue chart; recent activity begins below it.",
+      "responsive_notes": "The desktop rail is not visible in the screenshot and a menu icon appears in the top bar. The image shows the beginning of recent activity but not the rest of the lower page.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "There is ample space within each visible KPI card, while vertical stacking means the captured first screen is primarily greeting and KPI content.",
+      "hierarchy": "The compact top bar is followed by the date, greeting, supporting sentence, paired actions, and vertically stacked KPI cards. Three cards are fully visible and part of the fourth appears at the bottom.",
+      "responsive_notes": "The desktop rail is not visible in the screenshot; the top bar includes a menu icon. Actions remain side by side. Chart and activity panels are below the captured area.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "density": "Comfortable, with clear separation between the chart, acquisition metrics, and order explorer.",
+      "hierarchy": "The heading leads into the side-by-side Revenue by channel and Acquisition mix panels, followed by the full-width High-value order explorer and a centered note. Download sits at the upper right.",
+      "responsive_notes": "The full-height sidebar and desktop top bar remain visible. Both analytics panels fit side by side.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "The visible chart panel and order explorer have generous internal spacing; horizontal fit is the main visual concern.",
+      "hierarchy": "The heading and Download action stack vertically. The order explorer follows the chart row. Only a narrow edge of the Acquisition mix panel appears at the far right.",
+      "responsive_notes": "The sidebar is replaced by a compact header with a menu icon. The analytics panels remain in a horizontal row, with the second panel mostly outside the screenshot.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "The introduction and visible chart content are comfortably spaced, but horizontal overflow hides part of the chart.",
+      "hierarchy": "The compact header is followed by the eyebrow, title, wrapped description, full-width Download action, and chart card. The Acquisition mix panel begins below the chart.",
+      "responsive_notes": "The navigation rail is replaced by a menu icon, and the heading/action region stacks. The chart card extends beyond the right edge, leaving later bars and labels out of view.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "density": "Six cards form a three-column by two-row grid. The cards separate profile details from metrics, with substantial open canvas below the content in the supplied frame.",
+      "hierarchy": "The side rail and top bar frame the page. The teal uppercase eyebrow leads into the bold title and muted subtitle; the invite action sits opposite the heading. Search and filter controls precede the customer cards.",
+      "responsive_notes": "The full navigation rail is visible. Search is on the left of the toolbar and filters on the right; the invite action aligns with the page heading.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "Six cards form a two-column by three-row grid. Profile details and account metrics remain visually separated within each card.",
+      "hierarchy": "A compact white top bar precedes the eyebrow, title, and subtitle. The invite action sits below the heading and above the search and filter row; the cards follow.",
+      "responsive_notes": "The side rail is not visible in the screenshot; a menu icon appears in the top bar. The invite action moves below the heading, and the grid changes to two columns.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "The cards stack vertically with the same profile-and-metrics structure. Two cards are fully visible and a third is partially visible within the supplied frame.",
+      "hierarchy": "The top bar and menu icon precede the eyebrow, title, and subtitle. A full-width invite action comes next, then search and filters, followed by the customer cards.",
+      "responsive_notes": "The side rail is not visible in the screenshot; a menu icon appears in the top bar. The invite action and search field span the content width, the filters sit side by side, and the cards use a single column.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "density": "The eight rows and six labeled fields plus the View action fit in the supplied view, with clear row separation.",
+      "hierarchy": "The sidebar and breadcrumb establish workspace context; the title anchors the page; actions and filters precede the results count and table.",
+      "responsive_notes": "The full sidebar and workspace metadata remain visible. All table columns and row actions fit in the screenshot.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "Visible table values remain legible, but the View action column extends beyond the right edge.",
+      "hierarchy": "The compact top bar precedes a stacked title block, page actions, wrapped filters, results count, and table.",
+      "responsive_notes": "The desktop sidebar is replaced visually by a menu control. Header actions and filters wrap; the table keeps its wide layout.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "The controls occupy several rows. Only the first table columns fit in the visible area.",
+      "hierarchy": "The compact top bar and breadcrumb precede the page heading, action row, full-width search, wrapped filters, results count, and table.",
+      "responsive_notes": "The desktop sidebar is replaced visually by a menu control. The filters wrap, and the wide table is cropped after the beginning of Channel.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "density": "Moderate density, with generous panel padding and gaps between sections; labels and supporting copy are compact.",
+      "hierarchy": "The breadcrumb and large serif Settings heading lead into the page. Workspace details anchors the left column; Appearance and alerts and Workspace information sit in the right column. The violet save button is the most prominent action. Left-column content extending behind the right-side cards disrupts the otherwise clear grouping.",
+      "responsive_notes": "Two columns are visible, but left-column form and team-access content extend behind adjacent cards.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "Comfortable vertical spacing, with contact email and region arranged side by side in the visible form.",
+      "hierarchy": "The Settings heading remains prominent above the full-width Workspace details panel, followed by Team access. Appearance and alerts begins near the bottom of the screenshot.",
+      "responsive_notes": "The cards stack vertically, but the Workspace details panel and form content extend to the screenshot’s right edge.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "The visible form has ample vertical separation. The next card is only partly visible at the bottom of the supplied screenshot.",
+      "hierarchy": "A compact top bar and wrapped page subtitle lead into Workspace details. The title, labels, and save action remain easy to scan vertically.",
+      "responsive_notes": "Navigation is collapsed into a compact header and the form fields stack, but the Workspace details panel and its content are cropped at the right edge.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "strengths": [
+    {
+      "claim": "The greeting and actions lead into four KPIs, then a side-by-side revenue chart and activity panel, giving the desktop overview a clear progression.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "At tablet width, the four KPIs form a two-column arrangement before a wide revenue chart.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "On mobile, the greeting, supporting sentence, and paired actions precede the KPI stack; the visible KPI labels and values remain distinguishable.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "The Analytics desktop hierarchy separates the page introduction, revenue and acquisition panels, and order explorer; teal bars and the Download action provide consistent accenting.",
+      "route": "/analytics/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/analytics-5e175e-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The Customers desktop rail separates global navigation from the directory, and the six customer cards distinguish profile details from account metrics.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "At tablet width, customer cards group identity details above a divider and account metrics below it.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "On mobile, the customer invite and search controls span the content width, with the two filters grouped above the single-column card list.",
+      "route": "/customers/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/customers-fdeb23-mobile.png",
+      "viewport": "mobile"
+    },
+    {
+      "claim": "The Orders desktop sequence runs from workspace context and page title through actions, filters, results count, and a table whose visible rows and fields fit in the capture.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Thin row dividers, aligned values, and distinct green, amber, and red status pills aid scanning in the desktop Orders table.",
+      "route": "/orders/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/orders-c6dc6d-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The Settings desktop breadcrumb and serif title establish the page, while panel headings distinguish workspace details, team access, appearance, and workspace information.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "In the supplied mobile Settings view, stacked labels and controls maintain a clear vertical reading order.",
+      "route": "/settings/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/settings-c325fa-mobile.png",
+      "viewport": "mobile"
+    }
+  ]
+}

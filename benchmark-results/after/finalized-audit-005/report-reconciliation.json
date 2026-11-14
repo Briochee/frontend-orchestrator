@@ -1,0 +1,18 @@
+{
+  "source_audit_id": "audit-005",
+  "source_completion_status": "completed",
+  "source_freeze_manifest_sha256": "ffab000dfb4b5e996cbc64087286eaccad7f797db33e6f1b48f4d4906d580123",
+  "report_reconciliation": "Applied the current production static-vs-live limitation and recommendation merge to the frozen completed run.",
+  "model_calls_made": 0,
+  "findings_changed": false,
+  "screenshots_changed": false,
+  "visual_gate_verified": true,
+  "expected_route_viewport_pairs": 15,
+  "visual_route_viewports_assessed": 15,
+  "limitations": [
+    "No project build, test, or dependency-lifecycle scripts were executed; browser navigation did run the frontend page scripts.",
+    "LCP, INP, CLS, and bundle-size measurements were not collected. Browser navigation timing and request data are single-run lab observations; the automated capture did not activate controls.",
+    "Source inspection cannot establish behavior on authenticated routes or runtime states."
+  ],
+  "created_at_utc": "2026-11-14T20:38:51.087212+00:00"
+}
