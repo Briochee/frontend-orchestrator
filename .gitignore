@@ -222,3 +222,7 @@ __marimo__/
 .frontend-design-director
 
 benchmark-results/
+
+.DS_Store
+
+*/.DS_Store
