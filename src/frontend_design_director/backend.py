@@ -21,4 +21,5 @@ class AgentBackend(Protocol):
         sandbox: str = "read-only",
         images: tuple[Path, ...] = (),
         timeout_seconds: int | None = None,
+        specialist: str = "unspecified",
     ) -> dict[str, Any]: ...
