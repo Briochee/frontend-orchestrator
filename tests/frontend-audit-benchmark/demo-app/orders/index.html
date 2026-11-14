@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Orders · Northstar Ops</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+</head>
+
+<body class="orders-page">
+    <div class="app-shell">
+        <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
+            <a class="brand" href="../index.html"><span class="brand-mark">✦</span><span>Northstar Ops<small>Operations
+                        suite</small></span></a>
+            <div class="nav-label">Workspace</div>
+            <nav aria-label="Main"><a class="nav-link" href="../index.html"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg><span>Overview</span></a><a class="nav-link" href="../orders/" aria-current="page"><svg
+                        width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+                        <path d="M3 8v9l9 5 9-5V8M12 13v9" />
+                    </svg><span>Orders</span><span class="nav-count">8</span></a><a class="nav-link"
+                    href="../analytics/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M4 19V5m0 14h17M8 14l4-4 4 3 4-7" />
+                    </svg><span>Analytics</span></a><a class="nav-link" href="../customers/"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="9" cy="8" r="3" />
+                        <path d="M3 20v-2a6 6 0 0 1 12 0v2" />
+                        <path d="M17 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 2 4v2" />
+                    </svg><span>Customers</span></a><a class="nav-link" href="../settings/"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M20 12a8 8 0 0 0-.1-1l2-1.6-2-3.5-2.5 1A8 8 0 0 0 16 6l-.5-2.7h-4l-.5 2.7a8 8 0 0 0-1.5.9l-2.5-1-2 3.5L7 11a8 8 0 0 0 0 2l-2 1.6 2 3.5 2.5-1a8 8 0 0 0 1.5.9l.5 2.7h4l.5-2.7a8 8 0 0 0 1.5-.9l2.5 1 2-3.5-2-1.6a8 8 0 0 0 .1-1Z" />
+                    </svg><span>Settings</span></a></nav>
+            <div class="sidebar-footer"><span class="avatar">NS</span>
+                <div><strong>Northstar Studio</strong><span>Demo workspace</span></div>
+            </div>
+        </aside>
+        <div id="mobile-backdrop" class="mobile-backdrop"></div>
+        <div class="main">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:12px"><button id="menu-toggle"
+                        class="icon-button mobile-menu" aria-label="Toggle navigation" aria-expanded="false"><svg
+                            width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16" />
+                        </svg></button><span class="crumb">Workspace / Orders</span></div>
+                <div class="top-actions"><span class="status-pill"><span class="status-dot live-beacon"></span> Demo
+                        data only</span><button id="notifications" class="icon-button"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 20h4" />
+                        </svg></button>
+                    <div class="top-profile"><span class="avatar">RC</span><span>R. Chen</span></div>
+                </div>
+            </header>
+            <main class="content">
+                <div class="page-heading-row">
+                    <div>
+                        <p class="eyebrow">COMMERCE / FULFILLMENT</p>
+                        <h1 class="page-heading">Orders</h1>
+                        <p class="page-subtitle">Monitor fulfillment, investigate payment failures, and respond to
+                            customer activity.</p>
+                    </div>
+                    <div class="heading-actions"><button class="btn"><svg width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 3v12m-5-5 5 5 5-5M5 18v3h14v-3" />
+                            </svg> Export</button><button class="btn"><svg width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 7h16M4 17h16M9 4v6m6 4v6" />
+                            </svg> Columns</button><button id="new-order" class="btn btn-primary"><svg width="20"
+                                height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg> New order</button></div>
+                </div>
+                <div class="toolbar">
+                    <div class="search-box"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                            aria-hidden="true">
+                            <circle cx="10" cy="10" r="7" />
+                            <path d="m15 15 6 6" />
+                        </svg><input id="order-search" type="search" placeholder="Search orders or customer"
+                            aria-label="Search orders"></div>
+                    <div class="toolbar-actions"><label for="status-filter" class="hint">Status</label><select
+                            id="status-filter">
+                            <option>All</option>
+                            <option>Paid</option>
+                            <option>Pending</option>
+                            <option>Failed</option>
+                        </select><button class="btn">Bulk actions</button><button class="btn">Saved
+                            filters</button><button class="btn">Date range</button><button
+                            class="btn btn-danger">Archive</button></div>
+                </div>
+                <p class="hint" id="results-count"></p>
+                <section class="table-shell">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Channel</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-body"></tbody>
+                    </table>
+                </section>
+                <div id="order-dialog" class="modal-overlay" hidden>
+                    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title">
+                        <h2 id="order-dialog-title">Order details</h2>
+                        <p id="order-details"></p>
+                        <p class="hint">This is a local-only preview of the order.</p>
+                        <div class="modal-actions"><button id="close-order" class="btn">Close</button><button
+                                id="confirm-order" class="btn btn-primary">Open record</button></div>
+                    </div>
+                </div>
+                <div class="footer-note">Northstar Ops demo · Fictional data · No external network requests</div>
+            </main>
+        </div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="../src/app.js"></script>
+    <script type="module" src="../src/orders.js"></script>
+</body>
+
+</html>

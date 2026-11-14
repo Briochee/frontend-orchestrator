@@ -1,0 +1,11 @@
+{
+  "name": "northstar-ops-audit-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dependency-free multi-route frontend audit benchmark with synthetic data",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8765",
+    "test": "node --test tests/smoke.test.mjs"
+  }
+}

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Settings · Northstar Ops</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+</head>
+
+<body class="settings-page">
+    <div class="app-shell">
+        <aside id="sidebar" class="sidebar" aria-label="Primary navigation">
+            <a class="brand" href="../index.html"><span class="brand-mark">✦</span><span>Northstar Ops<small>Operations
+                        suite</small></span></a>
+            <div class="nav-label">Workspace</div>
+            <nav aria-label="Main"><a class="nav-link" href="../index.html"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg><span>Overview</span></a><a class="nav-link" href="../orders/"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+                        <path d="M3 8v9l9 5 9-5V8M12 13v9" />
+                    </svg><span>Orders</span><span class="nav-count">8</span></a><a class="nav-link"
+                    href="../analytics/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M4 19V5m0 14h17M8 14l4-4 4 3 4-7" />
+                    </svg><span>Analytics</span></a><a class="nav-link" href="../customers/"><svg width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="9" cy="8" r="3" />
+                        <path d="M3 20v-2a6 6 0 0 1 12 0v2" />
+                        <path d="M17 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 2 4v2" />
+                    </svg><span>Customers</span></a><a class="nav-link" href="../settings/" aria-current="page"><svg
+                        width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M20 12a8 8 0 0 0-.1-1l2-1.6-2-3.5-2.5 1A8 8 0 0 0 16 6l-.5-2.7h-4l-.5 2.7a8 8 0 0 0-1.5.9l-2.5-1-2 3.5L7 11a8 8 0 0 0 0 2l-2 1.6 2 3.5 2.5-1a8 8 0 0 0 1.5.9l.5 2.7h4l.5-2.7a8 8 0 0 0 1.5-.9l2.5 1 2-3.5-2-1.6a8 8 0 0 0 .1-1Z" />
+                    </svg><span>Settings</span></a></nav>
+            <div class="sidebar-footer"><span class="avatar">NS</span>
+                <div><strong>Northstar Studio</strong><span>Demo workspace</span></div>
+            </div>
+        </aside>
+        <div id="mobile-backdrop" class="mobile-backdrop"></div>
+        <div class="main">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:12px"><button id="menu-toggle"
+                        class="icon-button mobile-menu" aria-label="Toggle navigation" aria-expanded="false"><svg
+                            width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16" />
+                        </svg></button><span class="crumb">Workspace / Settings</span></div>
+                <div class="top-actions"><span class="status-pill"><span class="status-dot live-beacon"></span> Demo
+                        data only</span><button id="notifications" class="icon-button"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 20h4" />
+                        </svg></button>
+                    <div class="top-profile"><span class="avatar">RC</span><span>R. Chen</span></div>
+                </div>
+            </header>
+            <main class="content">
+                <div class="page-heading-row">
+                    <div>
+                        <p class="eyebrow">WORKSPACE / PREFERENCES</p>
+                        <h1 class="page-heading">Settings</h1>
+                        <p class="page-subtitle">Manage your workspace defaults, notification preferences, and approval
+                            policies.</p>
+                    </div>
+                </div>
+                <div class="settings-grid">
+                    <div class="stack">
+                        <section class="panel">
+                            <div class="panel-title-row">
+                                <div>
+                                    <h2 class="panel-title">Workspace details</h2>
+                                    <p class="panel-subtitle">These preferences are simulated and are not saved to a
+                                        server.</p>
+                                </div>
+                            </div>
+                            <form id="settings-form">
+                                <div class="field"><label for="team-name">Workspace name</label><input id="team-name"
+                                        value="Northstar Studio" required></div>
+                                <div class="form-row fixed-field-row" style="margin-top:15px">
+                                    <div class="field"><label for="team-email">Contact email</label><input
+                                            id="team-email" type="email" value="operations@example.test"></div>
+                                    <div class="field"><label for="region">Default region</label><select id="region">
+                                            <option>United States</option>
+                                            <option>Canada</option>
+                                            <option>United Kingdom</option>
+                                        </select></div>
+                                </div>
+                                <hr class="panel-divider">
+                                <div class="field"><label for="alert-threshold">Manual review threshold
+                                        ($)</label><input id="alert-threshold" type="number" min="0" max="100000"
+                                        value="1000">
+                                    <p class="field-hint">Values above $80,000 simulate a failed save after a successful
+                                        acknowledgement.</p>
+                                </div>
+                                <p id="save-status" class="subtle-text" aria-live="polite">No changes pending</p><button
+                                    type="submit" class="btn btn-primary">Save workspace changes</button>
+                            </form>
+                        </section>
+                        <section class="panel">
+                            <div class="panel-title-row">
+                                <div>
+                                    <h2 class="panel-title">Team access</h2>
+                                    <p class="panel-subtitle">Manage permissions and invitations.</p>
+                                </div>
+                            </div>
+                            <div class="notice"><strong>Invite-only workspace</strong> New members require approval from
+                                an administrator.</div><button class="btn" style="margin-top:15px">Review
+                                permissions</button>
+                        </section>
+                    </div>
+                    <div class="stack">
+                        <section class="panel">
+                            <div class="panel-title-row">
+                                <div>
+                                    <h2 class="panel-title">Appearance and alerts</h2>
+                                    <p class="panel-subtitle">Choose how your workspace behaves.</p>
+                                </div>
+                            </div>
+                            <div class="switch-row">
+                                <div><strong>Dark mode</strong>
+                                    <p>Use darker surfaces at night.</p>
+                                </div><button id="theme-switch" class="switch" role="switch" aria-checked="false"
+                                    aria-label="Dark mode"></button>
+                            </div>
+                            <div class="switch-row">
+                                <div><strong>Email notifications</strong>
+                                    <p>Operational updates and summaries.</p>
+                                </div><button id="email-switch" class="switch" role="switch" aria-checked="true"
+                                    aria-label="Email notifications"></button>
+                            </div>
+                            <div class="switch-row">
+                                <div><strong>Weekly digest</strong>
+                                    <p>Monday morning team recap.</p>
+                                </div><button id="digest-switch" class="switch" role="switch" aria-checked="true"
+                                    aria-label="Weekly digest"></button>
+                            </div>
+                        </section>
+                        <section class="panel">
+                            <h2 class="panel-title">Workspace information</h2>
+                            <div id="notice" class="notice" style="margin-top:15px"></div>
+                            <p class="hint">All names, customer records and metrics are synthetic.</p>
+                        </section>
+                    </div>
+                </div>
+                <div class="footer-note">Northstar Ops demo · Fictional data · No external network requests</div>
+            </main>
+        </div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="../src/app.js"></script>
+    <script type="module" src="../src/settings.js"></script>
+</body>
+
+</html>
