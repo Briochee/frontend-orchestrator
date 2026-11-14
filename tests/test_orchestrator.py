@@ -298,6 +298,8 @@ class AuditAndStateTests(WorkflowTestCase):
         with create_project_snapshot(self.root) as snapshot:
             technical = Finding("T-1", AuditType.TECHNICAL, "architecture", "low", "Example", "Evidence test", evidence=(EvidenceReference("source", "index.html", "Visible landmark", line=1),))
             self.assertEqual(_validate_finding_evidence(technical, AuditType.TECHNICAL, snapshot, []).evidence[0].reference, "index.html")
+            inventory = Finding("T-3", AuditType.TECHNICAL, "architecture", "low", "Inventory citation", "An inventory label still cites an included source file.", evidence=(EvidenceReference("inventory", "index.html", "The supplied inventory maps this claim to the included HTML source.", line=1),))
+            self.assertEqual(_validate_finding_evidence(inventory, AuditType.TECHNICAL, snapshot, []).evidence[0].kind, "inventory")
             outside = Finding("T-2", AuditType.TECHNICAL, "architecture", "low", "Example", "Evidence test", evidence=(EvidenceReference("source", "../outside", "Unsupported evidence"),))
             with self.assertRaises(ValueError):
                 _validate_finding_evidence(outside, AuditType.TECHNICAL, snapshot, [])
@@ -326,7 +328,7 @@ class AuditAndStateTests(WorkflowTestCase):
         self.assertEqual(paused.phase, Phase.PAUSED)
         reopened = WorkflowStore(self.root / WORKFLOW_STATE_DIRECTORY / "workflow.sqlite3")
         resumed = FrontendDesignDirector(reopened, FakeBackend()).resume(session_id)
-        self.assertEqual(resumed.phase, Phase.AUDIT_COMPLETED)
+        self.assertEqual(resumed.phase, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS)
 
     def test_interrupted_audit_can_resume_and_retry(self) -> None:
         session = self.director.create_session(self.root)
@@ -335,7 +337,7 @@ class AuditAndStateTests(WorkflowTestCase):
         self.director.pause(session.id)
         self.assertEqual(self.director.resume(session.id).phase, Phase.AUDITING)
         self.director.audit(session.id)
-        self.assertEqual(self.store.get_session(session.id).phase, Phase.AUDIT_COMPLETED)
+        self.assertEqual(self.store.get_session(session.id).phase, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS)
 
     def test_failed_mockup_generation_can_resume_from_a_safe_retry_point(self) -> None:
         session_id = self.make_audited_session()
@@ -438,7 +440,7 @@ class AuditAndStateTests(WorkflowTestCase):
             output.seek(0)
             output.truncate(0)
             self.assertEqual(main(["--no-update-check", "status", "--project", str(self.root), "--json"]), 0)
-            self.assertEqual(json.loads(output.getvalue())["phase"], "AUDIT_COMPLETED")
+            self.assertEqual(json.loads(output.getvalue())["phase"], "AUDIT_COMPLETED_WITH_LIMITATIONS")
 
     def test_legacy_workflow_database_is_copied_to_agents_without_deleting_original(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

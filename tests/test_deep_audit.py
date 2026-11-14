@@ -18,7 +18,7 @@ from frontend_design_director.discovery import discover_project
 from frontend_design_director.guided import _prompt_action, run_guided_workflow
 from frontend_design_director.auditing import AuditResult, VISUAL_FINDINGS_SCHEMA, _validated_visual_analysis, run_codex_audit
 from frontend_design_director.intelligence import attach_runtime_evidence, build_project_intelligence, contrast_ratio, intelligence_reports, renderable_route_candidates, runtime_findings
-from frontend_design_director.models import AuditType, Phase
+from frontend_design_director.models import AuditType, EvidenceReference, Finding, Phase, Severity
 from frontend_design_director.reporting import audit_reports
 from frontend_design_director.server import DevelopmentServerError, managed_development_server
 from frontend_design_director.storage import WORKFLOW_STATE_DIRECTORY, WorkflowStore
@@ -115,6 +115,38 @@ class DeepProjectIntelligenceTests(unittest.TestCase):
         self.assertIn("not collected", reports["performance-audit.md"].decode())
         self.assertIn("compact task dashboard", reports["visual-audit.md"].decode())
 
+    def test_accessibility_categories_and_specialist_limitations_keep_their_scope(self) -> None:
+        project = discover_project(SAMPLE)
+        intelligence = build_project_intelligence(SAMPLE, project)
+        finding = Finding(
+            id="BEH-1", audit_type=AuditType.BEHAVIORAL, category="accessible-name", severity=Severity.MEDIUM,
+            title="Notification control has no accessible name", description="The icon button has no text name.",
+            evidence=(EvidenceReference("source", "index.html", "The button has no accessible name.", line=1),),
+        )
+        screenshot = {
+            "path": "/screens/home.png", "route": "/", "viewport": "desktop", "viewport_label": "desktop",
+            "width": 1440, "height": 1000, "image_dimensions": {"width": 1440, "height": 1000},
+            "evidence_type": "rendered_browser_screenshot", "visual_evidence_status": "valid",
+        }
+        result = AuditResult(
+            findings=(finding,), limitations=(), recommendations=(), screenshots=(screenshot,), backend_used="codex_cli",
+            visual_delivery={"screenshots_attached": 1, "interpreted": True, "validated": True},
+            specialist_assessments=({
+                "specialist": "frontend_ux_auditor", "audit_type": "behavioral", "pass": "first_pass",
+                "assessment": "Source review only.", "evidence": [],
+                "limitations": ["No rendered screenshots were attached to the UX specialist pass."],
+            },),
+        )
+        reports = audit_reports([finding], result, project, intelligence)
+        accessibility = reports["accessibility-audit.md"].decode()
+        behavioral = reports["behavioral-audit.md"].decode()
+        summary = reports["audit-summary.md"].decode()
+        self.assertIn(finding.title, accessibility)
+        self.assertNotIn("No accessibility-specific finding was produced", accessibility)
+        self.assertIn("Pass-scoped limitations", behavioral)
+        self.assertIn("No rendered screenshots were attached to the UX specialist pass", behavioral)
+        self.assertNotIn("No rendered screenshots were attached to the UX specialist pass", summary)
+
     def test_visual_specialist_returns_schema_checked_screenshot_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "project"
@@ -135,16 +167,32 @@ class DeepProjectIntelligenceTests(unittest.TestCase):
 
             class VisualBackend:
                 available = True
+                image_calls: list[int] = []
 
                 def execute(self, *, instruction, **kwargs):
+                    images = kwargs.get("images", ())
+                    self.image_calls.append(len(images))
+                    if "cross-screen synthesizer" in instruction:
+                        return analysis
                     response = {"findings": [], "recommendations": [], "limitations": []}
-                    if "frontend_visual_auditor" in instruction or "frontend_visual_auditor evidence verifier" in instruction:
-                        response["visual_analysis"] = analysis
+                    if "frontend_visual_auditor" in instruction:
+                        response.update({
+                            "assessment": "The supplied screenshot shows a focused, single-column content view.",
+                            "assessment_evidence": [{"kind": "screenshot", "reference": str(screenshot_path), "description": "The assessment was checked against the attached desktop screenshot.", "viewport": "desktop"}],
+                            "visual_analysis": analysis,
+                        })
+                    else:
+                        response.update({
+                            "assessment": "The inspected source defines a single static page.",
+                            "assessment_evidence": [{"kind": "source", "reference": "index.html", "description": "The source contains the page main landmark.", "line": 1}],
+                        })
                     return response
 
             result = run_codex_audit(root, discover_project(root), screenshots=[screenshot], backend=VisualBackend())
         self.assertEqual(result.visual_analysis["design_identity"], analysis["design_identity"])
         self.assertEqual(len(result.visual_analysis["route_assessments"]), 1)
+        self.assertEqual(result.specialist_runs[-1]["status"], "completed")
+        self.assertEqual(VisualBackend.image_calls, [0, 0, 0, 0, 1, 1, 0])
 
     def test_director_captures_static_routes_but_never_synthesizes_dynamic_parameters(self) -> None:
         with tempfile.TemporaryDirectory(prefix="frontend-director-route-audit-") as temporary:
@@ -211,7 +259,7 @@ class GuidedWorkflowTests(unittest.TestCase):
         result = run_guided_workflow(self.director, self.store, self.session.id, input_fn=lambda _: next(responses), output_fn=output.append)
         saved = self.store.get_session(self.session.id)
         self.assertEqual(result["status"], "ended")
-        self.assertEqual(saved.phase, Phase.AUDIT_COMPLETED)
+        self.assertEqual(saved.phase, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS)
         self.assertEqual(saved.metadata["guided_session"]["status"], "ended")
         self.assertEqual(saved.metadata["guided_instructions"][0]["stage"], "audit")
         self.assertEqual(saved.metadata["guided_instructions"][0]["instruction"], "Prioritize mobile navigation\nKeep the existing navigation structure")
@@ -258,7 +306,7 @@ class BrowserEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="frontend-director-browser-test-") as temporary:
             root = Path(temporary)
             (root / "index.html").write_text(
-                '<!doctype html><html lang="en"><head><title>Fixture</title></head><body><main><h1>Home</h1><label for="email">Email</label><input id="email"><button onclick="console.error(\'test console error\')">Action</button><a href="/settings.html">Settings</a></main></body></html>',
+                '<!doctype html><html lang="en"><head><title>Fixture</title></head><body><main style="width:900px"><h1>Home</h1><label for="email">Email</label><input id="email"><button onclick="console.error(\'test console error\')">Action</button><a href="/settings.html">Settings</a></main></body></html>',
                 encoding="utf-8",
             )
             (root / "settings.html").write_text("<!doctype html><html><body><main><h1>Settings</h1><input><a href=\"/\">Home</a></main></body></html>", encoding="utf-8")
@@ -286,9 +334,13 @@ class BrowserEvidenceTests(unittest.TestCase):
         self.assertEqual({item["route"] for item in evidence}, {"/index.html", "/settings.html"})
         self.assertTrue(all(item["readiness"]["dom_content_loaded"] for item in base_captures))
         self.assertTrue(all(item["document"]["title"] in {"Fixture", ""} for item in base_captures))
+        self.assertTrue(all(item["image_dimensions"] == {"width": item["width"], "height": item["height"]} for item in base_captures))
         desktop = next(item for item in base_captures if item["route"] == "/index.html" and item["viewport_label"] == "desktop")
+        mobile = next(item for item in base_captures if item["route"] == "/index.html" and item["viewport_label"] == "mobile")
         self.assertIn("main", desktop["computed_styles"])
         self.assertIn("/settings.html", desktop["internal_links"])
+        self.assertGreater(mobile["document"]["horizontal_overflow_px"], 0)
+        self.assertEqual(mobile["visual_evidence_status"], "valid")
 
 
 class DevelopmentServerTests(unittest.TestCase):
