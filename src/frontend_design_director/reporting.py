@@ -21,23 +21,37 @@ def audit_reports(findings: list[Finding], result: AuditResult, discovery: dict[
         limitations.append("No rendered screenshots or equivalent browser evidence were available. The visual audit makes no claims about the application's appearance.")
     technical_md = _finding_report("Technical and architecture audit", technical, result, include_visual=False)
     behavioral_md = _finding_report("Behavior and accessibility audit", behavioral, result, include_visual=False)
-    visual_md = _visual_report(visual, visual_evidence, limitations, intelligence, result.visual_analysis)
+    visual_md = _visual_report(visual, visual_evidence, limitations, intelligence, result)
     summary_md = _summary_report(findings, discovery, result, limitations, intelligence)
-    findings_json = json.dumps({"schema_version": 1, "findings": [item.to_dict() for item in findings], "evidence": list(result.screenshots), "coverage": intelligence.get("coverage", {}) if intelligence else {}, "limitations": limitations}, indent=2, sort_keys=True).encode()
+    findings_json = json.dumps({"schema_version": 1, "findings": [item.to_dict() for item in findings], "specialist_assessments": list(result.specialist_assessments), "evidence": list(result.screenshots), "coverage": intelligence.get("coverage", {}) if intelligence else {}, "limitations": limitations}, indent=2, sort_keys=True).encode()
     reports = {
         "technical-audit.md": technical_md.encode(),
         "behavioral-audit.md": behavioral_md.encode(),
         "visual-audit.md": visual_md.encode(),
         "audit-summary.md": summary_md.encode(),
         "findings.json": findings_json,
+        "specialist-assessments.json": json.dumps({"assessments": list(result.specialist_assessments)}, indent=2, sort_keys=True).encode(),
     }
     if intelligence:
         reports.update(_supplemental_reports(findings, result, discovery, intelligence, limitations))
+    reports["security-data-flow.md"] = _security_data_flow_report(result.security_data_flows).encode()
     return reports
 
 
 def _finding_report(title: str, findings: list[Finding], result: AuditResult, *, include_visual: bool) -> str:
-    lines = [f"# {title}", "", f"Audit backend: `{result.backend_used}`", "", "## Findings", ""]
+    lines = [f"# {title}", "", f"Audit backend: `{result.backend_used}`", ""]
+    audit_type = "technical" if "technical" in title.casefold() else "behavioral" if any(word in title.casefold() for word in ("behavior", "interaction")) else None
+    assessments = [item for item in result.specialist_assessments if item.get("audit_type") == audit_type]
+    if assessments:
+        lines.extend(["## Evidence-backed specialist assessment", ""])
+        for assessment in assessments:
+            lines.extend([f"### {assessment.get('specialist')} · {assessment.get('pass')}", "", assessment.get("assessment", ""), "", "Evidence:"])
+            lines.extend(f"- `{item['reference']}{':' + str(item['line']) if item.get('line') else ''}`{f' ({item["viewport"]})' if item.get('viewport') else ''} — {item['description']}" for item in assessment.get("evidence", []))
+            if assessment.get("limitations"):
+                lines.extend(["", "Pass-scoped limitations:"])
+                lines.extend(f"- {item}" for item in assessment["limitations"])
+            lines.append("")
+    lines.extend(["## Findings", ""])
     if findings:
         for finding in findings:
             lines.extend(_finding_lines(finding))
@@ -51,11 +65,20 @@ def _finding_report(title: str, findings: list[Finding], result: AuditResult, *,
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _visual_report(findings: list[Finding], screenshots: list[dict[str, Any]], limitations: list[str], intelligence: dict[str, Any] | None = None, visual_analysis: dict[str, Any] | None = None) -> str:
+def _visual_report(findings: list[Finding], screenshots: list[dict[str, Any]], limitations: list[str], intelligence: dict[str, Any] | None = None, result: AuditResult | None = None) -> str:
     lines = ["# Visual design audit", ""]
-    if screenshots:
+    captured = [item for item in screenshots if item.get("evidence_type") == "rendered_browser_screenshot"]
+    valid_screenshots = [item for item in captured if item.get("visual_evidence_status", "valid") == "valid"]
+    delivery = result.visual_delivery if result else {}
+    lines.extend([
+        f"Audit completion status: **{result.completion_status if result else 'see audit summary'}**",
+        f"Screenshot states: captured {len(captured)}; integrity-valid {len(valid_screenshots)}; attached to visual backend {delivery.get('screenshots_attached', 0)}; interpreted {bool(delivery.get('interpreted', False))}; evidence validated {bool(delivery.get('validated', False))}.",
+        "",
+    ])
+    if valid_screenshots:
         lines.extend(["## Rendered evidence", "", "The following browser screenshots were captured from the explicitly supplied URL. Only routes and states present in these images were evaluated.", ""])
-        lines.extend(f"- `{item.get('route', '/')}` / `{item['viewport']}` {item['width']}×{item['height']}: `{item['path']}` (HTTP {item.get('http_status') or 'unknown'})" for item in screenshots)
+        lines.extend(f"- `{item.get('route', '/')}` / `{item.get('viewport_label', item['viewport'])}` {item.get('image_dimensions', {}).get('width', item['width'])}×{item.get('image_dimensions', {}).get('height', item['height'])}: `{item['path']}` (HTTP {item.get('http_status') or 'unknown'})" for item in valid_screenshots)
+        lines.extend(f"- Rejected capture `{item.get('route', '/')}` / `{item.get('viewport_label', item.get('viewport', 'unknown'))}`: {item.get('image_integrity_error') or item.get('visual_evidence_status')}" for item in captured if item not in valid_screenshots)
     else:
         lines.extend(["## Rendered evidence", "", "**Visual appearance was not audited.** No rendered screenshots or equivalent evidence were available. Source and CSS definitions are not used to invent claims about the rendered interface."])
     lines.extend(["", "## Design identity", ""])
@@ -63,7 +86,7 @@ def _visual_report(findings: list[Finding], screenshots: list[dict[str, Any]], l
         lines.append("Design observations below are limited to the attached rendered evidence. Source-defined design tokens are documented separately and are not treated as proof of rendered use.")
     else:
         lines.append("Not assessed by a visual reasoning backend. Screenshots, if listed above, are evidence for human review but are not automatically interpreted as design findings.")
-    analysis = visual_analysis or {}
+    analysis = result.visual_analysis if result else {}
     if analysis:
         lines.extend(["", f"### Design identity", "", analysis["design_identity"], ""])
         lines.extend(_visual_observation_line(item) for item in analysis["design_identity_evidence"])
@@ -125,7 +148,7 @@ def _supplemental_reports(
     counts = Counter(item.audit_type.value for item in findings)
     top_findings = sorted((item for item in findings if item.severity.value in {"critical", "high", "medium"}), key=lambda item: ({"critical": 0, "high": 1, "medium": 2}[item.severity.value], item.id))[:8]
 
-    executive = ["# Executive summary", "", f"Project: `{project['name']}`", f"Description: {project.get('description') or 'Not documented in inspected project metadata.'}", f"Framework signals: {', '.join(project.get('frameworks', [])) or 'not detected'}", "", f"The audit contains {counts.get('technical', 0)} technical, {counts.get('behavioral', 0)} behavioral, and {counts.get('visual', 0)} visual finding(s).", "", "## Coverage", "", f"- Source/style files: {coverage['source_files_inspected']}", f"- Route candidates: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots: {coverage['screenshots_captured']}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Analysis backend: `{result.backend_used}`; requested profile `{intelligence.get('audit_depth', 'see audit summary')}`", "", "## Highest-priority findings", ""]
+    executive = ["# Executive summary", "", f"Audit completion status: **{result.completion_status}**", f"Project: `{project['name']}`", f"Description: {project.get('description') or 'Not documented in inspected project metadata.'}", f"Framework signals: {', '.join(project.get('frameworks', [])) or 'not detected'}", "", f"The audit contains {counts.get('technical', 0)} technical, {counts.get('behavioral', 0)} behavioral, and {counts.get('visual', 0)} visual finding(s).", "", "## Coverage", "", f"- Source/style files: {coverage['source_files_inspected']}", f"- Route candidates: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots: {coverage['screenshots_captured']}", f"- Screenshots attached / interpreted / validated: {coverage.get('screenshots_attached_to_visual', 0)} / {coverage.get('visual_analysis_interpreted', False)} / {coverage.get('visual_analysis_validated', False)}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Analysis backend: `{result.backend_used}`; requested profile `{intelligence.get('audit_depth', 'see audit summary')}`", "", "## Highest-priority findings", ""]
     executive.extend(f"- **{item.severity.value.upper()} · {item.id}: {item.title}.** {item.impact}" for item in top_findings)
     if not top_findings:
         executive.append("No medium-or-higher findings were produced. This is not a defect-free guarantee.")
@@ -185,7 +208,11 @@ def _supplemental_reports(
     interactions = interactions.rstrip() + "\n\n## Runtime action coverage\n\nBrowser collection inspected structural controls and accessible-name signals. It captured one passive Tab focus state per route at desktop when a focusable target was available; it did not activate application controls, submit forms, or claim workflow outcomes. Review source-derived journeys above; unexecuted behavior remains unverified.\n"
 
     accessibility = ["# Accessibility audit", "", "Not a WCAG conformance certificate; this is a partial code and browser evidence review.", "", "## Findings", ""]
-    accessibility_findings = [item for item in behavior_findings if item.category.casefold() in {"accessibility", "form_labels", "keyboard", "contrast", "landmarks", "focus"}]
+    accessibility_categories = {
+        "accessibility", "form_labels", "keyboard", "contrast", "landmarks", "focus",
+        "accessible-name", "keyboard-focus", "focus-management", "modal-focus", "keyboard-navigation",
+    }
+    accessibility_findings = [item for item in behavior_findings if item.category.casefold() in accessibility_categories]
     for item in accessibility_findings:
         accessibility.extend(_finding_lines(item))
     if not accessibility_findings:
@@ -210,8 +237,8 @@ def _supplemental_reports(
         performance.append("| No rendered route | — | — | — | — | — |")
     performance.extend(["", "LCP, INP, CLS, bundle analysis, long tasks, and comparative before/after measurements were not collected by this pass."])
 
-    coverage_report = ["# Coverage and limitations", "", f"Requested depth: `{intelligence.get('audit_depth', 'unknown')}`", f"Backend: `{result.backend_used}`", "", f"- Source and style files: {coverage['source_files_inspected']}", f"- Route candidates discovered: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots: {coverage['screenshots_captured']}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Passive keyboard focus screenshots: {focus_captures}", "- Browser controls activated: 0", "", "## Known limits", "", *[f"- {item}" for item in limitations]]
-    names = ["executive-summary.md", "application-overview.md", "frontend-architecture-map.md", "route-and-screen-inventory.md", "component-inventory.md", "design-system-analysis.md", "color-system-analysis.md", "typography-analysis.md", "layout-and-density-analysis.md", "responsive-design-analysis.md", "interaction-behavior-audit.md", "accessibility-audit.md", "performance-audit.md", "visual-audit.md", "technical-audit.md", "behavioral-audit.md", "runtime-evidence.md", "coverage-and-limitations.md", "findings.json"]
+    coverage_report = ["# Coverage and limitations", "", f"Audit completion status: **{result.completion_status}**", f"Requested depth: `{intelligence.get('audit_depth', 'unknown')}`", f"Backend: `{result.backend_used}`", "", f"- Source and style files: {coverage['source_files_inspected']}", f"- Route candidates discovered: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots captured / attached / interpreted / validated: {coverage['screenshots_captured']} / {coverage.get('screenshots_attached_to_visual', 0)} / {coverage.get('visual_analysis_interpreted', False)} / {coverage.get('visual_analysis_validated', False)}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Passive keyboard focus screenshots: {focus_captures}", "- Browser controls activated: 0", "", "## Known limits", "", *[f"- {item}" for item in limitations]]
+    names = ["executive-summary.md", "application-overview.md", "frontend-architecture-map.md", "route-and-screen-inventory.md", "component-inventory.md", "design-system-analysis.md", "color-system-analysis.md", "typography-analysis.md", "layout-and-density-analysis.md", "responsive-design-analysis.md", "interaction-behavior-audit.md", "accessibility-audit.md", "performance-audit.md", "visual-audit.md", "technical-audit.md", "behavioral-audit.md", "security-data-flow.md", "specialist-assessments.json", "runtime-evidence.md", "coverage-and-limitations.md", "findings.json"]
     index = ["# Audit artifact index", "", "Each report is bounded by the recorded evidence and coverage. See coverage-and-limitations before interpreting an unverified area.", "", *[f"- [{name}]({name})" for name in names]]
     return {
         "executive-summary.md": ("\n".join(executive).rstrip() + "\n").encode(),
@@ -243,7 +270,7 @@ def _summary_report(findings: list[Finding], discovery: dict[str, Any], result: 
     lines = [
         "# Frontend audit summary", "",
         f"Project: `{discovery.get('project_name', 'Unknown')}`", f"Framework signals: {', '.join(discovery.get('frameworks', [])) or 'not detected'}", f"Audit mode: `{result.backend_used}`", "",
-        "## Scope and evidence", "",
+        f"Audit completion status: **{result.completion_status}**", "", "## Scope and evidence", "",
         f"Inspected {discovery.get('file_count', 0)} repository files; {discovery.get('source_file_count', 0)} frontend source files and {discovery.get('css_file_count', 0)} stylesheets were detected.",
         "The source audit did not execute project code, install dependencies, or run scripts.", "",
         "## Findings by area", "",
@@ -262,7 +289,7 @@ def _summary_report(findings: list[Finding], discovery: dict[str, Any], result: 
         lines.append("Visual appearance was not audited because rendered screenshots were unavailable. See `visual-audit.md` for the evidence boundary.")
     if intelligence:
         coverage = intelligence.get("coverage", {})
-        lines.extend(["", "## Inspection coverage", "", f"- Source files profiled: {coverage.get('source_files_inspected', 0)}", f"- Route candidates: {coverage.get('routes_discovered', 0)}", f"- Routes rendered: {coverage.get('routes_rendered', 0)}", f"- Component profiles: {coverage.get('component_profiles', 0)}", f"- Screenshots: {coverage.get('screenshots_captured', 0)}", f"- Viewports: {', '.join(coverage.get('rendered_viewports', [])) or 'none'}", "- Application controls activated: none; one passive keyboard Tab focus state may be captured per route."])
+        lines.extend(["", "## Inspection coverage", "", f"- Source files profiled: {coverage.get('source_files_inspected', 0)}", f"- Route candidates: {coverage.get('routes_discovered', 0)}", f"- Routes rendered: {coverage.get('routes_rendered', 0)}", f"- Component profiles: {coverage.get('component_profiles', 0)}", f"- Screenshots captured / attached / interpreted / validated: {coverage.get('screenshots_captured', 0)} / {coverage.get('screenshots_attached_to_visual', 0)} / {coverage.get('visual_analysis_interpreted', False)} / {coverage.get('visual_analysis_validated', False)}", f"- Viewports: {', '.join(coverage.get('rendered_viewports', [])) or 'none'}", "- Application controls activated: none; one passive keyboard Tab focus state may be captured per route."])
     lines.extend(["", "## Limitations", ""])
     lines.extend(f"- {item}" for item in limitations)
     if result.recommendations:
@@ -286,3 +313,34 @@ def _finding_lines(finding: Finding) -> list[str]:
             lines.append(f"  - `{item.reference}{suffix}`{viewport} — {item.description}")
     lines.append("")
     return lines
+
+
+def _security_data_flow_report(traces: tuple[dict[str, Any], ...]) -> str:
+    labels = {
+        "user_controlled_unescaped": "Editable input reaches sink without recognized sanitization",
+        "local_static_data": "Rendered value comes from a local literal data array",
+        "constant_markup": "Constant markup string",
+        "sanitized_value": "Recognized sanitization or constant call-site values",
+        "unknown_input_origin": "Input origin not established",
+    }
+    lines = ["# HTML sink data-flow review", "", "This is a conservative static trace of straightforward HTML assignments. It does not execute payloads or prove exploitability beyond the source path described.", ""]
+    if not traces:
+        lines.append("No `innerHTML` assignments were found in the inspected source files.")
+        return "\n".join(lines) + "\n"
+    for item in traces:
+        lines.extend([
+            f"## `{item['sink_path']}:{item['sink_line']}` — {labels.get(item['assessment'], item['assessment'])}",
+            "",
+            f"- Context: `{item['context']}`",
+            f"- Sink value: `{item['value_expression']}`",
+            f"- Trace assessment: `{item['source_summary']}`",
+            f"- Recognized sanitizer: {'yes' if item['sanitization_detected'] else 'no'}",
+        ])
+        if item["evidence_sources"]:
+            lines.append("- Data-flow evidence:")
+            lines.extend(f"  - `{source['path']}:{source['line']}` — {source['description']}" for source in item["evidence_sources"])
+        else:
+            lines.append("- Data-flow evidence: no caller or source path was established; this sink is not classified as exploitable.")
+        lines.append("")
+    lines.append("Only a direct, recognized DOM/browser input flow is raised as a security finding. Constant template markup and source-local literal datasets are documented without being treated as confirmed injection vulnerabilities.")
+    return "\n".join(lines).rstrip() + "\n"
