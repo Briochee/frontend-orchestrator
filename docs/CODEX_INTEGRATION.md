@@ -13,6 +13,12 @@ The implementation was checked against the installed Codex CLI and current OpenA
 - **Skills:** local discovery follows documented `.agents/skills/`, `~/.agents/skills/`, `/etc/codex/skills/`, and installed Codex locations. It reads only the metadata prefix. The skill is bundled as a package resource. `install-skill` supports the same content-aware update and backup rules at `PATH/.agents/skills/frontend-design-director/SKILL.md`.
 - **MCP and plugins:** configured MCP server names and local plugin manifests can be observed. The initial implementation does not call MCP tools or query remote plugin catalogs. It does not claim that a cached plugin is enabled or callable without a documented probe.
 
+## Collaboration roles
+
+Capability-aware team plans select complementary role-based calls for audit, planning, mockup, implementation review, and explicitly requested verification review. Installed Codex agent definitions are reported as discovered resources but are not presented as named native subagent executions; the supported non-interactive path used here is the existing `codex exec` backend. Skills are metadata-only relevance hints until a reviewed instruction-loading policy exists. The task-specific plan, contributions, citations, cross-review, bounded exhaustive follow-up, and Director dispositions are persisted in the workflow artifacts and decision ledger.
+
+For the secondary Claude Code adapter and cross-provider sharing rules, see [COLLABORATION_AND_PROVIDERS.md](COLLABORATION_AND_PROVIDERS.md). Claude calls require explicit per-audit authorization and are not inferred from installed resources.
+
 ## Deliberately isolated adapter
 
 The Python interface is `CodexCLIBackend.execute(...)`. It accepts a working directory, a role-specific instruction, a JSON Schema, a sandbox mode, and optional screenshot paths. It fails clearly when Codex is missing, ChatGPT sign-in is unavailable, the process times out, or output does not match the requested schema.

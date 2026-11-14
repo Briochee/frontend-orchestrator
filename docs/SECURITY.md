@@ -14,6 +14,10 @@ An opt-in model call sends the included filtered text files, prompt, and any att
 
 The adapter uses the read-only sandbox for auditing and planning. Mockup generation and implementation use workspace-write only inside a temporary mockup workspace or filtered temporary Git snapshot. It does not request danger-full-access or configure broader permissions. Codex custom agents inherit their parent's permissions; agent instructions alone cannot sandbox them.
 
+Comprehensive and exhaustive collaboration add structured review calls under the same explicitly selected Codex workflow. Implementation review receives only the approved specification, exact scope, patch metadata, and a bounded patch excerpt. `verify --codex-review` is separately opt-in and shares command summaries, changed paths, and approved scope. These review calls cannot edit the project or record human approvals.
+
+Claude Code is a separate provider and is never selected merely because it is installed or authenticated. `audit --allow-secondary-provider claude --codex` explicitly permits that audit's filtered source snapshot to be sent to Claude when CLI authentication and structured output are verified. The adapter uses a read-only permission mode, an explicit read-only tool allowlist, and an empty strict MCP configuration. Claude review is not used in later workflow phases unless a future phase-specific sharing control is added. Discovery of Claude skills, agents, plugins, hooks, or MCP configuration does not authorize their execution.
+
 ## Filesystem and patch scope
 
 - Snapshot creation omits symlinks, Git metadata, `.agents`, `.codex`, project instruction files, common dependency/build/cache directories, non-text files, environment/credential files, and selected recognizable secret patterns.

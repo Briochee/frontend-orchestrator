@@ -105,6 +105,28 @@ To include Codex findings using the signed-in account:
 frontend-director --model gpt-6-luna --reasoning-effort xhigh audit --project /path/to/frontend --codex
 ```
 
+Audit collaboration defaults to `comprehensive`; use `--collaboration focused` to skip the additional challenge round or `--collaboration exhaustive` to allow one evidence-triggered follow-up. The mode also guides later mockup, planning, and post-approval implementation reviews. Every phase report records selected roles, excluded resources, citations, limitations, challenges, and Director dispositions:
+
+```bash
+frontend-director audit --project /path/to/frontend --codex --collaboration exhaustive
+frontend-director report collaboration --project /path/to/frontend
+frontend-director report collaboration-planning --project /path/to/frontend
+```
+
+Claude Code capabilities can be discovered without executing them. Sharing an audit snapshot with Claude requires explicit per-audit authorization and a verified login:
+
+```bash
+frontend-director audit --project /path/to/frontend --codex --allow-secondary-provider claude
+```
+
+Verification review is also opt-in because it sends command summaries and applied file scope to Codex:
+
+```bash
+frontend-director verify --project /path/to/frontend --command "npm test" --codex-review
+```
+
+See [docs/COLLABORATION_AND_PROVIDERS.md](docs/COLLABORATION_AND_PROVIDERS.md) for the provider status model, review boundaries, and artifact names.
+
 The audit can capture a running local application at the required desktop, tablet, and mobile sizes when Playwright is installed:
 
 ```bash

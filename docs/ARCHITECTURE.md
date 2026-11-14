@@ -57,23 +57,25 @@ When an authorized `--start-command` and loopback readiness URL are supplied, `s
 
 With `--codex`, the coordinator creates a temporary Git snapshot containing bounded text source and configuration files. It skips `.git`, `.agents`, `.codex`, project instruction files, common generated directories, symlinks, non-text assets, credential-like filenames, and files matching selected common secret patterns. Codex receives only that snapshot and explicitly captured screenshots. Technical, behavioral, and visual specialists run independent structured passes and evidence cross-validation. The visual schema requires a screenshot-grounded design identity, route/viewport assessments, strengths, concerns, consistency patterns, and preserve/refine/human-decision recommendations; references must match screenshots supplied to that task. JSON Schema constrains each role's final result. Without `--codex`, screenshots remain human-reviewable evidence and no subjective image interpretation is claimed.
 
+The capability registry keeps skills, agents, plugins, MCP servers, provider roles, and deterministic local tools distinct. A discovered definition is not treated as executable. The selector records phase fit, provider and trust status, selected roles, supporting metadata hints, exclusions, and gaps. Role-based Codex/Claude calls do not claim native subagent delegation. Specialist contributions and challenges must cite artifact references supplied to that call; the Director records non-voting dispositions in the existing SQLite decision ledger.
+
 Reports are generated from inventories and findings with explicit evidence boundaries. They include an index, executive/application summaries, architecture and screen maps, component/design system inventories, separate color/typography/layout/responsive/accessibility/performance/interaction views, runtime evidence, and coverage/limitations. Re-audits store versioned copies under `reports/audits/audit-NNN/` while stable latest-report artifact names remain available.
 
 ## Human direction and mockups
 
-Visual direction, interaction direction, and scope are independent decisions. A direction approval is bound to the digest of `design-direction.json`. Mockups are versioned under `mockups/revision-NNN/`; prior revisions remain available. The built-in renderer produces static HTML/CSS/tokens and labels its sample content and colors as illustrative. `mockup --codex` optionally refines the prototype in a temporary workspace with only the mockup files as writable outputs.
+Visual direction, interaction direction, and scope are independent decisions. A direction approval is bound to the digest of `design-direction.json`. Mockups are versioned under `mockups/revision-NNN/`; prior revisions remain available. The built-in renderer produces static HTML/CSS/tokens and labels its sample content and colors as illustrative. `mockup --codex` optionally refines the prototype in a temporary workspace with only the mockup files as writable outputs, then requests phase-appropriate read-only review of its artifacts and rendered mockup screenshots.
 
 Mockup approval writes a formal implementation specification. It does not authorize production changes. The implementation plan records exact paths, reasons, change classes, and SHA-256 baselines for existing files. The human then approves that exact plan digest and scope.
 
 ## Controlled implementation
 
-`implement` copies the filtered target into a temporary Git repository, checks that approved files still match their planned baseline, and asks Codex to edit only the approved exact paths. The adapter rejects unexpected changed paths, symlinks, or non-file outputs. It creates a Git patch but does not modify the target project.
+`implement` copies the filtered target into a temporary Git repository, checks that approved files still match their planned baseline, and asks Codex to edit only the approved exact paths. The adapter rejects unexpected changed paths, symlinks, or non-file outputs. It creates a Git patch but does not modify the target project. A read-only specialist pass receives a bounded patch excerpt and approved scope; its results are advisory and cannot create either implementation or patch-application approval.
 
 `apply` requires a separate human confirmation. It validates the patch digest and file list, compares current target hashes with the plan baselines, runs `git apply --check`, then applies the patch. Unrelated user changes outside the approved file set are preserved. If a planned target file changes while implementation runs, application is blocked and the user must produce a new plan.
 
 ## Verification
 
-The coordinator never runs commands found in project manifests. `verify --command ...` runs only exact commands supplied by the human and requires interactive confirmation. It invokes commands without a shell, rejects shell operators, applies a timeout, and records command name/status/exit code/duration without persisting raw output. A report marks visual, accessibility, and performance work `not verified` unless a corresponding check actually ran.
+The coordinator never runs commands found in project manifests. `verify --command ...` runs only exact commands supplied by the human and requires interactive confirmation. It invokes commands without a shell, rejects shell operators, applies a timeout, and records command name/status/exit code/duration without persisting raw output. A separate `--codex-review` opt-in sends only the verification summary and approved file scope for independent review. A report marks visual, accessibility, and performance work `not verified` unless a corresponding check actually ran.
 
 ## Guided continuity
 
