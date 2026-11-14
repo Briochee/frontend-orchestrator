@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from .collaboration import CollaborationMode
 from .director import FrontendDesignDirector
 from .models import Phase
 from .storage import WorkflowStore
@@ -26,6 +27,8 @@ def run_guided_workflow(
     allow_remote: bool = False,
     route_paths: tuple[str, ...] | list[str] = (),
     depth: str = "deep",
+    collaboration_mode: CollaborationMode | str | None = None,
+    allowed_secondary_providers: tuple[str, ...] | list[str] | None = None,
     start_command: tuple[str, ...] | list[str] | None = None,
     server_url: str | None = None,
     input_fn: Input = input,
@@ -38,6 +41,18 @@ def run_guided_workflow(
     state = dict(session.metadata.get("guided_session", {}))
     if state.get("status") == "ended":
         raise ValueError("This guided session was explicitly ended. Start a new session or select another session.")
+    mode = CollaborationMode(
+        collaboration_mode
+        or session.metadata.get("collaboration_mode", CollaborationMode.COMPREHENSIVE.value)
+    )
+    existing_secondary = session.metadata.get("allowed_secondary_providers", [])
+    secondary_providers = list(allowed_secondary_providers if allowed_secondary_providers is not None else existing_secondary)
+    if set(secondary_providers) - {"claude"}:
+        raise ValueError("Guided workflow has an unsupported secondary provider.")
+    if allowed_secondary_providers and secondary_providers and not use_codex:
+        raise ValueError("Secondary-provider review requires the primary Codex audit (`--codex`).")
+    store.set_metadata(session_id, "collaboration_mode", mode.value)
+    store.set_metadata(session_id, "allowed_secondary_providers", secondary_providers)
     _save_state(store, session_id, status="active", pending_action=state.get("pending_action"))
     output_fn(f"Frontend Design Director · {session.title}\nSession: {session.id}\nPhase: {session.phase.value}\n")
 
@@ -216,6 +231,7 @@ def _run_audit(
         import shlex
         _confirm(input_fn, output_fn, f"The orchestrator will execute `{shlex.join(start_command)}` without a shell in the selected project, wait for {server_url}, capture read-only same-origin evidence, and stop only the process group it starts. Type {phrase}", phrase)
         confirmation = True
+    session = director.store.get_session(session_id)
     return director.audit(
         session_id,
         use_codex=use_codex,
@@ -223,6 +239,8 @@ def _run_audit(
         allow_remote=allow_remote,
         route_paths=routes,
         depth=depth,
+        collaboration=session.metadata.get("collaboration_mode", CollaborationMode.COMPREHENSIVE.value),
+        allowed_secondary_providers=session.metadata.get("allowed_secondary_providers", []),
         start_command=start_command,
         server_url=server_url,
         server_human_confirmation=confirmation,

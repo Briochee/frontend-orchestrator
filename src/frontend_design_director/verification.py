@@ -62,6 +62,14 @@ def verification_reports(result: dict[str, Any], *, changed_files: list[str], ap
             lines.append(f"- `{item['command']}`: **{item['status']}**{suffix}; {item['duration_seconds']:.2f}s")
     else:
         lines.append("No test or verification commands were run.")
+    collaboration = result.get("collaboration_review")
+    if isinstance(collaboration, dict):
+        lines.extend(["", "## Independent review", ""])
+        lines.append(f"Codex review status: **{str(collaboration.get('status', 'unknown')).replace('_', ' ')}**")
+        if collaboration.get("report_path"):
+            lines.append(f"Structured review artifact: `{collaboration['report_path']}`")
+        if collaboration.get("status") == "not_requested":
+            lines.append("No model review was requested; the recorded command results remain the verification evidence.")
     lines.extend(["", "## Visual, accessibility, and performance verification", "", "These areas are verified only when a corresponding browser, accessibility, or performance command was explicitly supplied and its result is recorded. The orchestrator does not infer success from source changes."])
     if result["limitations"]:
         lines.extend(["", "## Remaining unverified work", ""])

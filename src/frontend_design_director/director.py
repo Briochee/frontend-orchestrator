@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+import uuid
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,7 +16,14 @@ from .auditing import AuditResult, run_codex_audit, run_static_audit
 from .backend import AgentBackend
 from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots
 from .codex_backend import BackendFailure, BackendUnavailable, CodexCLIBackend
-from .discovery import build_capability_matrix, discover_agents, discover_codex, discover_project, discover_skills
+from .collaboration import (
+    CapabilityResource,
+    CollaborationMode,
+    assemble_expert_team,
+    build_capability_registry,
+    run_phase_collaboration,
+)
+from .discovery import build_capability_matrix, discover_agents, discover_claude_code, discover_codex, discover_project, discover_skills
 from .implementation import _current_baselines, apply_implementation_patch, create_implementation_plan, execute_implementation
 from .intelligence import attach_runtime_evidence, build_project_intelligence, intelligence_reports, renderable_route_candidates, runtime_findings
 from .logging_setup import configure_logging
@@ -26,6 +34,7 @@ from .server import managed_development_server
 from .storage import WORKFLOW_STATE_DIRECTORY, WorkflowStore
 from .state_machine import TRANSITIONS
 from .verification import run_verification, verification_reports
+from .providers import ClaudeCodeBackend
 
 
 class WorkflowBlocked(RuntimeError):
@@ -94,7 +103,9 @@ class FrontendDesignDirector:
             skills, skill_errors = discover_skills(Path(session.project_root))
             agents, agent_errors = discover_agents(Path(session.project_root))
             codex = discover_codex(Path(session.project_root))
+            claude_code = discover_claude_code(Path(session.project_root))
             capabilities = build_capability_matrix(project, skills, agents, codex)
+            collaboration_capabilities = build_capability_registry(project, skills, agents, codex, claude_code)
             inventory = {
                 "schema_version": 1,
                 "project": project,
@@ -103,6 +114,8 @@ class FrontendDesignDirector:
                 "agents": agents,
                 "agent_discovery_errors": agent_errors,
                 "codex": codex,
+                "claude_code": claude_code,
+                "collaboration_capabilities": [item.to_dict() for item in collaboration_capabilities],
                 "capabilities": [item.__dict__ for item in capabilities],
                 "installation_policy": "No skill, plugin, dependency, or browser was installed.",
             }
@@ -125,6 +138,8 @@ class FrontendDesignDirector:
         allow_remote: bool = False,
         route_paths: tuple[str, ...] | list[str] = (),
         depth: str = "deep",
+        collaboration: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
+        allowed_secondary_providers: tuple[str, ...] | list[str] = (),
         start_command: list[str] | tuple[str, ...] | None = None,
         server_url: str | None = None,
         server_human_confirmation: bool = False,
@@ -135,10 +150,16 @@ class FrontendDesignDirector:
             raise ValueError("Starting a project server requires an explicit local readiness URL, no --url, and interactive human confirmation.")
         if server_url and not start_command:
             raise ValueError("A server readiness URL requires an explicit --start-command.")
+        collaboration = CollaborationMode(collaboration)
+        unsupported_providers = set(allowed_secondary_providers) - {"claude"}
+        if unsupported_providers:
+            raise ValueError(f"Unsupported secondary provider(s): {', '.join(sorted(unsupported_providers))}.")
+        if allowed_secondary_providers and not use_codex:
+            raise ValueError("Secondary-provider review requires the primary Codex audit (`--codex`).")
         try:
             if start_command:
                 with managed_development_server(Path(self.store.get_session(session_id).project_root), start_command, server_url) as server_run:
-                    result = self._audit(session_id, use_codex=use_codex, browser_url=server_run.url, allow_remote=False, route_paths=route_paths, depth=depth)
+                    result = self._audit(session_id, use_codex=use_codex, browser_url=server_run.url, allow_remote=False, route_paths=route_paths, depth=depth, collaboration=collaboration, allowed_secondary_providers=allowed_secondary_providers)
                 details = server_run.details
                 server_artifacts = {
                     "development-server-run": self.store.write_artifact(session_id, "development-server-run", "evidence/development-server.json", _json_bytes(details)),
@@ -150,7 +171,7 @@ class FrontendDesignDirector:
                 result["server_logs"] = {name: item["path"] for name, item in server_artifacts.items() if name != "development-server-run"}
                 self.store.set_metadata(session_id, "audit", result)
                 return result
-            return self._audit(session_id, use_codex=use_codex, browser_url=browser_url, allow_remote=allow_remote, route_paths=route_paths, depth=depth)
+            return self._audit(session_id, use_codex=use_codex, browser_url=browser_url, allow_remote=allow_remote, route_paths=route_paths, depth=depth, collaboration=collaboration, allowed_secondary_providers=allowed_secondary_providers)
         except Exception as error:
             self._fail(session_id, error, "audit")
             raise
@@ -164,10 +185,14 @@ class FrontendDesignDirector:
         allow_remote: bool = False,
         route_paths: tuple[str, ...] | list[str] = (),
         depth: str = "deep",
+        collaboration: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
+        allowed_secondary_providers: tuple[str, ...] | list[str] = (),
     ) -> dict[str, Any]:
+        collaboration = CollaborationMode(collaboration)
         session = self.store.get_session(session_id)
         if session.phase not in {Phase.CAPABILITIES_REVIEW, Phase.AWAITING_DIRECTION, Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AUDIT_INCOMPLETE, Phase.AUDITING}:
             raise WorkflowBlocked(f"Audit requires a discovery review or a prior audit cycle; current phase is {session.phase.value}.")
+        self.store.set_metadata(session_id, "collaboration_mode", collaboration.value)
         discovery = session.metadata.get("discovery")
         if not discovery:
             raise WorkflowBlocked("Run `discover` before starting the audit.")
@@ -302,12 +327,41 @@ class FrontendDesignDirector:
                 rendered_screenshots=[item["path"] for item in screenshots],
             )
         ]
+        valid_screenshot_count = sum(
+            item.get("evidence_type") == "rendered_browser_screenshot" and item.get("visual_evidence_status") == "valid"
+            for item in screenshots
+        )
+        collaboration_capabilities = build_capability_registry(
+            discovery["project"], discovery.get("skills", []), discovery.get("agents", []),
+            discovery.get("codex", {}), discovery.get("claude_code", {}), screenshot_count=valid_screenshot_count,
+        )
+        refreshed_discovery["collaboration_capabilities"] = [item.to_dict() for item in collaboration_capabilities]
         self.store.set_metadata(session_id, "discovery", refreshed_discovery)
         self.store.write_artifact(session_id, "capability-inventory", "reports/capability-inventory.json", _json_bytes(refreshed_discovery))
+        collaboration_plan = assemble_expert_team(
+            phase="audit",
+            mode=collaboration,
+            capabilities=collaboration_capabilities,
+            frameworks=discovery["project"].get("frameworks", []),
+            screenshot_available=valid_screenshot_count > 0,
+            primary_provider="codex" if use_codex else "local",
+            allowed_secondary_providers=allowed_secondary_providers,
+        )
+        collaboration_plan_artifact = self.store.write_artifact(
+            session_id, "collaboration-plan", "reports/collaboration-plan.json", _json_bytes(collaboration_plan),
+        )
+        self.store.set_metadata(session_id, "collaboration_plan", collaboration_plan)
         result = static_result
         if use_codex:
             try:
-                codex_result = run_codex_audit(Path(session.project_root), discovery["project"], screenshots=screenshots, backend=self.backend, intelligence=intelligence, user_instructions=audit_instructions)
+                secondary_review = None
+                if any(item.get("role") == "cross_disciplinary_reviewer" and item.get("provider") == "claude_code" for item in collaboration_plan.get("selected_experts", [])):
+                    secondary_review = ClaudeCodeBackend(authorized_secondary_provider=True)
+                codex_result = run_codex_audit(
+                    Path(session.project_root), discovery["project"], screenshots=screenshots, backend=self.backend,
+                    intelligence=intelligence, user_instructions=audit_instructions,
+                    collaboration_mode=collaboration, collaboration_plan=collaboration_plan, review_backend=secondary_review,
+                )
                 visual_evidence_complete = (
                     bool(codex_result.visual_delivery.get("validated"))
                     and codex_result.visual_delivery.get("route_viewports_assessed", 0) >= len(expected_pairs)
@@ -335,6 +389,7 @@ class FrontendDesignDirector:
                     diagnostics=codex_result.diagnostics,
                     security_data_flows=static_result.security_data_flows,
                     specialist_assessments=codex_result.specialist_assessments,
+                    collaboration=codex_result.collaboration,
                 )
             except Exception as error:
                 category = "model_timeout" if isinstance(error, TimeoutError) else "backend_invocation_failed"
@@ -354,12 +409,14 @@ class FrontendDesignDirector:
                         "message": str(error)[:1000],
                         **(dict(getattr(error, "diagnostic", {}) or {})),
                     },),
+                    collaboration={"schema_version": 1, "mode": collaboration.value, "plan": collaboration_plan, "cross_review": {"status": "not_run"}, "decisions": []},
                 )
         else:
             if audit_instructions:
                 limitations.append("Human audit instructions were preserved in the session but not interpreted by the deterministic source rules; use the explicit Codex audit option if you want model-assisted interpretation.")
             if limitations:
                 result = replace(static_result, limitations=tuple(dict.fromkeys((*static_result.limitations, *limitations))), screenshots=tuple(screenshots), backend_used="static", visual_analysis={})
+            result = replace(result, collaboration={"schema_version": 1, "mode": collaboration.value, "plan": collaboration_plan, "cross_review": {"status": "not_requested"}, "decisions": []})
 
         completion_reasons: list[str] = []
         blockers: list[str] = []
@@ -383,6 +440,17 @@ class FrontendDesignDirector:
                     blockers.append(f"Required specialist `{role}` did not complete both structured passes.")
             if not result.visual_analysis:
                 blockers.append("No screenshot-backed visual analysis passed evidence validation.")
+            review_selection = next((item for item in collaboration_plan.get("selected_experts", []) if item.get("role") == "cross_disciplinary_reviewer"), None)
+            if review_selection and result.collaboration.get("cross_review", {}).get("status") != "completed":
+                message = "The selected independent cross-disciplinary reviewer did not complete."
+                if collaboration == CollaborationMode.EXHAUSTIVE:
+                    blockers.append(message)
+                else:
+                    completion_reasons.append(message)
+            if collaboration == CollaborationMode.EXHAUSTIVE and result.collaboration.get("targeted_follow_up", {}).get("status") == "failed":
+                blockers.append("An exhaustive audit's evidence-triggered targeted follow-up failed.")
+            if not review_selection and collaboration != CollaborationMode.FOCUSED:
+                completion_reasons.append("No authorized callable cross-disciplinary reviewer was available; the audit retains its primary specialist results.")
         else:
             completion_reasons.append("Codex specialist interpretation was not requested; appearance and specialist findings are not semantically verified.")
 
@@ -452,6 +520,10 @@ class FrontendDesignDirector:
         findings = list(result.findings)
         self.store.replace_findings(session_id, findings)
         reports = audit_reports(findings, result, discovery["project"], intelligence)
+        collaboration_report = dict(result.collaboration or {})
+        collaboration_report.setdefault("plan", collaboration_plan)
+        collaboration_report["plan_artifact"] = collaboration_plan_artifact["path"]
+        reports["collaboration.json"] = _json_bytes(collaboration_report)
         reports.update(intelligence_reports(intelligence))
         if result.visual_analysis:
             reports["visual-analysis.json"] = _json_bytes(result.visual_analysis)
@@ -467,6 +539,7 @@ class FrontendDesignDirector:
             "visual_delivery": visual_delivery,
             "specialists": list(result.specialist_runs),
             "specialist_assessments": list(result.specialist_assessments),
+            "collaboration": collaboration_report,
             "retry_recommendation": retry_recommendation,
         })
         reports["backend-diagnostics.json"] = _json_bytes({
@@ -474,6 +547,12 @@ class FrontendDesignDirector:
             "diagnostics": list(result.diagnostics),
         })
         report_revision = int(session.metadata.get("audit_revision", 0)) + 1
+        decision_ids: list[str] = []
+        for decision in collaboration_report.get("decisions", []):
+            decision_id = f"collab-{uuid.uuid4().hex[:16]}"
+            self.store.add_decision(session_id, decision_id, decision)
+            decision_ids.append(decision_id)
+        self.store.set_metadata(session_id, "collaboration_decisions", [*session.metadata.get("collaboration_decisions", []), *decision_ids])
         for filename, content in reports.items():
             artifact_name = filename.removesuffix(".md").removesuffix(".json").replace("-", "_")
             self.store.write_artifact(session_id, artifact_name, f"reports/{filename}", content)
@@ -497,6 +576,9 @@ class FrontendDesignDirector:
             "backend": result.backend_used,
             "depth": depth,
             "completion_status": completion_status,
+            "collaboration_mode": collaboration.value,
+            "collaboration_plan": collaboration_plan_artifact["path"],
+            "collaboration_decision_ids": decision_ids,
             "completion_reasons": list(result.completion_reasons),
             "specialists": list(result.specialist_runs),
             "visual_delivery": visual_delivery,
@@ -652,6 +734,41 @@ class FrontendDesignDirector:
                     screenshots.append({**item, "path": artifact["path"], "sha256": artifact["sha256"]})
         except Exception as error:
             rendering_limitations.append(f"Mockup screenshots were unavailable: {type(error).__name__}: {str(error)[:240]}")
+        mockup_evidence: dict[str, Any] = {
+            "approved_direction": direction,
+            "mockup_change_summary": files["change-summary.md"].decode("utf-8", errors="replace")[:12_000],
+            "mockup_html": files["index.html"].decode("utf-8", errors="replace")[:24_000],
+            "mockup_css": files["styles.css"].decode("utf-8", errors="replace")[:32_000],
+            "mockup_design_tokens": files["design-tokens.json"].decode("utf-8", errors="replace")[:12_000],
+        }
+        direction_artifact = self.store.artifact(session_id, "design-direction")
+        mockup_evidence_manifest: dict[str, Any] = {
+            "approved_direction": {"path": direction_artifact["path"], "sha256": direction_artifact["sha256"], "reviewed_as": "persisted design direction"},
+            "mockup_change_summary": {"path": file_artifacts["change-summary.md"]["path"], "sha256": file_artifacts["change-summary.md"]["sha256"], "reviewed_as": "change summary"},
+            "mockup_html": {"path": file_artifacts["index.html"]["path"], "sha256": file_artifacts["index.html"]["sha256"], "reviewed_as": "bounded HTML excerpt"},
+            "mockup_css": {"path": file_artifacts["styles.css"]["path"], "sha256": file_artifacts["styles.css"]["sha256"], "reviewed_as": "bounded CSS excerpt"},
+            "mockup_design_tokens": {"path": file_artifacts["design-tokens.json"]["path"], "sha256": file_artifacts["design-tokens.json"]["sha256"], "reviewed_as": "design token file"},
+        }
+        mockup_images: list[Path] = []
+        for item in screenshots:
+            reference = f"screenshot:{item['viewport']}"
+            mockup_evidence[reference] = {
+                "route": "mockup prototype",
+                "viewport": item["viewport"],
+                "path": item["path"],
+                "sha256": item.get("sha256"),
+                "dimensions": item.get("image_dimensions"),
+            }
+            mockup_evidence_manifest[reference] = {
+                "path": item["path"], "sha256": item["sha256"], "reviewed_as": "rendered mockup screenshot",
+                "route": "mockup prototype", "viewport": item["viewport"],
+            }
+            mockup_images.append(Path(item["path"]))
+        mockup_collaboration, mockup_collaboration_artifact = self._phase_collaboration(
+            session_id, "mockup", evidence=mockup_evidence, images=mockup_images,
+            evidence_manifest=mockup_evidence_manifest,
+            authorized_codex=use_codex, artifact_suffix=f"revision-{revision:03d}",
+        )
         manifest = {
             "schema_version": 1,
             "revision": revision,
@@ -662,6 +779,11 @@ class FrontendDesignDirector:
             "files": {name: {"path": artifact["path"], "sha256": artifact["sha256"]} for name, artifact in file_artifacts.items()},
             "responsive_targets_px": [1440, 768, 390],
             "screenshots": screenshots,
+            "collaboration": {
+                "status": mockup_collaboration["status"],
+                "report_path": mockup_collaboration_artifact["path"],
+                "selected_experts": mockup_collaboration["plan"].get("selected_experts", []),
+            },
             "limitations": rendering_limitations,
             "human_approval": "pending",
         }
@@ -739,10 +861,45 @@ class FrontendDesignDirector:
         specification = _read_json_artifact(self.store, session_id, "implementation-spec")
         specification["sha256"] = spec_record["sha256"]
         plan = create_implementation_plan(Path(session.project_root), specification, files=files, new_files=new_files, use_codex=use_codex, backend=self.backend)
+        planning_evidence = {
+            "approved_implementation_specification": specification,
+            "proposed_file_plan": {
+                "summary": plan["summary"],
+                "files": plan["files"],
+                "new_files": plan["new_files"],
+                "approved_scope": plan["approved_scope"],
+                "verification_commands": plan["verification_commands"],
+                "risks": plan["risks"],
+                "source": plan["plan_source"],
+            },
+        }
+        previous_plan_revision = int(session.metadata.get("implementation_plan_revision", 0))
+        candidate_path = f"decisions/implementation-plan-candidate-r{previous_plan_revision + 1:03d}.json"
+        candidate_plan_artifact = self.store.write_artifact(
+            session_id, f"implementation-plan-candidate-r{previous_plan_revision + 1:03d}", candidate_path, _json_bytes(plan),
+        )
+        planning_evidence_manifest = {
+            "approved_implementation_specification": {
+                "path": spec_record["path"], "sha256": spec_record["sha256"], "reviewed_as": "approved specification",
+            },
+            "proposed_file_plan": {
+                "path": candidate_plan_artifact["path"], "sha256": candidate_plan_artifact["sha256"], "reviewed_as": "pre-review candidate implementation plan",
+            },
+        }
+        planning_collaboration, planning_collaboration_artifact = self._phase_collaboration(
+            session_id, "planning", evidence=planning_evidence, authorized_codex=use_codex,
+            evidence_manifest=planning_evidence_manifest,
+            artifact_suffix=f"revision-{previous_plan_revision + 1:03d}",
+        )
+        plan["collaboration_review"] = {
+            "status": planning_collaboration["status"],
+            "report_path": planning_collaboration_artifact["path"],
+        }
         self.store.revoke_approvals(session_id, ("implementation", "patch_application"), "The implementation plan was changed.")
         plan_artifact = self.store.write_artifact(session_id, "implementation-plan", "decisions/implementation-plan.json", _json_bytes(plan))
         plan_markdown = _implementation_plan_markdown(plan)
         self.store.write_artifact(session_id, "implementation-plan-md", "decisions/implementation-plan.md", plan_markdown.encode())
+        self.store.set_metadata(session_id, "implementation_plan_revision", previous_plan_revision + 1)
         plan["plan_sha256"] = plan_artifact["sha256"]
         return plan
 
@@ -803,10 +960,60 @@ class FrontendDesignDirector:
         try:
             patch, manifest = execute_implementation(Path(session.project_root), plan, backend=self.backend)
             patch_artifact = self.store.write_artifact(session_id, "implementation-patch", "patches/implementation.patch", patch)
+            patch_text = patch.decode("utf-8", errors="replace")
+            patch_limit = 48_000
+            implementation_evidence = {
+                "approved_implementation_specification": plan.get("specification", {}),
+                "approved_file_plan": {
+                    "summary": plan.get("summary"),
+                    "approved_scope": plan.get("approved_scope", []),
+                    "files": plan.get("files", []),
+                    "new_files": plan.get("new_files", []),
+                },
+                "implementation_manifest": {
+                    "summary": manifest.get("summary"),
+                    "changed_files": manifest.get("changed_files", []),
+                    "patch_sha256": manifest.get("patch_sha256"),
+                },
+                "implementation_patch_excerpt": patch_text[:patch_limit] + ("\n[Patch excerpt truncated; remaining bytes were not reviewed.]" if len(patch_text) > patch_limit else ""),
+            }
+            spec_artifact = self.store.artifact(session_id, "implementation-spec")
+            approved_plan_artifact = self.store.artifact(session_id, "implementation-plan")
             manifest["patch_path"] = patch_artifact["path"]
+            candidate_manifest_artifact = self.store.write_artifact(
+                session_id,
+                f"implementation-result-candidate-{manifest['patch_sha256'][:12]}",
+                f"patches/implementation-result-candidate-{manifest['patch_sha256'][:12]}.json",
+                _json_bytes(manifest),
+            )
+            implementation_evidence_manifest = {
+                "approved_implementation_specification": {
+                    "path": spec_artifact["path"], "sha256": spec_artifact["sha256"], "reviewed_as": "approved implementation specification",
+                },
+                "approved_file_plan": {
+                    "path": approved_plan_artifact["path"], "sha256": approved_plan_artifact["sha256"], "reviewed_as": "human-approved exact file plan",
+                },
+                "implementation_manifest": {
+                    "path": candidate_manifest_artifact["path"], "sha256": candidate_manifest_artifact["sha256"], "reviewed_as": "implementation summary and changed file list",
+                },
+                "implementation_patch_excerpt": {
+                    "path": patch_artifact["path"], "sha256": patch_artifact["sha256"],
+                    "reviewed_as": "first 48 KB of patch" if len(patch_text) > patch_limit else "complete patch",
+                },
+            }
+            implementation_collaboration, implementation_collaboration_artifact = self._phase_collaboration(
+                session_id, "implementation", evidence=implementation_evidence,
+                evidence_manifest=implementation_evidence_manifest,
+                authorized_codex=True, artifact_suffix=f"patch-{manifest['patch_sha256'][:12]}",
+            )
+            manifest["collaboration"] = {
+                "status": implementation_collaboration["status"],
+                "report_path": implementation_collaboration_artifact["path"],
+                "selected_experts": implementation_collaboration["plan"].get("selected_experts", []),
+            }
             self.store.write_artifact(session_id, "implementation-result", "patches/implementation-result.json", _json_bytes(manifest))
-            self.store.add_execution(session_id, "frontend_implementer", "patch_ready", {"changed_files": manifest["changed_files"], "patch_sha256": manifest["patch_sha256"]}, started_at)
-            self.store.transition(session_id, Phase.PATCH_READY, {"changed_files": manifest["changed_files"], "patch_sha256": manifest["patch_sha256"]})
+            self.store.add_execution(session_id, "frontend_implementer", "patch_ready", {"changed_files": manifest["changed_files"], "patch_sha256": manifest["patch_sha256"], "collaboration_status": implementation_collaboration["status"]}, started_at)
+            self.store.transition(session_id, Phase.PATCH_READY, {"changed_files": manifest["changed_files"], "patch_sha256": manifest["patch_sha256"], "collaboration_status": implementation_collaboration["status"]})
             return manifest
         except Exception as error:
             self.store.add_execution(session_id, "frontend_implementer", "failed", {"error_category": type(error).__name__, "message": _safe_failure(str(error))}, started_at)
@@ -866,13 +1073,60 @@ class FrontendDesignDirector:
             self._fail(session_id, error, "patch_application")
             raise
 
-    def verify(self, session_id: str, commands: list[str] | None = None) -> dict[str, Any]:
+    def verify(self, session_id: str, commands: list[str] | None = None, *, codex_review: bool = False) -> dict[str, Any]:
         session = self.store.get_session(session_id)
         if session.phase != Phase.VERIFYING:
             raise WorkflowBlocked("Verification starts after a reviewed patch has been applied.")
         result = run_verification(Path(session.project_root), commands or [])
         plan = _read_json_artifact(self.store, session_id, "implementation-plan")
+        implementation_result = _read_json_artifact(self.store, session_id, "implementation-result")
         changed = list(session.metadata.get("applied_files", []))
+        audit_screenshots = session.metadata.get("audit", {}).get("screenshots", [])
+        verification_evidence = {
+            "verification_results": result,
+            "applied_files": changed,
+            "approved_scope": plan["approved_scope"],
+            "approved_plan_summary": plan.get("summary", ""),
+            "implementation_patch_sha256": implementation_result.get("patch_sha256"),
+        }
+        verification_evidence_artifact = self.store.write_artifact(
+            session_id, "verification-evidence", "reports/verification-evidence.json", _json_bytes(result),
+        )
+        plan_artifact = self.store.artifact(session_id, "implementation-plan")
+        patch_artifact = self.store.artifact(session_id, "implementation-patch")
+        implementation_result_artifact = self.store.artifact(session_id, "implementation-result")
+        verification_evidence_manifest = {
+            "verification_results": {
+                "path": verification_evidence_artifact["path"], "sha256": verification_evidence_artifact["sha256"], "reviewed_as": "exact verification command outcomes",
+            },
+            "applied_files": {
+                "path": implementation_result_artifact["path"], "sha256": implementation_result_artifact["sha256"], "reviewed_as": "applied file names from patch manifest",
+            },
+            "approved_scope": {
+                "path": plan_artifact["path"], "sha256": plan_artifact["sha256"], "reviewed_as": "human-approved file scope",
+            },
+            "approved_plan_summary": {
+                "path": plan_artifact["path"], "sha256": plan_artifact["sha256"], "reviewed_as": "approved plan summary",
+            },
+            "implementation_patch_sha256": {
+                "path": patch_artifact["path"], "sha256": patch_artifact["sha256"], "reviewed_as": "patch digest",
+            },
+        }
+        verified_images = _add_rendered_screenshot_evidence(
+            verification_evidence, verification_evidence_manifest, audit_screenshots,
+            allowed_root=Path(session.state_dir),
+        )
+        verification_collaboration, verification_artifact = self._phase_collaboration(
+            session_id, "verification", evidence=verification_evidence, images=verified_images,
+            evidence_manifest=verification_evidence_manifest,
+            authorized_codex=codex_review, artifact_suffix="final-review",
+        )
+        result["collaboration_review"] = {
+            "status": verification_collaboration["status"],
+            "report_path": verification_artifact["path"],
+        }
+        if codex_review and verification_collaboration["status"] not in {"completed", "completed_with_limitations"}:
+            result["limitations"].append("The explicitly requested Codex verification review did not complete; command results remain recorded separately.")
         reports = verification_reports(result, changed_files=changed, approved_scope=plan["approved_scope"])
         for filename, content in reports.items():
             self.store.write_artifact(session_id, filename.removesuffix(".md").removesuffix(".json").replace("-", "_"), f"reports/{filename}", content)
@@ -922,6 +1176,127 @@ class FrontendDesignDirector:
             "recent_events": self.store.history(session_id)[-12:],
         }
 
+    def _phase_collaboration(
+        self,
+        session_id: str,
+        phase: str,
+        *,
+        evidence: dict[str, Any],
+        evidence_manifest: dict[str, Any],
+        images: list[Path] | None = None,
+        authorized_codex: bool,
+        artifact_suffix: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        session = self.store.get_session(session_id)
+        discovery = session.metadata.get("discovery", {})
+        project = discovery.get("project", {})
+        valid_images = [item.resolve() for item in (images or []) if item.is_file()]
+        capabilities = build_capability_registry(
+            project,
+            discovery.get("skills", []),
+            discovery.get("agents", []),
+            discovery.get("codex", {}),
+            discovery.get("claude_code", {}),
+            screenshot_count=len(valid_images),
+        )
+        mode = CollaborationMode(session.metadata.get("collaboration_mode", CollaborationMode.COMPREHENSIVE.value))
+        plan = assemble_expert_team(
+            phase=phase,
+            mode=mode,
+            capabilities=capabilities,
+            frameworks=project.get("frameworks", []),
+            screenshot_available=bool(valid_images),
+            primary_provider="codex" if authorized_codex else "local",
+        )
+        safe_suffix = "".join(character for character in artifact_suffix if character.isalnum() or character in "-_")[:64] or "review"
+        phase_slug = f"{phase}-{safe_suffix}"
+        plan_artifact = self.store.write_artifact(
+            session_id,
+            f"collaboration_plan_{phase}",
+            f"reports/collaboration/{phase_slug}-plan.json",
+            _json_bytes(plan),
+        )
+        if authorized_codex:
+            try:
+                state_root = Path(session.state_dir).resolve(strict=True)
+                if set(evidence) != set(evidence_manifest):
+                    raise ValueError("Every collaboration evidence reference must map to a persisted artifact.")
+                validated_evidence_manifest: dict[str, Any] = {}
+                for reference, manifest_item in evidence_manifest.items():
+                    artifact_path = Path(str(manifest_item.get("path", ""))).resolve(strict=True)
+                    if not artifact_path.is_relative_to(state_root) or not artifact_path.is_file():
+                        raise ValueError(f"Collaboration evidence is outside the persisted session artifacts: {reference}.")
+                    digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+                    if manifest_item.get("sha256") != digest:
+                        raise ValueError(f"Collaboration evidence hash does not match its artifact: {reference}.")
+                    delivered = evidence[reference]
+                    if reference.startswith("screenshot:"):
+                        if not isinstance(delivered, dict) or delivered.get("path") != str(artifact_path) or delivered.get("sha256") != digest:
+                            raise ValueError(f"Screenshot evidence metadata does not match its persisted artifact: {reference}.")
+                        if artifact_path not in valid_images:
+                            raise ValueError(f"Screenshot evidence was not attached to the phase review: {reference}.")
+                    validated_evidence_manifest[reference] = {
+                        **manifest_item,
+                        "sha256": digest,
+                        "delivered_content_sha256": hashlib.sha256(
+                            json.dumps(delivered, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                        ).hexdigest(),
+                    }
+                with tempfile.TemporaryDirectory(prefix=f"frontend-director-{phase}-review-") as temporary:
+                    record = run_phase_collaboration(
+                        phase=phase,
+                        mode=mode,
+                        plan=plan,
+                        evidence=evidence,
+                        evidence_manifest=validated_evidence_manifest,
+                        backend=self.backend,
+                        working_directory=Path(temporary),
+                        images=valid_images,
+                    )
+            except Exception as error:
+                record = {
+                    "schema_version": 1,
+                    "phase": phase,
+                    "mode": mode.value,
+                    "status": "failed",
+                    "plan": plan,
+                    "evidence_manifest": evidence_manifest,
+                    "contributions": [],
+                    "cross_review": {"status": "not_run", "challenges": [], "unresolved_questions": [], "limitations": []},
+                    "decisions": [],
+                    "limitations": [f"Phase review failed without blocking the underlying workflow: {type(error).__name__}: {str(error)[:300]}"],
+                }
+        else:
+            record = {
+                "schema_version": 1,
+                "phase": phase,
+                "mode": mode.value,
+                "status": "not_requested",
+                "plan": plan,
+                "evidence_manifest": evidence_manifest,
+                "contributions": [],
+                "cross_review": {"status": "not_requested", "challenges": [], "unresolved_questions": [], "limitations": []},
+                "decisions": [],
+                "limitations": ["No additional model review was requested for this phase; deterministic workflow and approval checks remain in force."],
+            }
+        record["plan_artifact"] = plan_artifact["path"]
+        decision_ids: list[str] = []
+        for decision in record.get("decisions", []):
+            decision_id = f"collab-{phase}-{uuid.uuid4().hex[:16]}"
+            self.store.add_decision(session_id, decision_id, decision)
+            decision_ids.append(decision_id)
+        record["decision_ids"] = decision_ids
+        artifact = self.store.write_artifact(
+            session_id,
+            f"collaboration_{phase}",
+            f"reports/collaboration/{phase_slug}.json",
+            _json_bytes(record),
+        )
+        history_key = f"collaboration_{phase}_history"
+        previous = list(self.store.get_session(session_id).metadata.get(history_key, []))
+        self.store.set_metadata(session_id, history_key, [*previous, {"path": artifact["path"], "status": record["status"], "decision_ids": decision_ids}])
+        return record, artifact
+
     def _fail(self, session_id: str, error: Exception, operation: str) -> None:
         current = self.store.get_session(session_id).phase
         if Phase.FAILED in TRANSITIONS[current]:
@@ -961,6 +1336,60 @@ def _screenshot_integrity_error(metadata: dict[str, Any], path: Path) -> str | N
     if metadata.get("image_byte_size") and len(content) != metadata["image_byte_size"]:
         return "Screenshot size does not match the capture manifest."
     return None
+
+
+def _add_rendered_screenshot_evidence(
+    evidence: dict[str, Any],
+    manifest: dict[str, Any],
+    screenshots: list[dict[str, Any]],
+    *,
+    allowed_root: Path,
+) -> list[Path]:
+    """Bind verified audit images to exact references for post-implementation review."""
+    images: list[Path] = []
+    state_root = allowed_root.resolve(strict=True)
+    for item in screenshots:
+        if (
+            item.get("evidence_type") != "rendered_browser_screenshot"
+            or item.get("visual_evidence_status", "valid") != "valid"
+            or not item.get("path")
+        ):
+            continue
+        try:
+            path = Path(item["path"]).resolve(strict=True)
+            if not path.is_file() or not path.is_relative_to(state_root):
+                continue
+            content = path.read_bytes()
+        except OSError:
+            continue
+        if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+            continue
+        digest = hashlib.sha256(content).hexdigest()
+        if item.get("sha256") and item["sha256"] != digest:
+            continue
+        route = str(item.get("route", "/"))
+        viewport = str(item.get("viewport_label", item.get("viewport", "unknown")))
+        interaction = str(item.get("interaction_state", "default"))
+        reference = f"screenshot:{route}:{viewport}:{interaction}"
+        if reference in evidence:
+            continue
+        evidence[reference] = {
+            "route": route,
+            "viewport": viewport,
+            "interaction_state": interaction,
+            "path": str(path),
+            "sha256": digest,
+        }
+        manifest[reference] = {
+            "path": str(path),
+            "sha256": digest,
+            "reviewed_as": "rendered audit screenshot supplied for independent verification review",
+            "route": route,
+            "viewport": viewport,
+            "interaction_state": interaction,
+        }
+        images.append(path)
+    return images
 
 
 def _merge_findings(*collections: tuple[Any, ...]) -> list[Any]:

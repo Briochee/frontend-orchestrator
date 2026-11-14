@@ -60,6 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
     audit = subparsers.add_parser("audit", help="Generate separate technical, behavioral, and visual audit reports.")
     _add_context(audit)
     audit.add_argument("--codex", action="store_true", help="Ask the signed-in Codex CLI for structured specialist findings (uses plan usage and sends filtered source/screenshots to the service).")
+    audit.add_argument("--collaboration", choices=["focused", "comprehensive", "exhaustive"], default="comprehensive", help="Additional review intensity (baseline audit specialists still run). Comprehensive is the default; exhaustive adds evidence-triggered follow-up.")
+    audit.add_argument("--allow-secondary-provider", action="append", choices=["claude"], default=[], help="Explicitly allow Claude Code to receive the filtered source snapshot for an independent review. Requires --codex and Claude authentication.")
     audit.add_argument("--depth", choices=["standard", "deep", "exhaustive"], default="deep", help="Audit profile: standard (desktop/mobile), deep (1440/768/390), or exhaustive (1920/1440/1280/768/390/320). Default: deep.")
     audit.add_argument("--url", help="Capture the running application at each source-discovered static route and selected responsive viewport. This attaches only; it does not start project scripts.")
     audit.add_argument("--start-command", help="Optionally start this argument vector (parsed with shlex; never through a shell) after an interactive RUN PROJECT SERVER approval.")
@@ -70,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = subparsers.add_parser("report", help="Display a previously generated report or JSON artifact.")
     _add_context(report)
-    report.add_argument("name", choices=["audit-index", "audit-execution", "backend-diagnostics", "executive-summary", "application-overview", "technical-audit", "behavioral-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "visual-audit", "visual-analysis", "audit-summary", "findings", "coverage-and-limitations", "capability-inventory", "frontend-intelligence", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "runtime-evidence", "browser-evidence", "screenshot-gallery", "implementation-spec", "implementation-spec-md", "implementation-plan", "implementation-plan-md", "final-report", "verification"], help="Report artifact to display.")
+    report.add_argument("name", choices=["audit-index", "audit-execution", "backend-diagnostics", "executive-summary", "application-overview", "technical-audit", "behavioral-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "visual-audit", "visual-analysis", "audit-summary", "findings", "coverage-and-limitations", "capability-inventory", "collaboration", "collaboration-plan", "collaboration-mockup", "collaboration-planning", "collaboration-implementation", "collaboration-verification", "collaboration-plan-mockup", "collaboration-plan-planning", "collaboration-plan-implementation", "collaboration-plan-verification", "frontend-intelligence", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "runtime-evidence", "browser-evidence", "screenshot-gallery", "implementation-spec", "implementation-spec-md", "implementation-plan", "implementation-plan-md", "final-report", "verification"], help="Report artifact to display.")
     _add_output(report)
 
     direction = subparsers.add_parser("direction", help="Record separately selected visual, behavioral, and scope direction after audit review.")
@@ -84,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
     mockup = subparsers.add_parser("mockup", help="Generate an isolated responsive HTML/CSS prototype after direction approval.")
     _add_context(mockup)
     mockup.add_argument("--brief-file", type=Path, help="Optional human-authored content and screen brief (20 KB maximum).")
-    mockup.add_argument("--codex", action="store_true", help="Use the signed-in Codex CLI to refine the isolated prototype (uses plan usage).")
+    mockup.add_argument("--codex", action="store_true", help="Use signed-in Codex to refine the isolated prototype and request independent artifact review (uses plan usage).")
     mockup.add_argument("--revision-note", default="", help="Human direction for the next mockup revision.")
     _add_output(mockup)
 
@@ -98,7 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_context(plan)
     plan.add_argument("--file", action="append", default=[], help="Existing project-relative file to include. Repeat as needed.")
     plan.add_argument("--new-file", action="append", default=[], help="New project-relative file to include. Repeat as needed.")
-    plan.add_argument("--codex", action="store_true", help="Ask Codex for a read-only plan. The result still requires explicit human approval.")
+    plan.add_argument("--codex", action="store_true", help="Ask Codex for a read-only plan and independent scope review. The result still requires explicit human approval.")
     _add_output(plan)
 
     approve = subparsers.add_parser("approve-implementation", help="Approve the exact plan and file scope before any code generation.")
@@ -116,6 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify = subparsers.add_parser("verify", help="Run only explicitly supplied verification commands and write a final report.")
     _add_context(verify)
     verify.add_argument("--command", dest="verification_command", action="append", default=[], help="Exact command to run, such as `npm test`; repeat for more than one. No shell operators are accepted.")
+    verify.add_argument("--codex-review", action="store_true", help="Explicitly send verification summaries and applied file scope to the signed-in Codex service for an independent read-only review.")
     _add_output(verify)
 
     status = subparsers.add_parser("status", help="Show the current phase, artifacts, and blocked requirements.")
@@ -133,7 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
     guide = subparsers.add_parser("guide", help="Run a resumable, human-guided workflow that proposes the next safe step and preserves pending decisions.")
     _add_context(guide)
     guide.add_argument("--depth", choices=["standard", "deep", "exhaustive"], default="deep", help="Audit viewport profile (default: deep).")
-    guide.add_argument("--codex", action="store_true", help="Explicitly allow Codex specialist calls using the signed-in account plan for audit/mockup/planning stages.")
+    guide.add_argument("--collaboration", choices=["focused", "comprehensive", "exhaustive"], help="Expert-review intensity for this guided session (default: comprehensive). Persisted for resume unless changed.")
+    guide.add_argument("--codex", action="store_true", help="Explicitly allow Codex specialist calls using the signed-in account plan for audit, mockup, planning, and post-approval implementation review.")
+    guide.add_argument("--allow-secondary-provider", action="append", choices=["claude"], default=None, help="Explicitly authorize Claude Code to receive the filtered audit source snapshot for independent review. Requires --codex and Claude authentication.")
     guide.add_argument("--url", help="Attach Playwright to this explicitly supplied running application URL; source-discovered static routes are captured and project scripts are not started.")
     guide.add_argument("--start-command", help="Optionally start the application with a shell-free argument vector after an interactive approval gate.")
     guide.add_argument("--server-url", help="Local readiness URL required with --start-command.")
@@ -265,6 +270,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "guide":
             if args.allow_remote and not args.url:
                 raise ValueError("--allow-remote requires an explicit --url.")
+            if args.allow_secondary_provider and not args.codex:
+                raise ValueError("Secondary-provider review requires the primary Codex audit (`--codex`).")
             if args.start_command and (args.url or not args.server_url):
                 raise ValueError("Use --start-command with --server-url, without --url.")
             if args.server_url and not args.start_command:
@@ -282,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
                 allow_remote=args.allow_remote,
                 route_paths=args.route,
                 depth=args.depth,
+                collaboration_mode=args.collaboration,
+                allowed_secondary_providers=args.allow_secondary_provider,
                 start_command=_parse_start_command(args.start_command) if args.start_command else None,
                 server_url=args.server_url,
             )
@@ -307,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
             if command:
                 phrase = "RUN PROJECT SERVER"
                 _human_gate(f"The orchestrator will run this command with no shell in `{project}` and stop only the process group it starts. Readiness URL: {args.server_url}\nCommand: {shlex.join(command)}\nType {phrase}", phrase)
-            result = director.audit(session.id, use_codex=args.codex, browser_url=args.url, allow_remote=args.allow_remote, route_paths=args.route, depth=args.depth, start_command=command, server_url=args.server_url, server_human_confirmation=bool(command))
+            result = director.audit(session.id, use_codex=args.codex, browser_url=args.url, allow_remote=args.allow_remote, route_paths=args.route, depth=args.depth, collaboration=args.collaboration, allowed_secondary_providers=args.allow_secondary_provider, start_command=command, server_url=args.server_url, server_human_confirmation=bool(command))
             _output(result, args.json_output)
             if result.get("completion_status") in {"incomplete", "failed"}:
                 return 3
@@ -379,7 +388,7 @@ def main(argv: list[str] | None = None) -> int:
             commands = getattr(args, "verification_command", [])
             if commands:
                 _human_gate("The following explicit commands may execute project code:\n" + "\n".join(f"- {item}" for item in commands) + "\nType RUN VERIFICATION to continue", "RUN VERIFICATION")
-            result = director.verify(session.id, commands)
+            result = director.verify(session.id, commands, codex_review=args.codex_review)
             _output(result, args.json_output)
         elif args.command == "status":
             _output(director.status(session.id), args.json_output)

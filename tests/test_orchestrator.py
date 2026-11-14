@@ -122,7 +122,7 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_capability_matrix_distinguishes_installed_browser_from_rendered_evidence(self) -> None:
         discovery = {"source_file_count": 1, "frameworks": ["Static HTML"]}
-        codex = {"cli": {"installed": True, "authenticated": True, "auth_mode": "chatgpt_plan"}}
+        codex = {"cli": {"installed": True, "authenticated": True, "auth_mode": "chatgpt_plan", "codex_exec_supported": True, "structured_output_supported": True, "image_input_supported": True}}
         with patch("frontend_design_director.discovery.importlib.util.find_spec", return_value=object()):
             initial = build_capability_matrix(discovery, [], [], codex)
             captured = build_capability_matrix(discovery, [], [], codex, rendered_screenshots=["desktop.png"])

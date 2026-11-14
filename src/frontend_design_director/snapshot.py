@@ -13,7 +13,7 @@ from .discovery import _clean_process_environment
 
 
 IGNORED_DIRECTORIES = {
-    ".git", ".frontend-design-director", ".agents", ".codex", "node_modules", "vendor", "dist", "build", "coverage", ".next", ".nuxt",
+    ".git", ".frontend-design-director", ".agents", ".codex", ".claude", "node_modules", "vendor", "dist", "build", "coverage", ".next", ".nuxt",
     ".svelte-kit", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "logs", "tmp", "temp",
 }
 SENSITIVE_NAMES = {

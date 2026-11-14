@@ -274,6 +274,33 @@ class GuidedWorkflowTests(unittest.TestCase):
         resumed = run_guided_workflow(self.director, self.store, self.session.id, input_fn=lambda _: "end", output_fn=lambda _: None)
         self.assertEqual(resumed["status"], "ended")
 
+    def test_guide_persists_collaboration_mode_and_explicit_secondary_provider_policy(self) -> None:
+        result = run_guided_workflow(
+            self.director,
+            self.store,
+            self.session.id,
+            use_codex=True,
+            collaboration_mode="exhaustive",
+            allowed_secondary_providers=["claude"],
+            input_fn=lambda _: (_ for _ in ()).throw(EOFError()),
+            output_fn=lambda _: None,
+        )
+        metadata = self.store.get_session(self.session.id).metadata
+        self.assertEqual(result["status"], "waiting_for_input")
+        self.assertEqual(metadata["collaboration_mode"], "exhaustive")
+        self.assertEqual(metadata["allowed_secondary_providers"], ["claude"])
+
+    def test_guide_requires_codex_for_explicit_secondary_provider_authorization(self) -> None:
+        with self.assertRaisesRegex(ValueError, "requires the primary Codex audit"):
+            run_guided_workflow(
+                self.director,
+                self.store,
+                self.session.id,
+                allowed_secondary_providers=["claude"],
+                input_fn=lambda _: "end",
+                output_fn=lambda _: None,
+            )
+
     def test_pending_workflow_phases_offer_additional_instructions(self) -> None:
         phases = [
             Phase.CAPABILITIES_REVIEW, Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION,
