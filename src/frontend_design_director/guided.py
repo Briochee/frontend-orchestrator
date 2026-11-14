@@ -92,7 +92,7 @@ def run_guided_workflow(
             _review_current(store, session_id, phase, output_fn)
             continue
         if action in {"revisit", "revisit audit", "re-audit", "new audit"}:
-            if phase not in {Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION, Phase.COMPLETED, Phase.CAPABILITIES_REVIEW}:
+            if phase not in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AUDIT_INCOMPLETE, Phase.AWAITING_DIRECTION, Phase.COMPLETED, Phase.CAPABILITIES_REVIEW}:
                 output_fn("A new audit cannot start from this phase; finish or review the pending approval stage first.")
                 continue
             if phase == Phase.COMPLETED:
@@ -105,7 +105,7 @@ def run_guided_workflow(
             if phase == Phase.CAPABILITIES_REVIEW and action in {"continue", "audit", "run audit"}:
                 _run_audit(director, session_id, use_codex, browser_url, allow_remote, route_paths, depth, start_command, server_url, input_fn, output_fn)
                 _print_stage_result(output_fn, store, session_id, "Audit", "audit-summary")
-            elif phase in {Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION} and action in {"continue", "choose direction", "design direction"}:
+            elif phase in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AWAITING_DIRECTION} and action in {"continue", "choose direction", "design direction"}:
                 _collect_direction(director, session_id, input_fn, output_fn)
             elif phase in {Phase.DIRECTION_APPROVED, Phase.MOCKUP_REVISION, Phase.GENERATING_MOCKUPS} and action in {"continue", "mockup", "generate mockup", "retry generation"}:
                 instructions = director._stage_instructions(session_id, "mockup")
@@ -170,6 +170,8 @@ def _prompt_action(phase: Phase, input_fn: Input, output_fn: Output) -> str | No
     choices: dict[Phase, list[str]] = {
         Phase.CAPABILITIES_REVIEW: ["continue", "instructions", "review", "pause", "end"],
         Phase.AUDIT_COMPLETED: ["continue", "re-audit", "instructions", "review", "pause", "end"],
+        Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: ["continue", "re-audit", "instructions", "review", "pause", "end"],
+        Phase.AUDIT_INCOMPLETE: ["re-audit", "instructions", "review", "pause", "end"],
         Phase.AWAITING_DIRECTION: ["continue", "re-audit", "instructions", "review", "pause", "end"],
         Phase.DIRECTION_APPROVED: ["continue", "instructions", "review", "pause", "end"],
         Phase.MOCKUP_REVISION: ["continue", "instructions", "review", "pause", "end"],
@@ -316,6 +318,8 @@ def _review_current(store: WorkflowStore, session_id: str, phase: Phase, output_
     names = {
         Phase.CAPABILITIES_REVIEW: ["capability-inventory"],
         Phase.AUDIT_COMPLETED: ["audit-index", "executive-summary", "audit-summary", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "visual-audit", "visual-analysis", "technical-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "runtime-evidence", "coverage-and-limitations"],
+        Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: ["audit-index", "executive-summary", "audit-summary", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "visual-audit", "visual-analysis", "technical-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "runtime-evidence", "coverage-and-limitations"],
+        Phase.AUDIT_INCOMPLETE: ["audit-index", "executive-summary", "audit-summary", "visual-audit", "technical-audit", "interaction-behavior-audit", "coverage-and-limitations", "backend-diagnostics"],
         Phase.AWAITING_DIRECTION: ["audit-index", "executive-summary", "audit-summary", "visual-audit", "technical-audit", "interaction-behavior-audit", "coverage-and-limitations"],
         Phase.AWAITING_MOCKUP_REVIEW: ["mockup-r001-index_html", "implementation-spec"],
         Phase.AWAITING_IMPLEMENTATION_APPROVAL: ["implementation-plan-md", "implementation-plan"],
@@ -348,6 +352,8 @@ def _instruction_stage(phase: Phase) -> str:
     return {
         Phase.CAPABILITIES_REVIEW: "audit",
         Phase.AUDIT_COMPLETED: "design",
+        Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: "design",
+        Phase.AUDIT_INCOMPLETE: "audit",
         Phase.AWAITING_DIRECTION: "design",
         Phase.DIRECTION_APPROVED: "mockup",
         Phase.MOCKUP_REVISION: "mockup",
@@ -360,6 +366,8 @@ def _pending_action(phase: Phase) -> str:
     return {
         Phase.CAPABILITIES_REVIEW: "review_discovery",
         Phase.AUDIT_COMPLETED: "review_audit_and_choose_direction",
+        Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: "review_limited_audit_and_choose_direction",
+        Phase.AUDIT_INCOMPLETE: "retry_audit_or_review_partial_results",
         Phase.AWAITING_DIRECTION: "choose_design_direction",
         Phase.DIRECTION_APPROVED: "generate_mockup",
         Phase.MOCKUP_REVISION: "generate_mockup_revision",

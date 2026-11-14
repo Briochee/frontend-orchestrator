@@ -5,14 +5,16 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from .auditing import AuditResult, run_codex_audit, run_static_audit
 from .backend import AgentBackend
-from .browser import DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots
-from .codex_backend import CodexCLIBackend
+from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots
+from .codex_backend import BackendFailure, BackendUnavailable, CodexCLIBackend
 from .discovery import build_capability_matrix, discover_agents, discover_codex, discover_project, discover_skills
 from .implementation import _current_baselines, apply_implementation_patch, create_implementation_plan, execute_implementation
 from .intelligence import attach_runtime_evidence, build_project_intelligence, intelligence_reports, renderable_route_candidates, runtime_findings
@@ -28,6 +30,44 @@ from .verification import run_verification, verification_reports
 
 class WorkflowBlocked(RuntimeError):
     """Raised when the current workflow has not reached a required gate."""
+
+
+def _codex_audit_limitations(
+    static_limitations: tuple[str, ...],
+    codex_limitations: tuple[str, ...],
+    *,
+    visual_analysis_validated: bool,
+    runtime_observations: bool,
+) -> tuple[str, ...]:
+    """Merge only run-level limits; keep source and specialist limits in their scoped reports."""
+    merged: list[str] = []
+    for limitation in static_limitations:
+        if visual_analysis_validated and limitation.startswith((
+            "Screenshots were captured, but no visual evaluator was run",
+            "No rendered screenshots or equivalent browser evidence were available",
+        )):
+            continue
+        if limitation.startswith("No project scripts, builds, dependency lifecycle hooks, or development servers were executed."):
+            limitation = "No project build, test, or dependency-lifecycle scripts were executed; browser navigation did run the frontend page scripts."
+        elif runtime_observations and limitation.startswith("No runtime, bundle-size, Web Vitals, network, or interaction measurements were collected."):
+            limitation = "LCP, INP, CLS, and bundle-size measurements were not collected. Browser navigation timing and request data are single-run lab observations; the automated capture did not activate controls."
+        merged.append(limitation)
+    merged.extend(codex_limitations)
+    return tuple(dict.fromkeys(merged))
+
+
+def _codex_audit_recommendations(
+    static_recommendations: tuple[str, ...],
+    codex_recommendations: tuple[str, ...],
+    *,
+    visual_evidence_complete: bool,
+) -> tuple[str, ...]:
+    """Drop the static-only screenshot request after the visual coverage gate passes."""
+    base = tuple(
+        item for item in static_recommendations
+        if not (visual_evidence_complete and item.startswith("Capture desktop (1440 px)"))
+    )
+    return tuple(dict.fromkeys((*base, *codex_recommendations)))
 
 
 class FrontendDesignDirector:
@@ -126,7 +166,7 @@ class FrontendDesignDirector:
         depth: str = "deep",
     ) -> dict[str, Any]:
         session = self.store.get_session(session_id)
-        if session.phase not in {Phase.CAPABILITIES_REVIEW, Phase.AWAITING_DIRECTION, Phase.AUDIT_COMPLETED, Phase.AUDITING}:
+        if session.phase not in {Phase.CAPABILITIES_REVIEW, Phase.AWAITING_DIRECTION, Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AUDIT_INCOMPLETE, Phase.AUDITING}:
             raise WorkflowBlocked(f"Audit requires a discovery review or a prior audit cycle; current phase is {session.phase.value}.")
         discovery = session.metadata.get("discovery")
         if not discovery:
@@ -140,10 +180,14 @@ class FrontendDesignDirector:
         audit_instructions = self._stage_instructions(session_id, "audit")
         captured_gallery = b""
         intelligence = None
+        capture_routes: list[str] = []
+        expected_routes: list[str] = []
         if browser_url:
             intelligence = build_project_intelligence(Path(session.project_root), discovery["project"])
             discovered_routes = renderable_route_candidates(intelligence)
             capture_routes = list(dict.fromkeys(route_paths if route_paths else discovered_routes))
+            base_path = urlsplit(browser_url).path or "/"
+            expected_routes = sorted(set([base_path, *capture_routes]))
             try:
                 with tempfile.TemporaryDirectory(prefix="frontend-director-browser-") as temporary:
                     screenshot_directory = Path(temporary) / "screenshots"
@@ -153,13 +197,35 @@ class FrontendDesignDirector:
                             browser_capture_records.append(item)
                             limitations.append(f"Browser route `{item.get('route', '/')}` at `{item.get('viewport', 'unknown')}` could not be captured: {item.get('error', 'unknown navigation error')}")
                             continue
+                        screenshot_path = Path(str(item.get("path", "")))
+                        if not screenshot_path.is_file():
+                            failure = {
+                                **item,
+                                "evidence_type": "browser_navigation_failure",
+                                "error_classification": "missing_screenshot",
+                                "error": "Screenshot capture returned a path that does not exist.",
+                            }
+                            browser_capture_records.append(failure)
+                            limitations.append(f"Screenshot file was missing for `{item.get('route', '/')}` / `{item.get('viewport', 'unknown')}`.")
+                            continue
+                        image_integrity_error = _screenshot_integrity_error(item, screenshot_path)
+                        if image_integrity_error:
+                            item = {
+                                **item,
+                                "visual_evidence_status": "invalid_screenshot",
+                                "capture_status": "captured_invalid",
+                                "image_integrity_verified": False,
+                                "image_integrity_error": image_integrity_error,
+                            }
+                        else:
+                            item = {**item, "image_integrity_verified": True}
                         route_slug = item.get("route_slug", "home")
                         viewport_label = item.get("viewport_label", item["viewport"])
                         state_suffix = "-keyboard-focus" if item.get("interaction_state") == "keyboard_focus_after_one_tab" else ""
                         route_digest = hashlib.sha256(str(item.get("route", "/")).encode("utf-8")).hexdigest()[:6]
                         screenshot_name = f"{route_slug}-{route_digest}-{viewport_label}{state_suffix}.png"
                         artifact_name = f"screenshot-{route_slug}-{route_digest}-{viewport_label}{state_suffix}"
-                        artifact = self.store.write_artifact(session_id, artifact_name, f"evidence/screenshots/{screenshot_name}", Path(item["path"]).read_bytes())
+                        artifact = self.store.write_artifact(session_id, artifact_name, f"evidence/screenshots/{screenshot_name}", screenshot_path.read_bytes())
                         stored = {**item, "path": artifact["path"], "sha256": artifact["sha256"]}
                         screenshots.append(stored)
                         browser_capture_records.append(stored)
@@ -177,11 +243,19 @@ class FrontendDesignDirector:
                             gallery_text = gallery_text.replace(local_name, f"{route_slug}-{route_digest}-{viewport_label}{state_suffix}.png")
                         captured_gallery = gallery_text.encode("utf-8")
             except Exception as error:
-                limitations.append(f"Browser evidence was unavailable: {type(error).__name__}: {str(error)[:240]}")
+                category = "missing_screenshot" if isinstance(error, BrowserUnavailable) else "backend_invocation_failed"
+                browser_capture_records.append({
+                    "evidence_type": "browser_capture_failure",
+                    "error_classification": category,
+                    "error": f"{type(error).__name__}: {str(error)[:1000]}",
+                    "routes_requested": expected_routes,
+                    "viewports_requested": list(DEPTH_VIEWPORTS[depth]),
+                })
+                limitations.append(f"Browser evidence was unavailable: {type(error).__name__}: {str(error)[:500]}")
                 requests.warning("Browser screenshot capture unavailable", context={"session_id": session_id, "error_category": type(error).__name__})
         else:
             limitations.append("Rendered browser evidence was not collected because no explicit --url was supplied. Source analysis cannot establish actual appearance or runtime behavior.")
-        if browser_capture_records:
+        if browser_url:
             self.store.write_artifact(session_id, "browser-evidence", "evidence/browser-evidence.json", _json_bytes(browser_capture_records))
             if screenshots:
                 self.store.write_artifact(session_id, "screenshot-gallery", "evidence/screenshots/gallery.html", captured_gallery)
@@ -194,20 +268,30 @@ class FrontendDesignDirector:
         navigation_failures = [item for item in browser_capture_records if item.get("evidence_type") == "browser_navigation_failure"]
         intelligence["browser_navigation_failures"] = navigation_failures
         intelligence["coverage"]["browser_navigation_failures"] = len(navigation_failures)
+        expected_pairs = sorted((route, viewport) for route in expected_routes for viewport in DEPTH_VIEWPORTS[depth])
+        valid_pairs = {
+            (str(item.get("route", "/")), str(item.get("viewport_label", item.get("viewport", "unknown"))))
+            for item in screenshots
+            if item.get("evidence_type") == "rendered_browser_screenshot"
+            and item.get("visual_evidence_status", "valid") == "valid"
+            and item.get("interaction_state", "default") == "default"
+        }
+        missing_pairs = sorted(set(expected_pairs) - valid_pairs)
+        intelligence["coverage"].update({
+            "expected_routes": len(expected_routes),
+            "expected_viewports": list(DEPTH_VIEWPORTS[depth]) if browser_url else [],
+            "expected_route_viewport_pairs": len(expected_pairs),
+            "valid_route_viewport_pairs": len(valid_pairs),
+            "missing_route_viewports": [{"route": route, "viewport": viewport} for route, viewport in missing_pairs],
+            "invalid_screenshots": sum(item.get("visual_evidence_status") != "valid" for item in screenshots),
+        })
         self.store.set_metadata(session_id, "frontend_intelligence", intelligence)
         self.store.set_metadata(session_id, "audit_depth", depth)
         self.store.write_artifact(session_id, "frontend-intelligence", "reports/frontend-intelligence.json", _json_bytes(intelligence))
         static_result = run_static_audit(Path(session.project_root), discovery["project"], screenshots)
         observed_findings = runtime_findings(intelligence)
         if observed_findings:
-            static_result = AuditResult(
-                findings=tuple(_merge_findings(static_result.findings, tuple(observed_findings))),
-                limitations=static_result.limitations,
-                recommendations=static_result.recommendations,
-                screenshots=static_result.screenshots,
-                backend_used=static_result.backend_used,
-                visual_analysis=static_result.visual_analysis,
-            )
+            static_result = replace(static_result, findings=tuple(_merge_findings(static_result.findings, tuple(observed_findings))))
         refreshed_discovery = dict(discovery)
         refreshed_discovery["capabilities"] = [
             item.__dict__ for item in build_capability_matrix(
@@ -224,34 +308,171 @@ class FrontendDesignDirector:
         if use_codex:
             try:
                 codex_result = run_codex_audit(Path(session.project_root), discovery["project"], screenshots=screenshots, backend=self.backend, intelligence=intelligence, user_instructions=audit_instructions)
+                visual_evidence_complete = (
+                    bool(codex_result.visual_delivery.get("validated"))
+                    and codex_result.visual_delivery.get("route_viewports_assessed", 0) >= len(expected_pairs)
+                )
                 result = AuditResult(
                     findings=tuple(_merge_findings(static_result.findings, codex_result.findings)),
-                    limitations=tuple(dict.fromkeys((*static_result.limitations, *codex_result.limitations, *limitations))),
-                    recommendations=tuple(dict.fromkeys((*static_result.recommendations, *codex_result.recommendations))),
+                    limitations=tuple(dict.fromkeys((
+                        *_codex_audit_limitations(
+                            static_result.limitations,
+                            codex_result.limitations,
+                            visual_analysis_validated=visual_evidence_complete,
+                            runtime_observations=bool(intelligence.get("runtime")),
+                        ),
+                        *limitations,
+                    ))),
+                    recommendations=_codex_audit_recommendations(
+                        static_result.recommendations,
+                        codex_result.recommendations,
+                        visual_evidence_complete=visual_evidence_complete,
+                    ),
                     screenshots=tuple(screenshots),
                     backend_used="codex_cli_plus_static",
                     visual_analysis=codex_result.visual_analysis,
+                    specialist_runs=codex_result.specialist_runs,
+                    diagnostics=codex_result.diagnostics,
+                    security_data_flows=static_result.security_data_flows,
+                    specialist_assessments=codex_result.specialist_assessments,
                 )
             except Exception as error:
+                category = "model_timeout" if isinstance(error, TimeoutError) else "backend_invocation_failed"
                 result = AuditResult(
                     findings=static_result.findings,
-                    limitations=tuple(dict.fromkeys((*static_result.limitations, *limitations, f"Codex specialist audit could not run: {type(error).__name__}: {str(error)[:240]}"))),
+                    limitations=tuple(dict.fromkeys((*static_result.limitations, *limitations, f"Codex specialist audit could not run: {type(error).__name__}: {str(error)[:500]}"))),
                     recommendations=static_result.recommendations,
                     screenshots=tuple(screenshots),
                     backend_used="static_codex_unavailable",
                     visual_analysis={},
+                    security_data_flows=static_result.security_data_flows,
+                    diagnostics=({
+                        "specialist": "audit_coordinator",
+                        "error_classification": category,
+                        "failure_location": "audit.coordinator",
+                        "retry_attempts": 0,
+                        "message": str(error)[:1000],
+                        **(dict(getattr(error, "diagnostic", {}) or {})),
+                    },),
                 )
         else:
             if audit_instructions:
                 limitations.append("Human audit instructions were preserved in the session but not interpreted by the deterministic source rules; use the explicit Codex audit option if you want model-assisted interpretation.")
             if limitations:
-                result = AuditResult(static_result.findings, tuple(dict.fromkeys((*static_result.limitations, *limitations))), static_result.recommendations, tuple(screenshots), "static", {})
+                result = replace(static_result, limitations=tuple(dict.fromkeys((*static_result.limitations, *limitations))), screenshots=tuple(screenshots), backend_used="static", visual_analysis={})
+
+        completion_reasons: list[str] = []
+        blockers: list[str] = []
+        if browser_url:
+            if missing_pairs:
+                sample = ", ".join(f"{route} / {viewport}" for route, viewport in missing_pairs[:8])
+                blockers.append(f"{len(missing_pairs)} requested route/viewport pair(s) lack a valid screenshot: {sample}.")
+            if not expected_pairs:
+                blockers.append("No route/viewport pairs were selected for browser capture.")
+        else:
+            completion_reasons.append("No explicit browser URL was supplied; rendered appearance and runtime behavior remain unverified.")
+            if use_codex:
+                blockers.append("Codex-assisted comprehensive review requires rendered browser evidence; supply --url and retry.")
+
+        if use_codex:
+            required_specialists = ("frontend_code_auditor", "frontend_ux_auditor", "frontend_visual_auditor")
+            specialist_by_name = {item.get("specialist"): item for item in result.specialist_runs}
+            for role in required_specialists:
+                run = specialist_by_name.get(role)
+                if not run or run.get("status") != "completed":
+                    blockers.append(f"Required specialist `{role}` did not complete both structured passes.")
+            if not result.visual_analysis:
+                blockers.append("No screenshot-backed visual analysis passed evidence validation.")
+        else:
+            completion_reasons.append("Codex specialist interpretation was not requested; appearance and specialist findings are not semantically verified.")
+
+        valid_visual_screenshots = [
+            item for item in screenshots
+            if item.get("evidence_type") == "rendered_browser_screenshot"
+            and item.get("visual_evidence_status", "valid") == "valid"
+            and item.get("interaction_state", "default") == "default"
+        ]
+        visual_run = next((item for item in result.specialist_runs if item.get("specialist") == "frontend_visual_auditor"), {})
+        visual_diagnostic = next((item for item in result.diagnostics if item.get("specialist") == "frontend_visual_auditor"), {})
+        attached_details = visual_diagnostic.get("invocation", {}).get("images_attached", [])
+        submitted_count = visual_run.get("images_submitted", len(attached_details))
+        attached_count = visual_run.get("images_attached", 0) if visual_run.get("first_pass") in {"valid", "partial"} else 0
+        visual_delivery = {
+            "screenshots_captured": len(valid_visual_screenshots),
+            "screenshot_references": [
+                {
+                    "path": item["path"],
+                    "route": item.get("route", "/"),
+                    "viewport": item.get("viewport_label", item.get("viewport")),
+                    "image_dimensions": item.get("image_dimensions"),
+                    "image_format": item.get("image_format"),
+                    "sha256": item.get("image_sha256"),
+                    "integrity_verified": item.get("image_integrity_verified", False),
+                }
+                for item in valid_visual_screenshots
+            ],
+            "screenshots_submitted": submitted_count,
+            "attached_to_visual_backend": attached_count > 0,
+            "screenshots_attached": attached_count,
+            "interpreted": bool(result.visual_analysis),
+            "validated": bool(result.visual_analysis) and visual_run.get("status") == "completed",
+            "route_viewports_assessed": len({(item.get("route"), item.get("viewport")) for item in result.visual_analysis.get("route_assessments", [])}),
+        }
+        intelligence["coverage"].update({
+            "screenshots_attached_to_visual": attached_count,
+            "visual_analysis_interpreted": visual_delivery["interpreted"],
+            "visual_analysis_validated": visual_delivery["validated"],
+            "visual_route_viewports_assessed": visual_delivery["route_viewports_assessed"],
+        })
+        if browser_url and not use_codex:
+            completion_reasons.append("Browser screenshots were captured, but no visual reasoning pass interpreted them.")
+        if any(item.get("visual_evidence_status") not in (None, "valid") for item in screenshots):
+            completion_reasons.append("One or more saved screenshots failed visual-evidence validation and were not attached to the visual auditor.")
+        completion_status = "incomplete" if blockers else "completed_with_limitations" if completion_reasons else "completed"
+        retry_recommendation = None
+        if completion_status == "incomplete":
+            target = str(Path(session.project_root))
+            if browser_url:
+                parsed = urlsplit(browser_url)
+                safe_url = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+                retry_recommendation = f"Review partial findings, correct the listed evidence or backend gaps, then retry with: frontend-director audit --project {target} --url {safe_url} --depth {depth} --codex"
+            else:
+                retry_recommendation = f"Start or attach to the project server, then retry: frontend-director audit --project {target} --url <verified-local-url> --depth {depth} --codex"
+            limitations.append("Audit status is incomplete. " + " ".join(blockers))
+            limitations.append(retry_recommendation)
+        elif completion_reasons:
+            limitations.extend(completion_reasons)
+        result = replace(
+            result,
+            limitations=tuple(dict.fromkeys(limitations + list(result.limitations))),
+            completion_status=completion_status,
+            completion_reasons=tuple(dict.fromkeys((*completion_reasons, *blockers))),
+            visual_delivery=visual_delivery,
+        )
         findings = list(result.findings)
         self.store.replace_findings(session_id, findings)
         reports = audit_reports(findings, result, discovery["project"], intelligence)
         reports.update(intelligence_reports(intelligence))
         if result.visual_analysis:
             reports["visual-analysis.json"] = _json_bytes(result.visual_analysis)
+        reports["audit-execution.json"] = _json_bytes({
+            "completion_status": completion_status,
+            "completion_reasons": list(result.completion_reasons),
+            "depth": depth,
+            "browser_url": (lambda parsed: urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", "")))(urlsplit(browser_url)) if browser_url else None,
+            "expected_routes": expected_routes,
+            "expected_viewports": list(DEPTH_VIEWPORTS[depth]) if browser_url else [],
+            "expected_route_viewport_pairs": expected_pairs,
+            "missing_route_viewports": [{"route": route, "viewport": viewport} for route, viewport in missing_pairs],
+            "visual_delivery": visual_delivery,
+            "specialists": list(result.specialist_runs),
+            "specialist_assessments": list(result.specialist_assessments),
+            "retry_recommendation": retry_recommendation,
+        })
+        reports["backend-diagnostics.json"] = _json_bytes({
+            "schema_version": 1,
+            "diagnostics": list(result.diagnostics),
+        })
         report_revision = int(session.metadata.get("audit_revision", 0)) + 1
         for filename, content in reports.items():
             artifact_name = filename.removesuffix(".md").removesuffix(".json").replace("-", "_")
@@ -275,14 +496,26 @@ class FrontendDesignDirector:
             "screenshots": list(result.screenshots),
             "backend": result.backend_used,
             "depth": depth,
+            "completion_status": completion_status,
+            "completion_reasons": list(result.completion_reasons),
+            "specialists": list(result.specialist_runs),
+            "visual_delivery": visual_delivery,
+            "retry_recommendation": retry_recommendation,
             "human_instructions_present": bool(audit_instructions),
             "revision": report_revision,
             "coverage": intelligence["coverage"],
             "reports": sorted(reports),
         }
         self.store.set_metadata(session_id, "audit", summary)
-        self.store.transition(session_id, Phase.AUDIT_COMPLETED)
-        activity.info("Frontend audit completed", context={"session_id": session_id, "findings": len(findings), "backend": result.backend_used})
+        phase = {
+            "completed": Phase.AUDIT_COMPLETED,
+            "completed_with_limitations": Phase.AUDIT_COMPLETED_WITH_LIMITATIONS,
+            "incomplete": Phase.AUDIT_INCOMPLETE,
+        }[completion_status]
+        summary["workflow_phase"] = phase.value
+        self.store.set_metadata(session_id, "audit", summary)
+        self.store.transition(session_id, phase)
+        activity.info("Frontend audit finished", context={"session_id": session_id, "findings": len(findings), "backend": result.backend_used, "completion_status": completion_status})
         return summary
 
     def record_guided_instruction(self, session_id: str, instruction: str, *, stage: str = "global") -> dict[str, Any]:
@@ -315,7 +548,7 @@ class FrontendDesignDirector:
         human_confirmation: bool,
     ) -> dict[str, Any]:
         session = self.store.get_session(session_id)
-        if session.phase not in {Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION}:
+        if session.phase not in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AWAITING_DIRECTION}:
             raise WorkflowBlocked("Design direction can be recorded only after the audit report is ready.")
         if visual not in {"preserve", "refine", "explore", "custom"}:
             raise ValueError("Visual direction must be preserve, refine, explore, or custom.")
@@ -327,7 +560,7 @@ class FrontendDesignDirector:
             raise ValueError("Custom directions require explicit user constraints.")
         if not human_confirmation:
             raise ValueError("Design direction requires an interactive human confirmation.")
-        if session.phase == Phase.AUDIT_COMPLETED:
+        if session.phase in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS}:
             self.store.transition(session_id, Phase.AWAITING_DIRECTION)
         decision_id = f"direction-{utc_now().replace(':', '').replace('-', '')}"
         direction = {
@@ -704,6 +937,32 @@ def _read_json_artifact(store: WorkflowStore, session_id: str, name: str) -> dic
     return value
 
 
+def _screenshot_integrity_error(metadata: dict[str, Any], path: Path) -> str | None:
+    """Check that a captured PNG still matches its recorded dimensions and digest."""
+    try:
+        content = path.read_bytes()
+    except OSError as error:
+        return f"Screenshot could not be read: {type(error).__name__}."
+    if not content.startswith(b"\x89PNG\r\n\x1a\n") or len(content) < 24:
+        return "Screenshot is not a readable PNG file."
+    dimensions = metadata.get("image_dimensions")
+    actual = {
+        "width": int.from_bytes(content[16:20], "big"),
+        "height": int.from_bytes(content[20:24], "big"),
+    }
+    if not isinstance(dimensions, dict) or dimensions != actual:
+        return "Screenshot dimensions do not match the capture manifest."
+    document_height = metadata.get("document", {}).get("height") if isinstance(metadata.get("document"), dict) else None
+    minimum_height = min(metadata.get("height", 1), document_height) if isinstance(document_height, int) and document_height > 0 else 1
+    if actual["width"] != metadata.get("width") or actual["height"] < minimum_height:
+        return "Screenshot dimensions do not cover the requested viewport."
+    if metadata.get("image_sha256") and hashlib.sha256(content).hexdigest() != metadata["image_sha256"]:
+        return "Screenshot SHA-256 does not match the capture manifest."
+    if metadata.get("image_byte_size") and len(content) != metadata["image_byte_size"]:
+        return "Screenshot size does not match the capture manifest."
+    return None
+
+
 def _merge_findings(*collections: tuple[Any, ...]) -> list[Any]:
     combined: dict[str, Any] = {}
     for collection in collections:
@@ -756,6 +1015,8 @@ def _blocked_requirements(phase: Phase) -> list[str]:
         Phase.INITIALIZED: ["Run capability discovery."],
         Phase.CAPABILITIES_REVIEW: ["Run the independent technical and visual audit."],
         Phase.AUDIT_COMPLETED: ["Review the audit and record independent visual, behavioral, and scope decisions."],
+        Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: ["Review the audit limitations before choosing design direction."],
+        Phase.AUDIT_INCOMPLETE: ["Review partial results and retry the audit after correcting evidence or specialist failures."],
         Phase.AWAITING_DIRECTION: ["Human design-direction approval is required before mockups."],
         Phase.DIRECTION_APPROVED: ["Generate a mockup from the approved direction."],
         Phase.AWAITING_MOCKUP_REVIEW: ["Human mockup review is required before implementation planning."],

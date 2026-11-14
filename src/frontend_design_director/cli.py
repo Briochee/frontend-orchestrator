@@ -70,7 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = subparsers.add_parser("report", help="Display a previously generated report or JSON artifact.")
     _add_context(report)
-    report.add_argument("name", choices=["audit-index", "executive-summary", "application-overview", "technical-audit", "behavioral-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "visual-audit", "visual-analysis", "audit-summary", "findings", "coverage-and-limitations", "capability-inventory", "frontend-intelligence", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "runtime-evidence", "browser-evidence", "screenshot-gallery", "implementation-spec", "implementation-spec-md", "implementation-plan", "implementation-plan-md", "final-report", "verification"], help="Report artifact to display.")
+    report.add_argument("name", choices=["audit-index", "audit-execution", "backend-diagnostics", "executive-summary", "application-overview", "technical-audit", "behavioral-audit", "interaction-behavior-audit", "accessibility-audit", "performance-audit", "visual-audit", "visual-analysis", "audit-summary", "findings", "coverage-and-limitations", "capability-inventory", "frontend-intelligence", "frontend-architecture-map", "route-and-screen-inventory", "component-inventory", "design-system-analysis", "color-system-analysis", "typography-analysis", "layout-and-density-analysis", "responsive-design-analysis", "runtime-evidence", "browser-evidence", "screenshot-gallery", "implementation-spec", "implementation-spec-md", "implementation-plan", "implementation-plan-md", "final-report", "verification"], help="Report artifact to display.")
     _add_output(report)
 
     direction = subparsers.add_parser("direction", help="Record separately selected visual, behavioral, and scope direction after audit review.")
@@ -309,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
                 _human_gate(f"The orchestrator will run this command with no shell in `{project}` and stop only the process group it starts. Readiness URL: {args.server_url}\nCommand: {shlex.join(command)}\nType {phrase}", phrase)
             result = director.audit(session.id, use_codex=args.codex, browser_url=args.url, allow_remote=args.allow_remote, route_paths=args.route, depth=args.depth, start_command=command, server_url=args.server_url, server_human_confirmation=bool(command))
             _output(result, args.json_output)
+            if result.get("completion_status") in {"incomplete", "failed"}:
+                return 3
         elif args.command == "report":
             _show_report(store, session.id, args.name, args.json_output)
         elif args.command == "direction":
