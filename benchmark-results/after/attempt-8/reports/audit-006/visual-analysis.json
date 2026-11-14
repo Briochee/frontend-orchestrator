@@ -1,0 +1,125 @@
+{
+  "concerns": [
+    {
+      "claim": "The mobile first viewport shows only part of the fourth KPI card, while the trend chart and recent activity are below the captured area.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "consistency_patterns": [
+    {
+      "claim": "Teal is reused for the primary review action, metric icon treatments, chart series, and KPI trend accents.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The cards retain consistent rounded corners, thin borders, and muted supporting copy as the layout reflows to two columns.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "The KPI card treatment and paired actions retain the dashboard's visual language in the single-column mobile layout.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "design_identity": "A restrained operations dashboard with a pale cool-gray workspace, white rounded panels with thin borders, dark blue-gray text, and teal accents. Desktop uses a dark sidebar; tablet and mobile show a compact top bar.",
+  "design_identity_evidence": [
+    {
+      "claim": "A full-height dark sidebar anchors the pale workspace on desktop, with teal used for active navigation and primary actions.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The tablet screenshot retains the light workspace, white cards, dark text, and teal primary action while showing a compact top bar.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "The mobile screenshot retains the same palette and sans-serif interface typography, with a hamburger menu, breadcrumb, and notification icon in the top bar.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "experience_character": "Calm and metric-led. The greeting and actions establish the page entry point, followed by large KPI values and then trend and operational context. Panels have consistent thin borders, rounded corners, and subtle separation from the canvas. The desktop is moderately dense but well grouped; at tablet width, the chart occupies a full row and recent activity begins below it. On mobile, the KPI stack dominates the visible content.",
+  "limitations": [
+    "Only the supplied initial viewport screenshots were assessed; no full-page mobile or tablet capture was provided.",
+    "No interaction states were inferred or assessed."
+  ],
+  "preserve": [
+    {
+      "claim": "Preserve the restrained dark navy, pale canvas, white surfaces, and teal accents that give the overview a coherent identity.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "Preserve the consistent KPI card hierarchy as the grid moves from four columns to two and then one.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    }
+  ],
+  "reconsider_with_human_approval": [],
+  "refine": [
+    {
+      "claim": "If earlier trend context is a mobile priority, consider reducing the KPI stack's vertical footprint; this trades away some of the current card breathing room.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "route_assessments": [
+    {
+      "density": "Moderate and grouped into clear regions. Four KPIs fit in one row, while the larger panels have room for chart details and activity summaries.",
+      "hierarchy": "The date, greeting, and actions sit above four KPI cards. Revenue performance and recent activity share the next row, followed by fulfillment health and operational notes.",
+      "responsive_notes": "The screenshot shows the sidebar and full dashboard grid. The source defines four KPI columns by default and changes the KPI grid to two columns below 1180px (assets/styles.css:2, assets/styles.css:7).",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "density": "Moderate. The KPI cards have room around them, and the stacked content panels give the chart a broad area.",
+      "hierarchy": "The greeting and actions lead into a two-by-two KPI group, then a full-width revenue chart; recent activity begins at the bottom of the captured viewport.",
+      "responsive_notes": "The screenshot shows a menu icon rather than the sidebar, two KPI columns, and stacked content panels. CSS applies the two-column KPI and one-column content-panel layout below 1180px, and moves the sidebar off-canvas while showing the menu below 800px (assets/styles.css:7-8).",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "density": "The visible cards have ample separation and readable labels, but the single-column stack dominates the initial view.",
+      "hierarchy": "The greeting and paired actions are followed by the KPI cards in a single column. Three cards are fully visible and part of the fourth appears; the chart and activity panels are outside this capture.",
+      "responsive_notes": "CSS changes the KPI and content grids to one column below 520px and lets the heading actions and their buttons fill the available content width (assets/styles.css:9). The screenshot shows the resulting mobile arrangement.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-mobile.png",
+      "viewport": "mobile"
+    }
+  ],
+  "strengths": [
+    {
+      "claim": "The date, greeting, and paired actions establish a clear entry point before the dashboard data.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    },
+    {
+      "claim": "The four KPI cards share a consistent label, icon tile, large value, and trend structure in the two-column tablet arrangement.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-tablet.png",
+      "viewport": "tablet"
+    },
+    {
+      "claim": "The teal current-period line and pale dashed comparison line are visually distinct in the revenue chart.",
+      "route": "/",
+      "screenshot_reference": "/private/tmp/frontend-director-benchmark-20261114/demo-app/.agents/frontend-design-director/evidence/screenshots/home-8a5eda-desktop.png",
+      "viewport": "desktop"
+    }
+  ]
+}

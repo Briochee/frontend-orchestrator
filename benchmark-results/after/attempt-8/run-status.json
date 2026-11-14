@@ -1,0 +1,9 @@
+{
+  "status": "incomplete",
+  "exit_code": 3,
+  "completed_at_utc": "2026-11-14T20:37:24.636009+00:00",
+  "audit_id": "audit-006",
+  "completion_status": "incomplete",
+  "failure": "Codex account usage limit during route visual review; see backend-diagnostics.json.",
+  "frozen_before_comparison": true
+}
