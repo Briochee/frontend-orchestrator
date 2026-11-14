@@ -1,0 +1,109 @@
+{
+  "base_url": "http://127.0.0.1:8765",
+  "scope": "isolated synthetic fixture; same-origin only; no app files modified",
+  "scenarios": {
+    "orders": {
+      "search": {
+        "count_text": "1 of 8 orders",
+        "visible_data_rows": 1
+      },
+      "failed_filter_after_search": {
+        "count_text": "0 of 8 orders",
+        "visible_data_rows": 0
+      },
+      "failed_filter_alone": {
+        "count_text": "1 of 8 orders",
+        "visible_data_rows": 1
+      },
+      "empty_results": {
+        "count_text": "0 of 8 orders",
+        "visible_data_rows": 0,
+        "empty_message": "No matching results. Try a different search or status."
+      },
+      "dialog_open": {
+        "visible": true,
+        "active_element": "<button class=\"btn btn-small\" data-open=\"NS-1042\">View</button>",
+        "active_element_inside_dialog": false,
+        "role": "dialog",
+        "aria_modal": "true",
+        "dialog_text": "Order details\n\nNS-1042 \u00b7 Avery Patel \u00b7 $284.50 \u00b7 Paid\n\nThis is a local-only preview of the order.\n\nClose\nOpen record",
+        "visible_after_escape": true
+      },
+      "dialog_close": {
+        "visible": false,
+        "active_element": "<button id=\"close-order\" class=\"btn\">Close</button>"
+      },
+      "tested": true
+    },
+    "analytics": {
+      "initial": {
+        "value": "10000",
+        "displayed_value": "$10,000.00",
+        "qualified_orders": "286"
+      },
+      "after_change": {
+        "value": "100000",
+        "displayed_value": "$100,000.00",
+        "qualified_orders": "11"
+      },
+      "tested": true
+    },
+    "customers": {
+      "search": {
+        "visible_cards": 1,
+        "card_text": [
+          "JL\nJordan Lee\n\nSeattle, WA \u00b7 Enterprise\n\n39\nOrders\n$12,840\nLifetime value"
+        ]
+      },
+      "empty_results": {
+        "visible_cards": 0,
+        "empty_state_present": false
+      },
+      "tested": true
+    },
+    "settings": {
+      "theme_switch": {
+        "before": {
+          "aria_checked": "false",
+          "background": "rgba(0, 0, 0, 0)",
+          "app_shell_background": "rgba(0, 0, 0, 0)"
+        },
+        "after": {
+          "aria_checked": "true",
+          "background": "rgba(0, 0, 0, 0)",
+          "app_shell_background": "rgba(0, 0, 0, 0)",
+          "toast": "Appearance preference updated."
+        }
+      },
+      "email_switch_keyboard": {
+        "before": "true",
+        "after_space": "false"
+      },
+      "save": {
+        "immediate": {
+          "save_status": "Saved successfully",
+          "toast": "Saved preferences for QA review"
+        },
+        "after_650ms": {
+          "save_status": "Sync failed; your changes were not stored"
+        }
+      },
+      "tested": true
+    },
+    "shared_interface": {
+      "mobile_navigation": {
+        "aria_expanded": "true",
+        "sidebar_open": true,
+        "backdrop_open": true,
+        "after_escape": {
+          "aria_expanded": "false",
+          "sidebar_open": false
+        }
+      },
+      "notification": "You are all caught up.",
+      "tested": true
+    }
+  },
+  "browser_errors": [],
+  "blocked_requests": []
+}
