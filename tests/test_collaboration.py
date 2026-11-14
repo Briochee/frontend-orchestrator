@@ -161,7 +161,9 @@ class ClaudeDiscoveryTests(unittest.TestCase):
                 if command[1:4] == ["auth", "status", "--json"]:
                     return {"returncode": 0, "stdout": '{"loggedIn":false}', "stderr": ""}
                 if command[1:] == ["--help"]:
-                    return {"returncode": 0, "stdout": "-p, --print --output-format --json-schema --agent --tools --strict-mcp-config", "stderr": ""}
+                    self.assertGreater(stdout_limit, 4_000)
+                    flags = "-p, --print --output-format --json-schema --agent --tools --strict-mcp-config --permission-mode --disallowedTools --setting-sources --mcp-config"
+                    return {"returncode": 0, "stdout": f"{'x' * 5_000}\n{flags}", "stderr": ""}
                 if command[1:4] == ["plugin", "list", "--json"]:
                     return {"returncode": 0, "stdout": '{"plugins":[]}', "stderr": ""}
                 raise AssertionError(command)
@@ -174,6 +176,10 @@ class ClaudeDiscoveryTests(unittest.TestCase):
         self.assertTrue(result["skills"][0]["metadata_only"])
         self.assertEqual(result["agents"][0]["name"], "frontend-reviewer")
         self.assertEqual(result["mcp_servers"][0]["callable"], "not_probed")
+        self.assertTrue(result["cli"]["structured_output_supported"])
+        self.assertTrue(result["cli"]["tool_allowlist_supported"])
+        self.assertTrue(result["cli"]["strict_mcp_config_supported"])
+        self.assertTrue(result["cli"]["permission_mode_supported"])
 
 
 class CodexDiscoveryTests(unittest.TestCase):

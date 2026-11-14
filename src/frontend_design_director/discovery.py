@@ -524,7 +524,7 @@ def discover_claude_code(project_root: Path, claude_executable: str | None = Non
     if executable:
         version = _safe_probe([executable, "--version"])
         auth = _safe_probe([executable, "auth", "status", "--json"])
-        help_result = _safe_probe([executable, "--help"])
+        help_result = _safe_probe([executable, "--help"], stdout_limit=20_000)
         try:
             auth_data = json.loads(auth.get("stdout", ""))
         except json.JSONDecodeError:
