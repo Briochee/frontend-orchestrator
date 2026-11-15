@@ -64,6 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--allow-secondary-provider", action="append", choices=["claude"], default=[], help="Explicitly allow Claude Code to receive the filtered source snapshot for an independent review. Requires --codex and Claude authentication.")
     audit.add_argument("--depth", choices=["standard", "deep", "exhaustive"], default="deep", help="Audit profile: standard (desktop/mobile), deep (1440/768/390), or exhaustive (1920/1440/1280/768/390/320). Default: deep.")
     audit.add_argument("--url", help="Capture the running application at each source-discovered static route and selected responsive viewport. This attaches only; it does not start project scripts.")
+    audit.add_argument("--exercise-safe-interactions", action="store_true", help="Opt in to loopback-only reversible form-edit/search/range/switch/read-only dialog probes. HTTP and WebSocket requests after page readiness are blocked.")
     audit.add_argument("--start-command", help="Optionally start this argument vector (parsed with shlex; never through a shell) after an interactive RUN PROJECT SERVER approval.")
     audit.add_argument("--server-url", help="Local HTTP readiness URL required with --start-command, such as http://127.0.0.1:5173/.")
     audit.add_argument("--route", action="append", default=[], help="Limit browser capture to exact same-origin paths plus the base URL; repeat as needed. Without this option, all static source-discovered routes are attempted. Dynamic parameters are never invented.")
@@ -140,6 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     guide.add_argument("--codex", action="store_true", help="Explicitly allow Codex specialist calls using the signed-in account plan for audit, mockup, planning, and post-approval implementation review.")
     guide.add_argument("--allow-secondary-provider", action="append", choices=["claude"], default=None, help="Explicitly authorize Claude Code to receive the filtered audit source snapshot for independent review. Requires --codex and Claude authentication.")
     guide.add_argument("--url", help="Attach Playwright to this explicitly supplied running application URL; source-discovered static routes are captured and project scripts are not started.")
+    guide.add_argument("--exercise-safe-interactions", action=argparse.BooleanOptionalAction, default=None, help="Persistently opt in or out of loopback-only reversible control probes during guided audits; post-readiness requests are blocked.")
     guide.add_argument("--start-command", help="Optionally start the application with a shell-free argument vector after an interactive approval gate.")
     guide.add_argument("--server-url", help="Local readiness URL required with --start-command.")
     guide.add_argument("--route", action="append", default=[], help="Limit browser capture to exact same-origin paths plus the base URL; repeat as needed. Without this option, all static source-discovered routes are attempted.")
@@ -287,6 +289,7 @@ def main(argv: list[str] | None = None) -> int:
                 use_codex=args.codex,
                 browser_url=args.url,
                 allow_remote=args.allow_remote,
+                exercise_safe_interactions=args.exercise_safe_interactions,
                 route_paths=args.route,
                 depth=args.depth,
                 collaboration_mode=args.collaboration,
@@ -316,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
             if command:
                 phrase = "RUN PROJECT SERVER"
                 _human_gate(f"The orchestrator will run this command with no shell in `{project}` and stop only the process group it starts. Readiness URL: {args.server_url}\nCommand: {shlex.join(command)}\nType {phrase}", phrase)
-            result = director.audit(session.id, use_codex=args.codex, browser_url=args.url, allow_remote=args.allow_remote, route_paths=args.route, depth=args.depth, collaboration=args.collaboration, allowed_secondary_providers=args.allow_secondary_provider, start_command=command, server_url=args.server_url, server_human_confirmation=bool(command))
+            result = director.audit(session.id, use_codex=args.codex, browser_url=args.url, allow_remote=args.allow_remote, route_paths=args.route, depth=args.depth, collaboration=args.collaboration, exercise_safe_interactions=args.exercise_safe_interactions, allowed_secondary_providers=args.allow_secondary_provider, start_command=command, server_url=args.server_url, server_human_confirmation=bool(command))
             _output(result, args.json_output)
             if result.get("completion_status") in {"incomplete", "failed"}:
                 return 3

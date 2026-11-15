@@ -372,7 +372,18 @@ def intelligence_reports(intelligence: dict[str, Any]) -> dict[str, bytes]:
     else:
         runtime_lines.extend(["No browser was connected. Rendered layout, runtime errors, computed styles, and responsive behavior were not verified.", ""])
     focus_count = sum(item.get("interaction_state") == "keyboard_focus_after_one_tab" for item in runtime)
-    runtime_lines.extend(["## Audit completeness", "", f"- Source files inspected: {coverage['source_files_inspected']}", f"- Route candidates: {coverage['routes_discovered']}", f"- Route candidates rendered: {coverage['routes_rendered']}", f"- Browser navigation failures: {len(intelligence.get('browser_navigation_failures', []))}", f"- Component profiles: {coverage['component_profiles']}", f"- Rendered viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Keyboard focus screenshots: {focus_count}", "- Application controls: not activated; stateful interactions remain unverified."])
+    probe = intelligence.get("interaction_probes", {})
+    runtime_lines.extend(["## Audit completeness", "", f"- Source files inspected: {coverage['source_files_inspected']}", f"- Route candidates: {coverage['routes_discovered']}", f"- Route candidates rendered: {coverage['routes_rendered']}", f"- Browser navigation failures: {len(intelligence.get('browser_navigation_failures', []))}", f"- Component profiles: {coverage['component_profiles']}", f"- Rendered viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Keyboard focus screenshots: {focus_count}", f"- Safe interaction probes: {coverage.get('interaction_checks_tested', 0)} tested across {coverage.get('interaction_routes_tested', 0)} route(s) ({probe.get('status', 'not_requested')})."])
+    if probe.get("status") in {"completed", "completed_with_limitations"}:
+        runtime_lines.extend(["", "## Safe interaction observations", ""])
+        for route in probe.get("route_results", []):
+            for check in route.get("checks", []):
+                outcome = ", ".join(f"{key}={value}" for key, value in check.items() if key not in {"kind", "status", "control_index"})
+                runtime_lines.append(f"- `{route.get('route', '/')}`: `{check.get('kind')}` was {check.get('status')}; {outcome or 'no outcome fields'}; {route.get('blocked_post_readiness_requests', 0)} request(s) blocked after readiness.")
+            if not route.get("checks"):
+                runtime_lines.append(f"- `{route.get('route', '/')}`: no eligible reversible controls were found.")
+    else:
+        runtime_lines.append("- Application controls were not activated; stateful interactions remain unverified.")
 
     return {
         "frontend-architecture-map.md": _markdown_bytes(architecture),

@@ -9,6 +9,7 @@ import ipaddress
 import json
 import socket
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlsplit, urlunsplit
@@ -209,6 +210,279 @@ def capture_screenshots(
     (output_directory / "screenshots.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
     (output_directory / "gallery.html").write_text(_gallery_html(evidence), encoding="utf-8")
     return evidence
+
+
+def probe_safe_interactions(
+    url: str,
+    *,
+    route_paths: tuple[str, ...] | list[str] = (),
+    timeout_ms: int = 15_000,
+) -> dict[str, Any]:
+    """Exercise a narrow set of reversible controls on loopback pages only.
+
+    Search values are synthetic and restored, ranges and switches are restored,
+    and a read-only details control is clicked only when it is explicitly marked
+    with ``data-open`` and a hidden dialog is present. All requests initiated
+    after page readiness are blocked, including same-origin GET requests.
+    """
+    if not playwright_available():
+        raise BrowserUnavailable("Playwright is not installed. Install the optional `browser` extra and browser binaries after review.")
+    origin = _validate_url(url, allow_remote=False)
+    parsed_base = urlsplit(url)
+    base_path = parsed_base.path or "/"
+    approved_routes = [(base_path, url)]
+    seen_paths = {base_path}
+    skipped_routes: list[dict[str, str]] = []
+    for route_path in route_paths:
+        parsed_route = urlsplit(route_path)
+        decoded_segments = unquote(parsed_route.path).split("/")
+        if (
+            parsed_route.scheme or parsed_route.netloc or not parsed_route.path.startswith("/")
+            or ".." in decoded_segments or "\\" in parsed_route.path or parsed_route.query or parsed_route.fragment
+        ):
+            skipped_routes.append({"route": str(route_path), "reason": "Route was not an exact same-origin absolute path."})
+            continue
+        normalized = parsed_route.path or "/"
+        if normalized not in seen_paths:
+            approved_routes.append((normalized, urlunsplit((parsed_base.scheme, parsed_base.netloc, normalized, "", ""))))
+            seen_paths.add(normalized)
+
+    if not approved_routes or not all(_same_origin(target, origin) for _, target in approved_routes):
+        raise ValueError("Interaction probes require explicitly approved same-origin routes.")
+
+    from playwright.sync_api import sync_playwright
+
+    route_results: list[dict[str, Any]] = []
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(headless=True)
+        except Exception as error:
+            raise BrowserUnavailable("Playwright is installed, but its Chromium executable could not be launched.") from error
+        try:
+            for route_path, target_url in approved_routes:
+                context = browser.new_context(viewport=VIEWPORTS["desktop"], device_scale_factor=1, service_workers="block")
+                page = context.new_page()
+                page.set_default_navigation_timeout(timeout_ms)
+                interaction_mode = False
+                blocked_methods: Counter[str] = Counter()
+                page_errors: list[str] = []
+                page.on("pageerror", lambda error: _append_bounded(page_errors, _safe_message(str(error)), 20))
+
+                if not hasattr(context, "route_web_socket"):
+                    context.close()
+                    route_results.append({
+                        "route": route_path,
+                        "status": "failed",
+                        "error_classification": "websocket_blocking_unavailable",
+                        "error": "The installed Playwright context cannot block WebSocket activity required by the safe-probe policy.",
+                        "checks": [],
+                        "blocked_post_readiness_requests": 0,
+                        "blocked_request_methods": {},
+                        "page_errors": [],
+                    })
+                    continue
+
+                def restrict_websocket(socket_route: Any) -> None:
+                    blocked_methods["WEBSOCKET"] += 1
+                    socket_route.close()
+
+                context.route_web_socket("**/*", restrict_websocket)
+
+                def restrict_request(request_route: Any) -> None:
+                    request = request_route.request
+                    method = request.method.upper()
+                    try:
+                        if not interaction_mode and _same_origin(request.url, origin) and method in {"GET", "HEAD", "OPTIONS"}:
+                            request_route.continue_()
+                        else:
+                            blocked_methods[method] += 1
+                            request_route.abort()
+                    except Exception:
+                        blocked_methods[method] += 1
+                        request_route.abort()
+
+                page.route("**/*", restrict_request)
+                try:
+                    response = page.goto(target_url, wait_until="domcontentloaded")
+                    if not _same_origin(page.url, origin):
+                        raise ValueError("The page redirected away from the explicitly approved origin.")
+                    readiness = _wait_for_readiness(page)
+                    interaction_mode = True
+                    checks: list[dict[str, Any]] = []
+
+                    text_input = page.locator('input:not([type]), input[type="text"], textarea').first
+                    if text_input.count() and text_input.is_enabled() and not text_input.evaluate("element => element.readOnly"):
+                        original = text_input.input_value()
+                        text_input.fill("__frontend_director_probe__")
+                        changed = text_input.input_value() != original
+                        text_input.fill(original)
+                        restored = text_input.input_value() == original
+                        checks.append({
+                            "kind": "form_text_edit",
+                            "status": "tested",
+                            "control_index": 0,
+                            "value_changed": changed,
+                            "restoration": "restored" if restored else "failed",
+                        })
+
+                    search = page.locator('input[type="search"]').first
+                    if search.count():
+                        original = search.input_value()
+                        before = _visible_result_summary(page)
+                        search.fill("__frontend_director_no_match__")
+                        no_match = _visible_result_summary(page)
+                        search.fill(original)
+                        restored = search.input_value() == original
+                        checks.append({
+                            "kind": "search_empty_state",
+                            "status": "tested",
+                            "control_index": 0,
+                            "no_match_result_count": no_match["result_count"],
+                            "empty_state_visible": no_match["empty_state_visible"],
+                            "result_set_changed": before != no_match,
+                            "restoration": "restored" if restored else "failed",
+                        })
+
+                    slider = page.locator('input[type="range"]').first
+                    if slider.count():
+                        original = slider.input_value()
+                        domain = slider.evaluate("element => ({min: element.min, max: element.max, step: element.step})")
+                        before = slider.evaluate("element => { const root = element.closest('.range-row') || element.parentElement; const output = [...document.querySelectorAll('output')].find(item => item.htmlFor === element.id) || root?.querySelector('output'); const metric = document.querySelector('#qualified-orders'); return {output: output?.textContent?.trim() || '', metric: metric?.textContent?.trim() || ''}; }")
+                        try:
+                            minimum, maximum = float(domain["min"]), float(domain["max"])
+                            target = str(minimum + (maximum - minimum) / 2)
+                            slider.evaluate("(element, value) => { element.value = value; element.dispatchEvent(new Event('input', {bubbles: true})); element.dispatchEvent(new Event('change', {bubbles: true})); }", target)
+                            after = slider.evaluate("element => { const root = element.closest('.range-row') || element.parentElement; const output = [...document.querySelectorAll('output')].find(item => item.htmlFor === element.id) || root?.querySelector('output'); const metric = document.querySelector('#qualified-orders'); return {output: output?.textContent?.trim() || '', metric: metric?.textContent?.trim() || ''}; }")
+                            slider.evaluate("(element, value) => { element.value = value; element.dispatchEvent(new Event('input', {bubbles: true})); element.dispatchEvent(new Event('change', {bubbles: true})); }", original)
+                            restored = slider.input_value() == original
+                            checks.append({
+                                "kind": "range_control",
+                                "status": "tested",
+                                "control_index": 0,
+                                "domain": domain,
+                                "formatted_output_changed": before["output"] != after["output"],
+                                "related_metric_changed": before["metric"] != after["metric"],
+                                "restoration": "restored" if restored else "failed",
+                            })
+                        except (TypeError, ValueError) as error:
+                            checks.append({"kind": "range_control", "status": "not_tested", "reason": f"Range domain was not numeric: {type(error).__name__}."})
+
+                    switch = page.locator('[role="switch"]').first
+                    if switch.count():
+                        before = switch.get_attribute("aria-checked")
+                        before_theme = page.evaluate("() => JSON.stringify({rootClass: document.documentElement.className, theme: document.documentElement.dataset.theme || '', bodyBackground: getComputedStyle(document.body).backgroundColor})")
+                        switch.click()
+                        toggled = switch.get_attribute("aria-checked")
+                        after_theme = page.evaluate("() => JSON.stringify({rootClass: document.documentElement.className, theme: document.documentElement.dataset.theme || '', bodyBackground: getComputedStyle(document.body).backgroundColor})")
+                        switch.click()
+                        restored = switch.get_attribute("aria-checked") == before
+                        restored_theme = page.evaluate("() => JSON.stringify({rootClass: document.documentElement.className, theme: document.documentElement.dataset.theme || '', bodyBackground: getComputedStyle(document.body).backgroundColor})") == before_theme
+                        checks.append({
+                            "kind": "switch_state",
+                            "status": "tested",
+                            "control_index": 0,
+                            "state_changed": toggled != before,
+                            "theme_effect_observed": after_theme != before_theme,
+                            "theme_effect_restored": restored_theme,
+                            "restoration": "restored" if restored else "failed",
+                        })
+
+                    hidden_dialogs = page.locator('dialog, [role="dialog"], [data-dialog]').evaluate_all(
+                        "elements => elements.filter(element => element.closest('[hidden]') || element.closest('[aria-hidden=\"true\"]') || getComputedStyle(element).display === 'none' || getComputedStyle(element).visibility === 'hidden').length"
+                    )
+                    safe_opener_index = page.locator('button[data-open]:not([type="submit"])').evaluate_all(
+                        "elements => elements.findIndex(element => !element.closest('form') && !element.form && !element.disabled && /^(view|details|show details|open details)$/i.test(element.innerText.trim()))"
+                    )
+                    if hidden_dialogs and safe_opener_index >= 0:
+                        # Avoid a form-associated or navigation control even if a malformed page marks it as data-open.
+                        opener = page.locator('button[data-open]:not([type="submit"])').nth(safe_opener_index)
+                        if bool(opener.evaluate("element => !element.closest('form') && !element.disabled")):
+                            opener.click()
+                            dialog = page.locator('dialog:visible, [role="dialog"]:visible, [data-dialog]:visible').first
+                            opened = dialog.count() > 0
+                            closed = False
+                            escape_closed = False
+                            focus_inside_on_open = False
+                            if opened:
+                                focus_inside_on_open = bool(dialog.evaluate("element => element.contains(document.activeElement)"))
+                                page.keyboard.press("Escape")
+                                closed = dialog.count() == 0 or not dialog.is_visible()
+                                escape_closed = closed
+                                if not closed:
+                                    close_button = dialog.locator('button[data-close], button[id*="close" i], button[aria-label*="close" i]')
+                                    if close_button.count():
+                                        close_button.first.click()
+                                        closed = dialog.count() == 0 or not dialog.is_visible()
+                            checks.append({
+                                "kind": "read_only_dialog",
+                                "status": "tested" if opened else "not_observed",
+                                "control_index": 0,
+                                "opened": opened,
+                                "focus_inside_on_open": focus_inside_on_open,
+                                "escape_closed": escape_closed,
+                                "closed": closed,
+                                "restoration": "restored" if closed else ("not_applicable" if not opened else "failed"),
+                            })
+                    checks_need_review = any(
+                        check.get("status") != "tested"
+                        or check.get("restoration") not in {None, "restored", "not_applicable"}
+                        or any(key.endswith("_restored") and value is False for key, value in check.items())
+                        for check in checks
+                    )
+                    route_results.append({
+                        "route": route_path,
+                        "status": "completed_with_limitations" if checks_need_review or (response and response.status >= 400) else "completed",
+                        "error_classification": "route_not_ready" if response and response.status >= 400 else None,
+                        "http_status": response.status if response else None,
+                        "readiness": readiness,
+                        "checks": checks,
+                        "blocked_post_readiness_requests": sum(blocked_methods.values()),
+                        "blocked_request_methods": dict(blocked_methods),
+                        "page_errors": page_errors,
+                    })
+                except Exception as error:
+                    route_results.append({
+                        "route": route_path,
+                        "status": "failed",
+                        "error_classification": "interaction_probe_failed",
+                        "error": f"{type(error).__name__}: {_safe_message(str(error))}",
+                        "checks": [],
+                        "blocked_post_readiness_requests": sum(blocked_methods.values()),
+                        "blocked_request_methods": dict(blocked_methods),
+                        "page_errors": page_errors,
+                    })
+                finally:
+                    context.close()
+        finally:
+            browser.close()
+
+    checks = [check for item in route_results for check in item.get("checks", [])]
+    check_count = len(checks)
+    checked_count = sum(item.get("status") == "tested" for item in checks)
+    failed_routes = sum(item.get("status") == "failed" for item in route_results)
+    limited_routes = sum(item.get("status") == "completed_with_limitations" for item in route_results)
+    return {
+        "status": "completed" if route_results and not failed_routes and not limited_routes else "completed_with_limitations" if route_results and not failed_routes else "failed",
+        "scope": "loopback_only_reversible_controls",
+        "routes_attempted": [item[0] for item in approved_routes],
+        "routes_completed": sum(item.get("status") in {"completed", "completed_with_limitations"} for item in route_results),
+        "checks_attempted": check_count,
+        "checks_tested": checked_count,
+        "route_results": route_results,
+        "skipped_routes": skipped_routes,
+        "limitations": ["Only the first eligible search, range, switch, and read-only data-open dialog control per route is exercised.", "All requests after page readiness are blocked; this does not model server-backed interactions."] + (["Some explicitly requested routes were skipped by exact-path validation."] if skipped_routes else []),
+    }
+
+
+def _visible_result_summary(page: Any) -> dict[str, Any]:
+    return page.evaluate("""() => {
+      const visible = element => !element.hidden && getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden';
+      const candidates = [...document.querySelectorAll('tbody tr, .customer-card, [data-result]')].filter(visible);
+      const emptySelectors = '.empty-state, .empty-msg, [data-empty-state]';
+      const results = candidates.filter(element => !element.matches(emptySelectors) && !element.querySelector(emptySelectors));
+      const emptyStateVisible = [...document.querySelectorAll(`${emptySelectors}, [role="status"]`)].some(visible);
+      return {result_count: results.length, empty_state_visible: emptyStateVisible};
+    }""")
 
 
 def _route_slug(path: str) -> str:

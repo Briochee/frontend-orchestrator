@@ -25,6 +25,7 @@ def run_guided_workflow(
     use_codex: bool = False,
     browser_url: str | None = None,
     allow_remote: bool = False,
+    exercise_safe_interactions: bool | None = None,
     route_paths: tuple[str, ...] | list[str] = (),
     depth: str = "deep",
     collaboration_mode: CollaborationMode | str | None = None,
@@ -47,12 +48,17 @@ def run_guided_workflow(
     )
     existing_secondary = session.metadata.get("allowed_secondary_providers", [])
     secondary_providers = list(allowed_secondary_providers if allowed_secondary_providers is not None else existing_secondary)
+    exercise_interactions = bool(
+        session.metadata.get("exercise_safe_interactions", False)
+        if exercise_safe_interactions is None else exercise_safe_interactions
+    )
     if set(secondary_providers) - {"claude"}:
         raise ValueError("Guided workflow has an unsupported secondary provider.")
     if allowed_secondary_providers and secondary_providers and not use_codex:
         raise ValueError("Secondary-provider review requires the primary Codex audit (`--codex`).")
     store.set_metadata(session_id, "collaboration_mode", mode.value)
     store.set_metadata(session_id, "allowed_secondary_providers", secondary_providers)
+    store.set_metadata(session_id, "exercise_safe_interactions", exercise_interactions)
     _save_state(store, session_id, status="active", pending_action=state.get("pending_action"))
     output_fn(f"Frontend Design Director · {session.title}\nSession: {session.id}\nPhase: {session.phase.value}\n")
 
@@ -71,7 +77,7 @@ def run_guided_workflow(
             continue
         if phase == Phase.AUDITING:
             output_fn("An audit was interrupted before its report was committed. Re-running the read-only audit.")
-            _run_audit(director, session_id, use_codex, browser_url, allow_remote, route_paths, depth, start_command, server_url, input_fn, output_fn)
+            _run_audit(director, session_id, use_codex, browser_url, allow_remote, exercise_interactions, route_paths, depth, start_command, server_url, input_fn, output_fn)
             _print_stage_result(output_fn, store, session_id, "Audit", "audit-summary")
             continue
         if phase == Phase.GENERATING_MOCKUPS:
@@ -112,13 +118,13 @@ def run_guided_workflow(
                 continue
             if phase == Phase.COMPLETED:
                 director.discover(session_id)
-            _run_audit(director, session_id, use_codex, browser_url, allow_remote, route_paths, depth, start_command, server_url, input_fn, output_fn)
+            _run_audit(director, session_id, use_codex, browser_url, allow_remote, exercise_interactions, route_paths, depth, start_command, server_url, input_fn, output_fn)
             _print_stage_result(output_fn, store, session_id, "Updated audit", "audit-summary")
             continue
 
         try:
             if phase == Phase.CAPABILITIES_REVIEW and action in {"continue", "audit", "run audit"}:
-                _run_audit(director, session_id, use_codex, browser_url, allow_remote, route_paths, depth, start_command, server_url, input_fn, output_fn)
+                _run_audit(director, session_id, use_codex, browser_url, allow_remote, exercise_interactions, route_paths, depth, start_command, server_url, input_fn, output_fn)
                 _print_stage_result(output_fn, store, session_id, "Audit", "audit-summary")
             elif phase in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AWAITING_DIRECTION} and action in {"continue", "choose direction", "design direction"}:
                 _collect_direction(director, session_id, input_fn, output_fn)
@@ -165,7 +171,7 @@ def run_guided_workflow(
                 output_fn(f"Verification status: {result['status']}. See the persisted final report for checks and limitations.")
             elif phase == Phase.COMPLETED and action in {"new audit", "another cycle", "continue"}:
                 director.discover(session_id)
-                _run_audit(director, session_id, use_codex, browser_url, allow_remote, route_paths, depth, start_command, server_url, input_fn, output_fn)
+                _run_audit(director, session_id, use_codex, browser_url, allow_remote, exercise_interactions, route_paths, depth, start_command, server_url, input_fn, output_fn)
                 _print_stage_result(output_fn, store, session_id, "Next audit cycle", "audit-summary")
             elif phase == Phase.PAUSED and action in {"continue", "resume"}:
                 director.resume(session_id)
@@ -218,6 +224,7 @@ def _run_audit(
     use_codex: bool,
     url: str | None,
     allow_remote: bool,
+    exercise_safe_interactions: bool,
     routes: tuple[str, ...] | list[str],
     depth: str,
     start_command: tuple[str, ...] | list[str] | None,
@@ -237,6 +244,7 @@ def _run_audit(
         use_codex=use_codex,
         browser_url=url,
         allow_remote=allow_remote,
+        exercise_safe_interactions=exercise_safe_interactions,
         route_paths=routes,
         depth=depth,
         collaboration=session.metadata.get("collaboration_mode", CollaborationMode.COMPREHENSIVE.value),

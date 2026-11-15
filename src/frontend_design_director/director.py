@@ -14,7 +14,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from .auditing import AuditResult, run_codex_audit, run_static_audit
 from .backend import AgentBackend
-from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots
+from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots, probe_safe_interactions
 from .codex_backend import BackendFailure, BackendUnavailable, CodexCLIBackend
 from .collaboration import (
     CapabilityResource,
@@ -155,6 +155,7 @@ class FrontendDesignDirector:
         route_paths: tuple[str, ...] | list[str] = (),
         depth: str = "deep",
         collaboration: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
+        exercise_safe_interactions: bool = False,
         allowed_secondary_providers: tuple[str, ...] | list[str] = (),
         start_command: list[str] | tuple[str, ...] | None = None,
         server_url: str | None = None,
@@ -166,6 +167,8 @@ class FrontendDesignDirector:
             raise ValueError("Starting a project server requires an explicit local readiness URL, no --url, and interactive human confirmation.")
         if server_url and not start_command:
             raise ValueError("A server readiness URL requires an explicit --start-command.")
+        if exercise_safe_interactions and not (browser_url or start_command):
+            raise ValueError("Safe interaction probes require an explicit --url or an approved --start-command.")
         collaboration = CollaborationMode(collaboration)
         unsupported_providers = set(allowed_secondary_providers) - {"claude"}
         if unsupported_providers:
@@ -175,7 +178,7 @@ class FrontendDesignDirector:
         try:
             if start_command:
                 with managed_development_server(Path(self.store.get_session(session_id).project_root), start_command, server_url) as server_run:
-                    result = self._audit(session_id, use_codex=use_codex, browser_url=server_run.url, allow_remote=False, route_paths=route_paths, depth=depth, collaboration=collaboration, allowed_secondary_providers=allowed_secondary_providers)
+                    result = self._audit(session_id, use_codex=use_codex, browser_url=server_run.url, allow_remote=False, route_paths=route_paths, depth=depth, collaboration=collaboration, exercise_safe_interactions=exercise_safe_interactions, allowed_secondary_providers=allowed_secondary_providers)
                 details = server_run.details
                 server_artifacts = {
                     "development-server-run": self.store.write_artifact(session_id, "development-server-run", "evidence/development-server.json", _json_bytes(details)),
@@ -187,7 +190,7 @@ class FrontendDesignDirector:
                 result["server_logs"] = {name: item["path"] for name, item in server_artifacts.items() if name != "development-server-run"}
                 self.store.set_metadata(session_id, "audit", result)
                 return result
-            return self._audit(session_id, use_codex=use_codex, browser_url=browser_url, allow_remote=allow_remote, route_paths=route_paths, depth=depth, collaboration=collaboration, allowed_secondary_providers=allowed_secondary_providers)
+            return self._audit(session_id, use_codex=use_codex, browser_url=browser_url, allow_remote=allow_remote, route_paths=route_paths, depth=depth, collaboration=collaboration, exercise_safe_interactions=exercise_safe_interactions, allowed_secondary_providers=allowed_secondary_providers)
         except Exception as error:
             self._fail(session_id, error, "audit")
             raise
@@ -202,6 +205,7 @@ class FrontendDesignDirector:
         route_paths: tuple[str, ...] | list[str] = (),
         depth: str = "deep",
         collaboration: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
+        exercise_safe_interactions: bool = False,
         allowed_secondary_providers: tuple[str, ...] | list[str] = (),
     ) -> dict[str, Any]:
         collaboration = CollaborationMode(collaboration)
@@ -223,6 +227,15 @@ class FrontendDesignDirector:
         intelligence = None
         capture_routes: list[str] = []
         expected_routes: list[str] = []
+        interaction_probes: dict[str, Any] = {
+            "status": "not_requested",
+            "scope": "loopback_only_reversible_controls",
+            "routes_attempted": [],
+            "routes_completed": 0,
+            "checks_attempted": 0,
+            "route_results": [],
+            "limitations": ["Safe interaction probes were not requested; interaction behavior is based on source inspection and passive browser evidence."],
+        }
         if browser_url:
             intelligence = build_project_intelligence(Path(session.project_root), discovery["project"])
             discovered_routes = renderable_route_candidates(intelligence)
@@ -296,11 +309,42 @@ class FrontendDesignDirector:
                 requests.warning("Browser screenshot capture unavailable", context={"session_id": session_id, "error_category": type(error).__name__})
         else:
             limitations.append("Rendered browser evidence was not collected because no explicit --url was supplied. Source analysis cannot establish actual appearance or runtime behavior.")
+        if exercise_safe_interactions:
+            try:
+                interaction_probes = probe_safe_interactions(browser_url or "", route_paths=capture_routes)
+            except BrowserUnavailable as error:
+                interaction_probes = {
+                    **interaction_probes,
+                    "status": "unavailable",
+                    "error_classification": "missing_browser",
+                    "limitations": [f"Safe interaction probes could not run: {type(error).__name__}: {str(error)[:400]}"],
+                }
+            except ValueError as error:
+                interaction_probes = {
+                    **interaction_probes,
+                    "status": "blocked",
+                    "error_classification": "interaction_safety_restriction",
+                    "limitations": [f"Safe interaction probes were blocked by their loopback/path safety checks: {str(error)[:400]}"],
+                }
+            except Exception as error:
+                interaction_probes = {
+                    **interaction_probes,
+                    "status": "failed",
+                    "error_classification": "interaction_probe_failed",
+                    "limitations": [f"Safe interaction probes failed: {type(error).__name__}: {str(error)[:400]}"],
+                }
+            limitations.extend(interaction_probes.get("limitations", []))
+            if interaction_probes.get("status") != "completed":
+                limitations.append(f"Requested safe interaction probes ended with status `{interaction_probes.get('status')}`; treat affected behavior as unverified.")
         if browser_url:
             self.store.write_artifact(session_id, "browser-evidence", "evidence/browser-evidence.json", _json_bytes(browser_capture_records))
             if screenshots:
                 self.store.write_artifact(session_id, "screenshot-gallery", "evidence/screenshots/gallery.html", captured_gallery)
         intelligence = attach_runtime_evidence(intelligence, screenshots) if intelligence else build_project_intelligence(Path(session.project_root), discovery["project"], screenshots)
+        intelligence["interaction_probes"] = interaction_probes
+        intelligence["coverage"]["interaction_probe_status"] = interaction_probes.get("status")
+        intelligence["coverage"]["interaction_routes_tested"] = interaction_probes.get("routes_completed", 0)
+        intelligence["coverage"]["interaction_checks_tested"] = interaction_probes.get("checks_tested", 0)
         intelligence["audit_depth"] = depth
         intelligence["capture_route_policy"] = (
             "operator_selected" if route_paths else "all_static_candidates"
@@ -326,6 +370,12 @@ class FrontendDesignDirector:
             "missing_route_viewports": [{"route": route, "viewport": viewport} for route, viewport in missing_pairs],
             "invalid_screenshots": sum(item.get("visual_evidence_status") != "valid" for item in screenshots),
         })
+        interaction_probe_artifact = None
+        if exercise_safe_interactions:
+            interaction_probe_artifact = self.store.write_artifact(
+                session_id, "interaction-probes", "evidence/interaction-probes.json", _json_bytes(interaction_probes),
+            )
+            intelligence["interaction_probe_artifact"] = interaction_probe_artifact["path"]
         self.store.set_metadata(session_id, "frontend_intelligence", intelligence)
         self.store.set_metadata(session_id, "audit_depth", depth)
         self.store.write_artifact(session_id, "frontend-intelligence", "reports/frontend-intelligence.json", _json_bytes(intelligence))
@@ -436,6 +486,8 @@ class FrontendDesignDirector:
 
         completion_reasons: list[str] = []
         blockers: list[str] = []
+        if exercise_safe_interactions and interaction_probes.get("status") != "completed":
+            completion_reasons.append(f"Requested safe interaction probes were not fully completed (status: {interaction_probes.get('status')}).")
         if browser_url:
             if missing_pairs:
                 sample = ", ".join(f"{route} / {viewport}" for route, viewport in missing_pairs[:8])
@@ -553,6 +605,9 @@ class FrontendDesignDirector:
             "expected_route_viewport_pairs": expected_pairs,
             "missing_route_viewports": [{"route": route, "viewport": viewport} for route, viewport in missing_pairs],
             "visual_delivery": visual_delivery,
+            "interaction_probes_requested": exercise_safe_interactions,
+            "interaction_probe_status": interaction_probes.get("status"),
+            "interaction_probe_artifact": interaction_probe_artifact.get("path") if interaction_probe_artifact else None,
             "specialists": list(result.specialist_runs),
             "specialist_assessments": list(result.specialist_assessments),
             "collaboration": collaboration_report,

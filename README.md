@@ -133,6 +133,12 @@ The audit can capture a running local application at the required desktop, table
 frontend-director audit --project /path/to/frontend --url http://127.0.0.1:5173 --codex
 ```
 
+Application controls remain passive by default. For a locally served page, `--exercise-safe-interactions` opts into reversible probes of the first eligible text edit, search, range, switch, and read-only details control per route. The isolated browser context is discarded after probes; all HTTP and WebSocket requests after page readiness are blocked. Probes never submit forms or activate save/delete/archive/confirmation actions. Remote pages are not probed. The behavioral report separates tested observations from source-based inference:
+
+```bash
+frontend-director audit --project /path/to/frontend --url http://127.0.0.1:5173 --codex --exercise-safe-interactions
+```
+
 After reviewing the separate technical, behavior, and visual reports, proceed through the decision and prototype gates:
 
 ```bash

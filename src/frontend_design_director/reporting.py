@@ -219,7 +219,39 @@ def _supplemental_reports(
 
     behavior_findings = [item for item in findings if item.audit_type == AuditType.BEHAVIORAL]
     interactions = _finding_report("Interaction and behavior audit", behavior_findings, result, include_visual=False)
-    interactions = interactions.rstrip() + "\n\n## Runtime action coverage\n\nBrowser collection inspected structural controls and accessible-name signals. It captured one passive Tab focus state per route at desktop when a focusable target was available; it did not activate application controls, submit forms, or claim workflow outcomes. Review source-derived journeys above; unexecuted behavior remains unverified.\n"
+    probe = intelligence.get("interaction_probes", {})
+    probe_status = probe.get("status", "not_requested")
+    probe_lines = [
+        "",
+        "## Runtime action coverage",
+        "",
+        f"Safe interaction probe status: **{probe_status}**. These probes are opt-in, loopback-only, and limited to reversible controls; they block all requests initiated after page readiness.",
+        "",
+    ]
+    if probe_status in {"completed", "completed_with_limitations"}:
+        for route_result in probe.get("route_results", []):
+            probe_lines.append(f"### `{route_result.get('route', '/')}`")
+            checks = route_result.get("checks", [])
+            if checks:
+                for check in checks:
+                    outcome = ", ".join(
+                        f"{key}={value}" for key, value in check.items()
+                        if key not in {"kind", "status", "control_index"}
+                    ) or "no outcome fields"
+                    probe_lines.append(f"- `{check.get('kind')}` — {check.get('status')}; {outcome}.")
+            else:
+                probe_lines.append("- No eligible reversible controls were found on this route.")
+            probe_lines.append(f"- Requests blocked after page readiness: {route_result.get('blocked_post_readiness_requests', 0)}. The count can include background requests, not only probe-triggered requests.")
+            if route_result.get("status") != "completed":
+                probe_lines.append(f"- Route probe status: {route_result.get('status')}; {route_result.get('error', 'details are in interaction-probes.json')}.")
+            probe_lines.append("")
+    else:
+        probe_lines.append("No application controls were activated. Runtime behavior remains unverified; findings in this report are source-inspected, inferred, or explicitly marked otherwise.")
+        probe_lines.append("")
+    probe_lines.extend(f"- Probe limitation: {item}" for item in probe.get("limitations", []))
+    probe_lines.append("- Form submissions and save, delete, archive, purchase, and confirmation actions are never activated by these probes.")
+    probe_lines.append("- A passive desktop Tab focus screenshot may be present separately; it does not verify keyboard order or dialog focus management.")
+    interactions = interactions.rstrip() + "\n" + "\n".join(probe_lines).rstrip() + "\n"
 
     accessibility = ["# Accessibility audit", "", "Not a WCAG conformance certificate; this is a partial code and browser evidence review.", "", "## Findings", ""]
     accessibility_categories = {
@@ -251,7 +283,7 @@ def _supplemental_reports(
         performance.append("| No rendered route | — | — | — | — | — |")
     performance.extend(["", "LCP, INP, CLS, bundle analysis, long tasks, and comparative before/after measurements were not collected by this pass."])
 
-    coverage_report = ["# Coverage and limitations", "", f"Audit completion status: **{result.completion_status}**", f"Requested depth: `{intelligence.get('audit_depth', 'unknown')}`", f"Backend: `{result.backend_used}`", "", f"- Source and style files: {coverage['source_files_inspected']}", f"- Route candidates discovered: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots captured / attached / interpreted / validated: {coverage['screenshots_captured']} / {coverage.get('screenshots_attached_to_visual', 0)} / {coverage.get('visual_analysis_interpreted', False)} / {coverage.get('visual_analysis_validated', False)}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Passive keyboard focus screenshots: {focus_captures}", "- Browser controls activated: 0", "", "## Known limits", "", *[f"- {item}" for item in limitations]]
+    coverage_report = ["# Coverage and limitations", "", f"Audit completion status: **{result.completion_status}**", f"Requested depth: `{intelligence.get('audit_depth', 'unknown')}`", f"Backend: `{result.backend_used}`", "", f"- Source and style files: {coverage['source_files_inspected']}", f"- Route candidates discovered: {coverage['routes_discovered']}", f"- Routes rendered: {coverage['routes_rendered']}", f"- Screenshots captured / attached / interpreted / validated: {coverage['screenshots_captured']} / {coverage.get('screenshots_attached_to_visual', 0)} / {coverage.get('visual_analysis_interpreted', False)} / {coverage.get('visual_analysis_validated', False)}", f"- Browser navigation failures: {coverage.get('browser_navigation_failures', 0)}", f"- Component profiles: {coverage['component_profiles']}", f"- Viewports: {', '.join(coverage['rendered_viewports']) or 'none'}", f"- Passive keyboard focus screenshots: {focus_captures}", f"- Safe runtime interaction checks: {coverage.get('interaction_checks_tested', 0)} across {coverage.get('interaction_routes_tested', 0)} route(s) (status: {coverage.get('interaction_probe_status', 'not_requested')})", "", "## Known limits", "", *[f"- {item}" for item in limitations]]
     names = ["executive-summary.md", "application-overview.md", "frontend-architecture-map.md", "route-and-screen-inventory.md", "component-inventory.md", "design-system-analysis.md", "color-system-analysis.md", "typography-analysis.md", "layout-and-density-analysis.md", "responsive-design-analysis.md", "interaction-behavior-audit.md", "accessibility-audit.md", "performance-audit.md", "visual-audit.md", "technical-audit.md", "behavioral-audit.md", "security-data-flow.md", "specialist-assessments.json", "runtime-evidence.md", "coverage-and-limitations.md", "findings.json"]
     index = ["# Audit artifact index", "", "Each report is bounded by the recorded evidence and coverage. See coverage-and-limitations before interpreting an unverified area.", "", *[f"- [{name}]({name})" for name in names]]
     return {
