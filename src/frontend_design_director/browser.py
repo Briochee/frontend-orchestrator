@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
-from html import escape
 import ipaddress
 import json
 import socket
@@ -208,7 +207,6 @@ def capture_screenshots(
         finally:
             browser.close()
     (output_directory / "screenshots.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
-    (output_directory / "gallery.html").write_text(_gallery_html(evidence), encoding="utf-8")
     return evidence
 
 
@@ -644,15 +642,6 @@ def _inspect_focus(page: Any) -> dict[str, Any] | None:
         }""")
     except Exception:
         return None
-
-
-def _gallery_html(evidence: list[dict[str, Any]]) -> str:
-    cards = "\n".join(
-        f'<figure><img src="{escape(Path(item["path"]).name, quote=True)}" alt="Captured {escape(str(item["route"]), quote=True)} at {escape(str(item["viewport"]), quote=True)}"><figcaption>{escape(str(item["route"]))} · {escape(str(item["viewport"]))} · HTTP {escape(str(item.get("http_status") or "unknown"))}</figcaption></figure>'
-        for item in evidence
-        if item.get("evidence_type") == "rendered_browser_screenshot"
-    )
-    return "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Frontend evidence gallery</title><style>body{font:16px system-ui;margin:2rem;background:#f4f5f7;color:#17191c}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}figure{margin:0;background:white;padding:.75rem;border:1px solid #ccd0d6;border-radius:.5rem}img{display:block;width:100%;height:auto}figcaption{padding:.5rem .25rem;font-size:.875rem}</style><h1>Frontend evidence gallery</h1><main>" + cards + "</main></html>\n"
 
 
 def capture_mockup_screenshots(html_path: Path, output_directory: Path, *, timeout_ms: int = 15_000, viewports: tuple[str, ...] | list[str] | None = None) -> list[dict[str, Any]]:

@@ -44,7 +44,20 @@ class FakeBackend:
     def execute(self, *, working_directory, instruction, schema, sandbox="read-only", images=(), timeout_seconds=None, execution_policy=None):
         self.execution_policies.append(execution_policy)
         if schema.get("properties", {}).get("status", {}).get("enum") == ["complete"]:
-            page = Path(working_directory) / "index.html"
+            root = Path(working_directory)
+            if (root / "approved-context.json").exists():
+                (root / "index.html").write_text(
+                    "<!doctype html><html lang='en'><head><title>Orders</title></head><body><nav aria-label='Primary'><a href='#orders'>Orders</a></nav><main id='orders'>"
+                    "<header><h1>Orders</h1><p>Track recent customer orders and fulfillment status.</p></header>"
+                    "<section aria-label='Order summary'><article><h2>Open orders</h2><p>24 orders need fulfillment.</p></article><article><h2>Completed today</h2><p>18 orders shipped.</p></article></section>"
+                    "<section><h2>Recent orders</h2><table><tr><th>Order</th><th>Status</th></tr><tr><td>#1042</td><td>Processing</td></tr></table><button>View order</button></section>"
+                    "</main></body></html>", encoding="utf-8",
+                )
+                (root / "styles.css").write_text("main{max-width:72rem;margin:auto}section{display:grid;gap:1rem}@media(max-width:768px){section{grid-template-columns:1fr}}@media(max-width:390px){main{padding:1rem}}", encoding="utf-8")
+                (root / "design-tokens.json").write_text(json.dumps({"schema_version": 1, "colors": {"accent": "#234"}}), encoding="utf-8")
+                (root / "change-summary.md").write_text("Created an orders interface with summary cards and a recent-orders table.", encoding="utf-8")
+                return {"status": "complete", "summary": "Created a responsive orders interface mockup."}
+            page = root / "index.html"
             page.write_text("<!doctype html><html lang=\"en\"><title>Approved update</title><body>Approved update</body></html>\n", encoding="utf-8")
             return {"status": "complete", "summary": "Updated the approved sample page."}
         raise AssertionError("Unexpected backend task in this deterministic workflow.")
@@ -67,8 +80,13 @@ class WorkflowTestCase(unittest.TestCase):
 
     def approve_direction_and_mockup(self, session_id: str) -> None:
         self.director.record_direction(session_id, visual="refine", behavior="preserve", scope="screens", human_confirmation=True)
-        self.director.generate_mockup(session_id)
+        self.generate_mockup(session_id)
         self.director.review_mockup(session_id, action="approve", human_confirmation=True)
+
+    def generate_mockup(self, session_id: str, **kwargs):
+        review = ({"status": "completed", "plan": {"selected_experts": []}}, {"path": "mockup-review.json"})
+        with patch.object(self.director, "_phase_collaboration", return_value=review):
+            return self.director.generate_mockup(session_id, use_codex=True, **kwargs)
 
 
 class DiscoveryTests(unittest.TestCase):
@@ -347,13 +365,13 @@ class AuditAndStateTests(WorkflowTestCase):
     def test_failed_mockup_generation_can_resume_from_a_safe_retry_point(self) -> None:
         session_id = self.make_audited_session()
         self.director.record_direction(session_id, visual="refine", behavior="preserve", scope="screens", human_confirmation=True)
-        with patch("frontend_design_director.director.create_template_mockup", side_effect=RuntimeError("transient failure")):
+        with patch("frontend_design_director.director.create_codex_mockup", side_effect=RuntimeError("transient failure")):
             with self.assertRaises(RuntimeError):
-                self.director.generate_mockup(session_id)
+                self.generate_mockup(session_id)
         self.assertEqual(self.store.get_session(session_id).phase, Phase.FAILED)
         resumed = self.director.resume(session_id)
         self.assertEqual(resumed.phase, Phase.MOCKUP_REVISION)
-        self.director.generate_mockup(session_id, revision_note="retry")
+        self.generate_mockup(session_id, revision_note="retry")
         self.assertEqual(self.store.get_session(session_id).phase, Phase.AWAITING_MOCKUP_REVIEW)
 
     def test_visual_and_behavior_decisions_are_separate_and_mockup_does_not_authorize_implementation(self) -> None:
@@ -366,7 +384,7 @@ class AuditAndStateTests(WorkflowTestCase):
         self.assertEqual(direction["visual_appearance"], "explore")
         self.assertEqual(direction["behavior_and_interaction"], "preserve")
         with patch("frontend_design_director.browser.playwright_available", return_value=False):
-            manifest = self.director.generate_mockup(session_id)
+            manifest = self.generate_mockup(session_id)
         self.assertEqual(manifest["responsive_targets_px"], [1440, 768, 390])
         self.assertEqual(manifest["screenshots"], [])
         self.assertTrue(any("Mockup screenshots were unavailable" in item for item in manifest["limitations"]))
@@ -385,7 +403,7 @@ class AuditAndStateTests(WorkflowTestCase):
         old_plan = self.director.plan_implementation(session_id, files=["index.html"])
         self.assertEqual(old_plan["approved_scope"], ["index.html"])
         self.director.review_mockup(session_id, action="revise", note="Reduce the card density.", human_confirmation=True)
-        self.director.generate_mockup(session_id)
+        self.generate_mockup(session_id)
         self.director.review_mockup(session_id, action="approve", human_confirmation=True)
         with self.assertRaises(WorkflowBlocked):
             self.director.approve_implementation(session_id, human_confirmation=True)
@@ -403,6 +421,24 @@ class AuditAndStateTests(WorkflowTestCase):
         with self.assertRaises(WorkflowBlocked):
             self.director.approve_implementation(session_id, human_confirmation=True)
         self.assertEqual(self.store.get_session(session_id).phase, Phase.AWAITING_IMPLEMENTATION_APPROVAL)
+
+    def test_unchanged_implementation_plan_is_reused_and_source_change_invalidates_it(self) -> None:
+        session_id = self.make_audited_session()
+        self.approve_direction_and_mockup(session_id)
+        review = ({"status": "completed", "plan": {"selected_experts": []}}, {"path": "plan-review.json"})
+        with patch.object(self.director, "_phase_collaboration", return_value=review) as collaboration:
+            first = self.director.plan_implementation(session_id, files=["index.html"])
+            second = self.director.plan_implementation(session_id, files=["index.html"])
+            self.assertEqual(collaboration.call_count, 1)
+            self.assertEqual(first["plan_sha256"], second["plan_sha256"])
+            self.assertNotIn("result_reused", second)
+            statuses = [item["status"] for item in reversed(self.store.operation_history(session_id)) if item["operation_name"] == "implementation_plan"]
+            self.assertEqual(statuses, ["completed", "reused"])
+
+            (self.root / "index.html").write_text((self.root / "index.html").read_text(encoding="utf-8") + "\n<!-- changed -->\n", encoding="utf-8")
+            third = self.director.plan_implementation(session_id, files=["index.html"])
+            self.assertEqual(collaboration.call_count, 2)
+            self.assertNotEqual(first["baseline_sha256"], third["baseline_sha256"])
 
     def test_end_to_end_workflow_generates_and_applies_only_approved_patch(self) -> None:
         original = (self.root / "index.html").read_text(encoding="utf-8")

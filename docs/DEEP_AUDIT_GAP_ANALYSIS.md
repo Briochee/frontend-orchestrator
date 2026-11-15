@@ -145,7 +145,7 @@ This section records the implementation that followed the baseline assessment; s
 ### Shipped in this enhancement
 
 - Added a deterministic architecture, route, component/import, styling-value, breakpoint, and runtime inventory in `src/frontend_design_director/intelligence.py`.
-- Added route-aware browser evidence capture with the standard/deep/exhaustive viewport profiles, source-discovered static route navigation, full-page PNGs, a JSON screenshot manifest, an HTML contact sheet, readiness signals, DOM landmark/control counts, sampled computed styles, console/page errors, failed requests, and single-run navigation timing.
+- Added route-aware browser evidence capture with the standard/deep/exhaustive viewport profiles, source-discovered static route navigation, full-page PNGs, a JSON screenshot manifest and index, readiness signals, DOM landmark/control counts, sampled computed styles, console/page errors, failed requests, and single-run navigation timing. The screenshot index is JSON; the audit does not create an HTML contact sheet.
 - Kept dynamic route patterns visible in the route report but excluded them from automatic navigation. Browser collection adds one passive Tab focus screenshot per route when a focusable element is available; application controls remain unactivated.
 - Added a human-confirmed local server lifecycle adapter. It uses an argument vector without a shell, loopback readiness checks, filtered environment, redacted logs, and owned-process-group cleanup. This is process lifecycle management, not OS sandbox containment.
 - Added deterministic runtime findings for measured document overflow, missing input accessible names, and uncaught page exceptions, each linked to the captured route/viewport screenshot.

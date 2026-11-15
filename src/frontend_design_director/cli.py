@@ -86,10 +86,18 @@ def build_parser() -> argparse.ArgumentParser:
     direction.add_argument("--constraints", default="", help="Specific user-provided requirements or constraints.")
     _add_output(direction)
 
-    mockup = subparsers.add_parser("mockup", help="Generate an isolated responsive HTML/CSS prototype after direction approval.")
+    phase = subparsers.add_parser("phase", help="Explicitly enter a workflow phase while preserving artifact and human-approval gates.")
+    _add_context(phase)
+    phase.add_argument("--to", dest="target_phase", required=True, choices=["discovery", "audit", "direction", "mockup", "planning", "implementation", "verification"], help="Phase to enter; this does not approve production changes.")
+    phase.add_argument("--reason", required=True, help="Why the normal phase sequence should be overridden.")
+    phase.add_argument("--direction-file", type=Path, help="Import a structured JSON design direction. Requires a separate typed direction confirmation.")
+    phase.add_argument("--mockup-dir", type=Path, help="Import an existing interface mockup directory containing index.html and styles.css; it still requires mockup review.")
+    _add_output(phase)
+
+    mockup = subparsers.add_parser("mockup", help="Generate a new responsive interface mockup from the approved direction.")
     _add_context(mockup)
     mockup.add_argument("--brief-file", type=Path, help="Optional human-authored content and screen brief (20 KB maximum).")
-    mockup.add_argument("--codex", action="store_true", help="Use signed-in Codex to refine the isolated prototype and request independent artifact review (uses plan usage).")
+    mockup.add_argument("--codex", action="store_true", help="Use signed-in Codex to create an interface from scratch in an isolated workspace (uses plan usage).")
     mockup.add_argument("--revision-note", default="", help="Human direction for the next mockup revision.")
     _add_output(mockup)
 
@@ -325,11 +333,36 @@ def main(argv: list[str] | None = None) -> int:
             _output(result, args.json_output)
             if result.get("completion_status") in {"incomplete", "failed"}:
                 return 3
+        elif args.command == "phase":
+            if args.direction_file and args.target_phase not in {"direction", "mockup", "planning"}:
+                raise ValueError("--direction-file is only valid when entering direction, mockup, or planning.")
+            if args.mockup_dir and args.target_phase not in {"mockup", "planning"}:
+                raise ValueError("--mockup-dir is only valid when entering mockup or planning.")
+            if args.direction_file:
+                phrase = "CONFIRM DIRECTION"
+                _human_gate("This imports and approves the supplied design direction. It does not approve a mockup or production change. Type CONFIRM DIRECTION to continue.", phrase)
+            result = director.override_phase(
+                session.id,
+                args.target_phase,
+                reason=args.reason,
+                source="cli",
+                user_instruction=f"frontend-director phase --to {args.target_phase}",
+                direction_file=args.direction_file,
+                mockup_dir=args.mockup_dir,
+                human_confirmation=bool(args.direction_file),
+            )
+            _output(result, args.json_output)
+            if result.get("status") == "blocked":
+                return 3
         elif args.command == "report":
             _show_report(store, session.id, args.name, args.json_output)
         elif args.command == "direction":
-            summary_artifact = store.artifact(session.id, "audit_summary")
-            print(Path(summary_artifact["path"]).read_text(encoding="utf-8"))
+            if not args.json_output:
+                try:
+                    summary_artifact = store.artifact(session.id, "audit_summary")
+                    print(Path(summary_artifact["path"]).read_text(encoding="utf-8"))
+                except KeyError:
+                    print("No audit report is available; continuing with the supplied design direction.")
             visual = args.visual or _choose("Visual appearance", ["preserve", "refine", "explore", "custom"])
             behavior = args.behavior or _choose("Behavior and interaction", ["preserve", "improve", "explore", "custom"])
             scope = args.scope or _choose("Implementation scope", ["components", "screens", "opportunities", "frontend"])
@@ -582,7 +615,7 @@ def _prompt(label: str) -> str:
 def _human_gate(message: str, expected: str) -> None:
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         raise ValueError("Human approval requires a terminal interaction; non-interactive or agent-generated text is not accepted.")
-    print(message)
+    print(message, file=sys.stderr)
     answer = input("> ").strip()
     if answer != expected:
         raise ValueError("Human confirmation phrase did not match; no approval was recorded.")

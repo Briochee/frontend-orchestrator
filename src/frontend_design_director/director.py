@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 import uuid
 from dataclasses import replace
@@ -16,7 +17,7 @@ from .auditing import AuditResult, run_codex_audit, run_static_audit
 from .backend import AgentBackend
 from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots, probe_safe_interactions
 from .codex_backend import BackendFailure, BackendUnavailable, CodexCLIBackend
-from .execution import execution_policy_for_phase
+from .execution import classify_failure, execution_policy_for_phase, tracked_operation
 from .collaboration import (
     CapabilityResource,
     CollaborationMode,
@@ -30,11 +31,11 @@ from .discovery import build_capability_matrix, discover_agents, discover_claude
 from .implementation import _current_baselines, apply_implementation_patch, create_implementation_plan, execute_implementation
 from .intelligence import attach_runtime_evidence, build_project_intelligence, intelligence_reports, renderable_route_candidates, runtime_findings
 from .logging_setup import configure_logging
-from .mockups import create_codex_mockup, create_template_mockup
+from .mockups import MOCKUP_FILES, _validate_mockup, create_codex_mockup, validate_scope_paths
 from .models import Approval, AuditType, Phase, Session, utc_now
 from .reporting import audit_reports
 from .server import managed_development_server
-from .storage import WORKFLOW_STATE_DIRECTORY, WorkflowStore
+from .storage import OperationBlocked, WORKFLOW_STATE_DIRECTORY, WorkflowStore
 from .state_machine import TRANSITIONS
 from .verification import run_verification, verification_reports
 from .providers import ClaudeCodeBackend
@@ -105,6 +106,19 @@ class FrontendDesignDirector:
         self.store = store
         self.backend = backend or CodexCLIBackend()
 
+    def _track_operation(self, session: Session, operation_name: str, inputs: dict[str, Any], *, provider: str = "local"):
+        return tracked_operation(
+            self.store,
+            session.id,
+            operation_name=operation_name,
+            phase=operation_name,
+            project_root=session.project_root,
+            inputs=inputs,
+            environment=_backend_execution_fingerprint(self.backend if provider != "local" else None),
+            provider=provider,
+            max_attempts=2,
+        )
+
     def create_session(self, project_root: Path, title: str = "") -> Session:
         root = project_root.resolve(strict=True)
         state_dir = root / WORKFLOW_STATE_DIRECTORY
@@ -155,6 +169,64 @@ class FrontendDesignDirector:
             raise
 
     def audit(
+        self,
+        session_id: str,
+        *,
+        use_codex: bool = False,
+        browser_url: str | None = None,
+        allow_remote: bool = False,
+        route_paths: tuple[str, ...] | list[str] = (),
+        depth: str = "deep",
+        collaboration: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
+        exercise_safe_interactions: bool = False,
+        allowed_secondary_providers: tuple[str, ...] | list[str] = (),
+        start_command: list[str] | tuple[str, ...] | None = None,
+        server_url: str | None = None,
+        server_human_confirmation: bool = False,
+    ) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        inputs = {
+            "audit_revision": int(session.metadata.get("audit_revision", 0)) + 1,
+            "source_metadata_fingerprint": _project_source_metadata_fingerprint(Path(session.project_root)),
+            "use_codex": use_codex,
+            "browser_url": browser_url,
+            "allow_remote": allow_remote,
+            "route_paths": list(route_paths),
+            "depth": depth,
+            "collaboration": str(getattr(collaboration, "value", collaboration)),
+            "exercise_safe_interactions": exercise_safe_interactions,
+            "allowed_secondary_providers": list(allowed_secondary_providers),
+            "start_command": list(start_command or []),
+            "server_url": server_url,
+            "server_human_confirmation": server_human_confirmation,
+        }
+        provider = str(getattr(self.backend, "provider_id", "codex")) if use_codex else "local"
+        try:
+            with self._track_operation(session, "frontend_audit", inputs, provider=provider) as operation:
+                result = self._audit_with_lifecycle(
+                    session_id,
+                    use_codex=use_codex,
+                    browser_url=browser_url,
+                    allow_remote=allow_remote,
+                    route_paths=route_paths,
+                    depth=depth,
+                    collaboration=collaboration,
+                    exercise_safe_interactions=exercise_safe_interactions,
+                    allowed_secondary_providers=allowed_secondary_providers,
+                    start_command=start_command,
+                    server_url=server_url,
+                    server_human_confirmation=server_human_confirmation,
+                )
+                try:
+                    artifact = self.store.artifact(session_id, "audit_summary")
+                    operation.set_result_reference({"artifact_name": "audit_summary", "path": artifact["path"], "sha256": artifact["sha256"]})
+                except KeyError:
+                    pass
+                return result
+        except OperationBlocked:
+            raise
+
+    def _audit_with_lifecycle(
         self,
         session_id: str,
         *,
@@ -232,7 +304,6 @@ class FrontendDesignDirector:
         browser_capture_records: list[dict[str, Any]] = []
         limitations: list[str] = []
         audit_instructions = self._stage_instructions(session_id, "audit")
-        captured_gallery = b""
         intelligence = None
         capture_routes: list[str] = []
         expected_routes: list[str] = []
@@ -292,19 +363,6 @@ class FrontendDesignDirector:
                         stored = {**item, "path": artifact["path"], "sha256": artifact["sha256"]}
                         screenshots.append(stored)
                         browser_capture_records.append(stored)
-                    gallery_path = screenshot_directory / "gallery.html"
-                    if gallery_path.is_file():
-                        gallery_text = gallery_path.read_text(encoding="utf-8")
-                        for item in captured:
-                            if item.get("evidence_type") != "rendered_browser_screenshot":
-                                continue
-                            local_name = Path(item["path"]).name
-                            route_slug = item.get("route_slug", "home")
-                            viewport_label = item.get("viewport_label", item["viewport"])
-                            state_suffix = "-keyboard-focus" if item.get("interaction_state") == "keyboard_focus_after_one_tab" else ""
-                            route_digest = hashlib.sha256(str(item.get("route", "/")).encode("utf-8")).hexdigest()[:6]
-                            gallery_text = gallery_text.replace(local_name, f"{route_slug}-{route_digest}-{viewport_label}{state_suffix}.png")
-                        captured_gallery = gallery_text.encode("utf-8")
             except Exception as error:
                 category = "missing_screenshot" if isinstance(error, BrowserUnavailable) else "backend_invocation_failed"
                 browser_capture_records.append({
@@ -348,7 +406,14 @@ class FrontendDesignDirector:
         if browser_url:
             self.store.write_artifact(session_id, "browser-evidence", "evidence/browser-evidence.json", _json_bytes(browser_capture_records))
             if screenshots:
-                self.store.write_artifact(session_id, "screenshot-gallery", "evidence/screenshots/gallery.html", captured_gallery)
+                gallery_index = {
+                    "artifact_type": "screenshot_index",
+                    "screenshots": [
+                        {key: item.get(key) for key in ("route", "viewport", "viewport_label", "interaction_state", "path", "sha256", "image_dimensions")}
+                        for item in screenshots
+                    ],
+                }
+                self.store.write_artifact(session_id, "screenshot-gallery", "evidence/screenshots/gallery.json", _json_bytes(gallery_index))
         intelligence = attach_runtime_evidence(intelligence, screenshots) if intelligence else build_project_intelligence(Path(session.project_root), discovery["project"], screenshots)
         intelligence["interaction_probes"] = interaction_probes
         intelligence["coverage"]["interaction_probe_status"] = interaction_probes.get("status")
@@ -733,6 +798,376 @@ class FrontendDesignDirector:
         selected = [item["instruction"] for item in records if item.get("stage") in {"global", stage} and isinstance(item.get("instruction"), str)]
         return "\n\n".join(selected)[-20_000:]
 
+    def override_phase(
+        self,
+        session_id: str,
+        requested_phase: str,
+        *,
+        reason: str,
+        source: str,
+        user_instruction: str = "",
+        direction_file: Path | None = None,
+        mockup_dir: Path | None = None,
+        human_confirmation: bool = False,
+    ) -> dict[str, Any]:
+        """Enter a user-selected workflow phase without waiving artifact or approval gates."""
+        aliases = {"design direction": "direction", "implementation planning": "planning", "verify": "verification"}
+        target = aliases.get(requested_phase.strip().casefold(), requested_phase.strip().casefold())
+        valid_targets = {"discovery", "audit", "direction", "mockup", "planning", "implementation", "verification"}
+        if target not in valid_targets:
+            raise ValueError(f"Unsupported phase override: {requested_phase}.")
+        if direction_file and target not in {"direction", "mockup", "planning"}:
+            raise ValueError("A supplied direction is only valid when entering direction, mockup, or planning.")
+        if mockup_dir and target not in {"mockup", "planning"}:
+            raise ValueError("A supplied mockup is only valid when entering mockup or planning.")
+        if source not in {"cli", "guided"}:
+            raise ValueError("Phase override source must be cli or guided.")
+        reason = reason.strip()
+        user_instruction = user_instruction.strip()
+        if not reason or len(reason) > 2_000 or len(user_instruction) > 10_000:
+            raise ValueError("A phase override requires a reason of at most 2,000 characters and an instruction of at most 10,000 characters.")
+        session = self.store.get_session(session_id)
+        if session.phase == Phase.CANCELLED:
+            raise WorkflowBlocked("A cancelled session cannot be resumed through a phase override.")
+        original_phase = session.phase
+        if direction_file and not human_confirmation:
+            return self._finish_phase_override(
+                session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                previous_phase=original_phase, status="blocked", approval_required=True,
+                missing_optional_context=[], outstanding_approvals=["Explicit human confirmation is required to approve a supplied design direction."],
+            )
+
+        if direction_file:
+            direction = _load_supplied_direction(direction_file)
+            if session.phase != Phase.AWAITING_DIRECTION:
+                self._override_transition(session_id, Phase.AWAITING_DIRECTION, target, source, reason, user_instruction)
+            self._persist_direction(session_id, direction, source="user_supplied")
+            session = self.store.get_session(session_id)
+
+        if target == "discovery":
+            self._override_transition(session_id, Phase.DISCOVERING, target, source, reason, user_instruction)
+            result_status = "proceeding"
+        elif target == "audit":
+            session = self.store.get_session(session_id)
+            if not session.metadata.get("discovery"):
+                self._override_transition(session_id, Phase.DISCOVERING, target, source, reason, user_instruction)
+                self.discover(session_id)
+            self._override_transition(session_id, Phase.AUDITING, target, source, reason, user_instruction)
+            result_status = "proceeding"
+        elif target == "direction":
+            if direction_file:
+                result_status = "direction_approved"
+            else:
+                self._override_transition(session_id, Phase.AWAITING_DIRECTION, target, source, reason, user_instruction)
+                result_status = "proceeding"
+        elif target == "mockup":
+            session = self.store.get_session(session_id)
+            if not _valid_approval(self.store, session_id, "design_direction", "design-direction"):
+                return self._finish_phase_override(
+                    session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                    previous_phase=original_phase, status="blocked", approval_required=True,
+                    missing_optional_context=["An approved design direction is required to generate a mockup."],
+                    outstanding_approvals=["design_direction"],
+                )
+            if mockup_dir:
+                imported = self._import_mockup_directory(session_id, mockup_dir, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction)
+                if imported["workflow_status"] == "blocked":
+                    return self._finish_phase_override(
+                        session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                        previous_phase=original_phase, status="blocked", approval_required=True,
+                        missing_optional_context=["The existing approved mockup does not have a current implementation specification."],
+                        outstanding_approvals=["implementation specification"],
+                    )
+                result_status = imported["workflow_status"]
+            else:
+                self._override_transition(session_id, Phase.DIRECTION_APPROVED, target, source, reason, user_instruction)
+                result_status = "proceeding"
+        elif target == "planning":
+            session = self.store.get_session(session_id)
+            if not _valid_approval(self.store, session_id, "design_direction", "design-direction"):
+                return self._finish_phase_override(
+                    session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                    previous_phase=original_phase, status="blocked", approval_required=True,
+                    missing_optional_context=["An approved design direction is required before planning implementation."],
+                    outstanding_approvals=["design_direction"],
+                )
+            if mockup_dir:
+                imported = self._import_mockup_directory(session_id, mockup_dir, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction)
+                if imported["workflow_status"] == "blocked":
+                    return self._finish_phase_override(
+                        session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                        previous_phase=original_phase, status="blocked", approval_required=True,
+                        missing_optional_context=["The existing approved mockup does not have a current implementation specification."],
+                        outstanding_approvals=["implementation specification"],
+                    )
+                result_status = imported["workflow_status"]
+            elif not _valid_approval(self.store, session_id, "mockup", "mockup-manifest"):
+                try:
+                    manifest = _read_json_artifact(self.store, session_id, "mockup-manifest")
+                    _validate_mockup_manifest(self.store, session_id, manifest)
+                except (KeyError, OSError, ValueError, json.JSONDecodeError):
+                    return self._finish_phase_override(
+                        session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                        previous_phase=original_phase, status="blocked", approval_required=True,
+                        missing_optional_context=["A genuine mockup is required before implementation planning."],
+                        outstanding_approvals=["mockup"],
+                    )
+                self._override_transition(session_id, Phase.AWAITING_MOCKUP_REVIEW, target, source, reason, user_instruction)
+                result_status = "awaiting_mockup_review"
+            else:
+                try:
+                    manifest = _read_json_artifact(self.store, session_id, "mockup-manifest")
+                    _validate_mockup_manifest(self.store, session_id, manifest)
+                    specification = _read_json_artifact(self.store, session_id, "implementation-spec")
+                    approval = _valid_approval(self.store, session_id, "mockup", "mockup-manifest")
+                    if not approval or specification.get("approved_mockup_sha256") != approval.artifact_sha256:
+                        raise WorkflowBlocked("Implementation specification does not match the approved mockup.")
+                except (KeyError, OSError, ValueError, json.JSONDecodeError) as error:
+                    return self._finish_phase_override(
+                        session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                        previous_phase=original_phase, status="blocked", approval_required=True,
+                        missing_optional_context=[str(error)], outstanding_approvals=["mockup"],
+                    )
+                self._override_transition(session_id, Phase.AWAITING_IMPLEMENTATION_APPROVAL, target, source, reason, user_instruction)
+                result_status = "proceeding"
+        elif target == "implementation":
+            plan_approval = _valid_approval(self.store, session_id, "implementation", "implementation-plan")
+            if not plan_approval:
+                return self._finish_phase_override(
+                    session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                    previous_phase=original_phase, status="blocked", approval_required=True,
+                    missing_optional_context=["A current implementation plan and its explicit human approval are required."],
+                    outstanding_approvals=["implementation"],
+                )
+            try:
+                plan = _read_json_artifact(self.store, session_id, "implementation-plan")
+                plan_artifact = self.store.artifact(session_id, "implementation-plan")
+                specification_artifact = self.store.artifact(session_id, "implementation-spec")
+                specification = _read_json_artifact(self.store, session_id, "implementation-spec")
+                direction_approval = _valid_approval(self.store, session_id, "design_direction", "design-direction")
+                mockup_approval = _valid_approval(self.store, session_id, "mockup", "mockup-manifest")
+                valid = (
+                    plan_approval.artifact_sha256 == plan_artifact["sha256"]
+                    and plan.get("specification_sha256") == specification_artifact["sha256"]
+                    and bool(direction_approval and mockup_approval)
+                    and specification.get("approved_mockup_sha256") == (mockup_approval.artifact_sha256 if mockup_approval else None)
+                    and set(plan.get("approved_scope", [])) == set(plan.get("baseline_sha256", {})) == set(plan_approval.approved_scope)
+                )
+                if not valid:
+                    raise WorkflowBlocked("The implementation plan or one of its approval-bound artifacts is stale.")
+            except (KeyError, OSError, ValueError, json.JSONDecodeError) as error:
+                return self._finish_phase_override(
+                    session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                    previous_phase=original_phase, status="blocked", approval_required=True,
+                    missing_optional_context=[str(error)], outstanding_approvals=["implementation"],
+                )
+            self._override_transition(session_id, Phase.IMPLEMENTING, target, source, reason, user_instruction)
+            result_status = "proceeding"
+        else:  # verification
+            session = self.store.get_session(session_id)
+            if session.phase == Phase.PAUSED and session.metadata.get("paused_from") == Phase.APPLYING.value:
+                self.resume(session_id)
+                session = self.store.get_session(session_id)
+            if session.phase == Phase.APPLYING:
+                self.store.transition(session_id, Phase.VERIFYING, {"override": True, "requested_phase": target})
+            elif session.phase != Phase.VERIFYING:
+                return self._finish_phase_override(
+                    session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+                    previous_phase=original_phase, status="blocked", approval_required=False,
+                    missing_optional_context=["Verification can start only after an approved patch has been applied."],
+                    outstanding_approvals=[],
+                )
+            result_status = "proceeding"
+
+        final_phase = self.store.get_session(session_id).phase
+        return self._finish_phase_override(
+            session_id, requested_phase=target, source=source, reason=reason, user_instruction=user_instruction,
+            previous_phase=original_phase, status=result_status,
+            approval_required=result_status == "awaiting_mockup_review",
+            missing_optional_context=self._optional_context_for_override(session_id, target),
+            outstanding_approvals=["mockup review"] if result_status == "awaiting_mockup_review" else [],
+            current_phase=final_phase,
+        )
+
+    def _override_transition(self, session_id: str, target: Phase, requested: str, source: str, reason: str, instruction: str) -> None:
+        current = self.store.get_session(session_id).phase
+        if current == target:
+            return
+        self.store.override_transition(session_id, target, {
+            "requested_phase": requested, "source": source, "reason": reason,
+            "user_instruction": instruction, "timestamp": utc_now(),
+        })
+
+    def _finish_phase_override(
+        self, session_id: str, *, requested_phase: str, source: str, reason: str,
+        user_instruction: str, previous_phase: Phase, status: str, approval_required: bool,
+        missing_optional_context: list[str], outstanding_approvals: list[str], current_phase: Phase | None = None,
+    ) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        current_phase = current_phase or session.phase
+        artifacts = self.store.list_artifacts(session_id)
+        available = [{"name": item["name"], "path": item["path"]} for item in artifacts]
+        order = ["discovery", "audit", "direction", "mockup", "planning", "implementation", "verification"]
+        current_stage = _phase_stage(previous_phase)
+        if previous_phase == Phase.PAUSED:
+            current_stage = _phase_stage(Phase(session.metadata.get("paused_from", Phase.INITIALIZED.value)))
+        skipped = order[order.index(current_stage) + 1:order.index(requested_phase)] if current_stage in order and order.index(current_stage) < order.index(requested_phase) else []
+        record = {
+            "requested_phase": requested_phase, "previous_phase": previous_phase.value,
+            "override_source": source, "user_instruction": user_instruction, "reason": reason,
+            "timestamp": utc_now(), "available_artifacts": available, "skipped_phases": skipped,
+            "missing_optional_context": missing_optional_context, "outstanding_approvals": outstanding_approvals,
+            "current_phase": current_phase.value, "status": status,
+        }
+        history = list(session.metadata.get("phase_overrides", []))
+        history.append(record)
+        self.store.set_metadata(session_id, "phase_overrides", history[-100:])
+        self.store.set_metadata(session_id, "phase_override", record)
+        self.store.add_execution(session_id, "phase_override", status, record)
+        return {
+            "requested_phase": requested_phase,
+            "previous_phase": previous_phase.value,
+            "override_applied": status != "blocked",
+            "skipped_phases": skipped,
+            "available_artifacts": available,
+            "missing_optional_context": missing_optional_context,
+            "approval_required": approval_required,
+            "status": status,
+            "current_phase": current_phase.value,
+            "reason": reason,
+        }
+
+    def _optional_context_for_override(self, session_id: str, target: str) -> list[str]:
+        if target in {"direction", "mockup", "planning"} and not self.store.get_session(session_id).metadata.get("audit"):
+            return ["Audit evidence was skipped; recommendations will use only available project and user-supplied context."]
+        return []
+
+    def _persist_direction(self, session_id: str, direction: dict[str, Any], *, source: str) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        if session.phase != Phase.AWAITING_DIRECTION:
+            raise WorkflowBlocked("Enter the design direction phase before recording its approved specification.")
+        decision_id = f"direction-{utc_now().replace(':', '').replace('-', '')}"
+        value = {
+            **direction,
+            "schema_version": 1,
+            "artifact_type": "design_direction",
+            "format": "json",
+            "status": "approved",
+            "source": source,
+            "recorded_at": utc_now(),
+            "decided_by": "human",
+            "decision_id": decision_id,
+        }
+        self.store.add_decision(session_id, decision_id, {"kind": "design_direction", **value})
+        self.store.revoke_approvals(session_id, ("design_direction", "mockup", "implementation", "patch_application"), "Design direction was updated.")
+        artifact = self.store.write_artifact(session_id, "design-direction", "decisions/design-direction.json", _json_bytes(value))
+        self.store.add_approval(Approval(
+            session_id=session_id, approval_type="design_direction", artifact_name="design-direction",
+            artifact_sha256=artifact["sha256"], approved_scope=(value["scope"],), timestamp=utc_now(),
+            human_confirmation=True, decision_ids=(decision_id,),
+        ))
+        self.store.transition(session_id, Phase.DIRECTION_APPROVED, {"decision_id": decision_id})
+        return value
+
+    def _import_mockup_directory(
+        self, session_id: str, mockup_dir: Path, *, requested_phase: str, source: str, reason: str, user_instruction: str,
+    ) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        if not self.store.latest_valid_approval(session_id, "design_direction", "design-direction"):
+            raise WorkflowBlocked("A supplied mockup requires a current approved design direction.")
+        root = Path(mockup_dir)
+        if root.is_symlink():
+            raise ValueError("A supplied mockup directory cannot be a symbolic link.")
+        root = root.resolve(strict=True)
+        if not root.is_dir():
+            raise ValueError("A supplied mockup must be a directory containing index.html and styles.css.")
+        for name in ("index.html", "styles.css"):
+            path = root / name
+            if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_000_000:
+                raise ValueError(f"Supplied mockup {name} must be a regular file no larger than 1 MB.")
+        for name in ("design-tokens.json", "change-summary.md"):
+            path = root / name
+            if path.is_symlink() or (path.exists() and (not path.is_file() or path.stat().st_size > 250_000)):
+                raise ValueError(f"Supplied mockup {name} must be a regular file no larger than 250 KB.")
+        files = {
+            "index.html": (root / "index.html").read_bytes(),
+            "styles.css": (root / "styles.css").read_bytes(),
+            "design-tokens.json": (root / "design-tokens.json").read_bytes() if (root / "design-tokens.json").is_file() and not (root / "design-tokens.json").is_symlink() else _json_bytes({"schema_version": 1, "status": "not_extracted", "source": "user_supplied_mockup"}),
+            "change-summary.md": (root / "change-summary.md").read_bytes() if (root / "change-summary.md").is_file() and not (root / "change-summary.md").is_symlink() else b"User-supplied interface mockup; no generated design summary was included.\n",
+        }
+        _validate_mockup(files)
+        direction_artifact = self.store.artifact(session_id, "design-direction")
+        try:
+            existing = _read_json_artifact(self.store, session_id, "mockup-manifest")
+            existing_reference = existing.get("direction_reference", {})
+            existing_files = existing.get("files", {})
+            identical = (
+                isinstance(existing_reference, dict)
+                and isinstance(existing_files, dict)
+                and existing.get("artifact_type") == "mockup"
+                and existing.get("source") == "user_supplied"
+                and existing.get("design_direction_sha256") == direction_artifact["sha256"]
+                and existing_reference.get("sha256") == direction_artifact["sha256"]
+                and all(isinstance(existing_files.get(name), dict) and existing_files[name].get("sha256") == hashlib.sha256(content).hexdigest() for name, content in files.items())
+            )
+        except (KeyError, OSError, ValueError):
+            existing = {}
+            identical = False
+        if identical:
+            try:
+                _validate_mockup_manifest(self.store, session_id, existing)
+            except (KeyError, OSError, ValueError):
+                identical = False
+        if identical:
+            approval = _valid_approval(self.store, session_id, "mockup", "mockup-manifest")
+            if approval:
+                if requested_phase == "planning":
+                    try:
+                        specification = _read_json_artifact(self.store, session_id, "implementation-spec")
+                        if specification.get("approved_mockup_sha256") != approval.artifact_sha256:
+                            raise ValueError("The stored implementation specification references a different mockup.")
+                    except (KeyError, OSError, ValueError):
+                        return {"manifest": existing, "workflow_status": "blocked"}
+                    self._override_transition(session_id, Phase.AWAITING_IMPLEMENTATION_APPROVAL, requested_phase, source, reason, user_instruction)
+                return {"manifest": existing, "workflow_status": "proceeding", "reused": True}
+            self._override_transition(session_id, Phase.AWAITING_MOCKUP_REVIEW, requested_phase, source, reason, user_instruction)
+            self.store.add_execution(session_id, "mockup_selection", "reused_pending_review", {
+                "revision": existing.get("revision"), "manifest_sha256": self.store.artifact(session_id, "mockup-manifest")["sha256"],
+            })
+            return {"manifest": existing, "workflow_status": "awaiting_mockup_review", "reused": True}
+        self.store.revoke_approvals(session_id, ("mockup", "implementation", "patch_application"), "A supplied mockup revision requires new human review.")
+        revision = int(session.metadata.get("mockup_revision", 0)) + 1
+        revision_dir = f"mockups/revision-{revision:03d}"
+        file_artifacts = {}
+        for name, content in files.items():
+            artifact_name = f"mockup-r{revision:03d}-{name.replace('.', '_')}"
+            file_artifacts[name] = self.store.write_artifact(session_id, artifact_name, f"{revision_dir}/{name}", content)
+        limitations: list[str] = []
+        screenshots: list[dict[str, Any]] = []
+        try:
+            with tempfile.TemporaryDirectory(prefix="frontend-director-supplied-mockup-") as temporary:
+                rendered = capture_mockup_screenshots(Path(file_artifacts["index.html"]["path"]), Path(temporary) / "screenshots")
+                for item in rendered:
+                    screenshot = self.store.write_artifact(session_id, f"mockup-screenshot-r{revision:03d}-{item['viewport']}", f"{revision_dir}/screenshots/{item['viewport']}.png", Path(item["path"]).read_bytes())
+                    screenshots.append({**item, "path": screenshot["path"], "sha256": screenshot["sha256"]})
+        except Exception as error:
+            limitations.append(f"Supplied mockup screenshots were unavailable: {type(error).__name__}: {str(error)[:240]}")
+        manifest = {
+            "schema_version": 1, "artifact_type": "mockup", "format": "html+css", "status": "ready_for_review",
+            "source": "user_supplied", "revision": revision, "revision_note": "Imported from a user-supplied mockup directory.",
+            "generation_mode": "user_supplied", "summary": "User-supplied interface mockup awaiting human review.",
+            "design_direction_sha256": direction_artifact["sha256"],
+            "direction_reference": {"name": direction_artifact["name"], "path": direction_artifact["path"], "sha256": direction_artifact["sha256"]},
+            "files": {name: {"path": item["path"], "sha256": item["sha256"]} for name, item in file_artifacts.items()},
+            "responsive_targets_px": [1440, 768, 390], "screenshots": screenshots, "limitations": limitations,
+            "human_approval": "pending",
+        }
+        artifact = self.store.write_artifact(session_id, "mockup-manifest", f"{revision_dir}/mockup-manifest.json", _json_bytes(manifest))
+        self.store.set_metadata(session_id, "mockup_revision", revision)
+        self.store.set_metadata(session_id, "mockup_summary", manifest["summary"])
+        self._override_transition(session_id, Phase.AWAITING_MOCKUP_REVIEW, requested_phase, source, reason, user_instruction)
+        return {"manifest": manifest, "manifest_sha256": artifact["sha256"], "workflow_status": "awaiting_mockup_review", "reused": False}
+
     def record_direction(
         self,
         session_id: str,
@@ -758,36 +1193,42 @@ class FrontendDesignDirector:
             raise ValueError("Design direction requires an interactive human confirmation.")
         if session.phase in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS}:
             self.store.transition(session_id, Phase.AWAITING_DIRECTION)
-        decision_id = f"direction-{utc_now().replace(':', '').replace('-', '')}"
-        direction = {
-            "schema_version": 1,
+        direction = self._persist_direction(session_id, {
             "visual_appearance": visual,
             "behavior_and_interaction": behavior,
             "scope": scope,
             "constraints": constraints.strip(),
-            "recorded_at": utc_now(),
-            "decided_by": "human",
-        }
-        self.store.add_decision(session_id, decision_id, {"kind": "design_direction", **direction})
-        self.store.revoke_approvals(session_id, ("design_direction", "mockup", "implementation", "patch_application"), "Design direction was updated.")
-        artifact = self.store.write_artifact(session_id, "design-direction", "decisions/design-direction.json", _json_bytes(direction))
-        self.store.add_approval(Approval(
-            session_id=session_id,
-            approval_type="design_direction",
-            artifact_name="design-direction",
-            artifact_sha256=artifact["sha256"],
-            approved_scope=(scope,),
-            timestamp=utc_now(),
-            human_confirmation=True,
-            decision_ids=(decision_id,),
-        ))
-        self.store.transition(session_id, Phase.DIRECTION_APPROVED, {"decision_id": decision_id})
+        }, source="human")
+        decision_id = self.store.history(session_id)[-1].get("payload", {}).get("decision_id", "")
         configure_logging(Path(session.state_dir) / "logs")[0].info("Human design direction recorded", context={"session_id": session_id, "decision_id": decision_id, "visual": visual, "behavior": behavior, "scope": scope})
         return direction
 
     def generate_mockup(self, session_id: str, *, brief: str = "", revision_note: str = "", use_codex: bool = False) -> dict[str, Any]:
         try:
-            return self._generate_mockup(session_id, brief=brief, revision_note=revision_note, use_codex=use_codex)
+            session = self.store.get_session(session_id)
+            direction = self.store.artifact(session_id, "design-direction")
+            direction_approval = self.store.latest_valid_approval(session_id, "design_direction", "design-direction")
+            try:
+                audit_sha256 = self.store.artifact(session_id, "audit_summary")["sha256"]
+            except KeyError:
+                audit_sha256 = None
+            inputs = {
+                "direction_sha256": direction["sha256"],
+                "direction_approval_sha256": direction_approval.artifact_sha256 if direction_approval else None,
+                "audit_summary_sha256": audit_sha256,
+                "revision": int(session.metadata.get("mockup_revision", 0)) + 1,
+                "brief": brief,
+                "revision_note": revision_note,
+                "use_codex": use_codex,
+            }
+            provider = str(getattr(self.backend, "provider_id", "codex")) if use_codex else "local"
+            with self._track_operation(session, "mockup_generation", inputs, provider=provider) as operation:
+                result = self._generate_mockup(session_id, brief=brief, revision_note=revision_note, use_codex=use_codex)
+                artifact = self.store.artifact(session_id, "mockup-manifest")
+                operation.set_result_reference({"artifact_name": "mockup-manifest", "path": artifact["path"], "sha256": artifact["sha256"]})
+                return result
+        except (WorkflowBlocked, OperationBlocked):
+            raise
         except Exception as error:
             self._fail(session_id, error, "mockup_generation")
             raise
@@ -798,36 +1239,29 @@ class FrontendDesignDirector:
             raise WorkflowBlocked("Mockup generation requires an approved design direction.")
         if not self.store.latest_valid_approval(session_id, "design_direction", "design-direction"):
             raise WorkflowBlocked("The current design direction does not have a valid human approval.")
+        if not use_codex:
+            raise WorkflowBlocked("A genuine mockup requires the opted-in generator. Re-run with `--codex`, or import an existing interface mockup through `phase --to mockup --mockup-dir PATH`.")
         if session.phase != Phase.GENERATING_MOCKUPS:
             self.store.transition(session_id, Phase.GENERATING_MOCKUPS)
         self.store.revoke_approvals(session_id, ("mockup", "implementation", "patch_application"), "A new mockup revision invalidates prior approvals.")
         revision = int(session.metadata.get("mockup_revision", 0)) + 1
         direction = _read_json_artifact(self.store, session_id, "design-direction")
-        files = create_template_mockup(
-            project_name=session.title,
-            visual_direction=direction["visual_appearance"],
-            behavior_direction=direction["behavior_and_interaction"],
-            scope=direction["scope"],
-            revision=revision,
-            brief=brief or direction.get("constraints", ""),
-            revision_note=revision_note,
-        )
-        generation_summary = "Generated by the built-in static template."
-        mode = "template"
-        if use_codex:
-            report_path = Path(session.state_dir) / "reports" / "audit-summary.md"
-            findings_path = Path(session.state_dir) / "reports" / "findings.json"
-            context = {
-                "design_direction": direction,
-                "human_revision_note": revision_note,
-                "user_brief": brief,
-                "audit_summary": report_path.read_text(encoding="utf-8") if report_path.exists() else "",
-                "findings": json.loads(findings_path.read_text(encoding="utf-8")) if findings_path.exists() else {"findings": []},
-                "screenshots": session.metadata.get("audit", {}).get("screenshots", []),
-            }
-            output_path = Path(session.state_dir) / "mockups" / f"revision-{revision:03d}"
-            files, generation_summary = create_codex_mockup(output_directory=output_path, initial_files=files, context=context, backend=self.backend)
-            mode = "codex_cli_isolated"
+        report_path = Path(session.state_dir) / "reports" / "audit-summary.md"
+        findings_path = Path(session.state_dir) / "reports" / "findings.json"
+        context = {
+            "artifact_type": "design_direction",
+            "design_direction": direction,
+            "human_revision_note": revision_note,
+            "user_brief": brief,
+            "audit_summary": report_path.read_text(encoding="utf-8") if report_path.exists() else "",
+            "findings": json.loads(findings_path.read_text(encoding="utf-8")) if findings_path.exists() else {"findings": []},
+            "screenshots": session.metadata.get("audit", {}).get("screenshots", []),
+            "project_context": session.metadata.get("discovery", {}).get("project", {}),
+            "applicable_instructions": self._stage_instructions(session_id, "mockup"),
+        }
+        output_path = Path(session.state_dir) / "mockups" / f"revision-{revision:03d}"
+        files, generation_summary = create_codex_mockup(output_directory=output_path, context=context, backend=self.backend)
+        mode = "codex_cli_isolated"
         revision_dir = f"mockups/revision-{revision:03d}"
         file_artifacts: dict[str, dict[str, Any]] = {}
         for name, content in files.items():
@@ -885,11 +1319,16 @@ class FrontendDesignDirector:
         )
         manifest = {
             "schema_version": 1,
+            "artifact_type": "mockup",
+            "format": "html+css",
+            "status": "ready_for_review",
+            "source": mode,
             "revision": revision,
             "revision_note": revision_note,
             "generation_mode": mode,
             "summary": generation_summary,
             "design_direction_sha256": self.store.artifact(session_id, "design-direction")["sha256"],
+            "direction_reference": {"name": direction_artifact["name"], "path": direction_artifact["path"], "sha256": direction_artifact["sha256"]},
             "files": {name: {"path": artifact["path"], "sha256": artifact["sha256"]} for name, artifact in file_artifacts.items()},
             "responsive_targets_px": [1440, 768, 390],
             "screenshots": screenshots,
@@ -920,6 +1359,9 @@ class FrontendDesignDirector:
             raise ValueError("Provide a short note for a revision or rejection.")
         if not human_confirmation:
             raise ValueError("Mockup review requires an interactive human confirmation.")
+        if action == "approve":
+            manifest_for_review = _read_json_artifact(self.store, session_id, "mockup-manifest")
+            _validate_mockup_manifest(self.store, session_id, manifest_for_review)
         revision = int(session.metadata["mockup_revision"])
         decision_id = f"mockup-review-{revision:03d}-{action}"
         self.store.add_decision(session_id, decision_id, {"kind": "mockup_review", "action": action, "note": note.strip(), "revision": revision, "decided_by": "human"})
@@ -958,7 +1400,7 @@ class FrontendDesignDirector:
             "accessibility_requirements": ["Semantic HTML", "Keyboard focus visibility", "Reduced-motion support", "Manual WCAG 2.2 AA review where applicable"],
             "explicitly_prohibited": ["Unapproved route or navigation changes", "Backend/API contract changes", "Framework or state-management changes", "Dependency changes", "Unrelated refactoring", "Unapproved workflow changes"],
             "acceptance_criteria": ["Match the approved mockup within the approved scope", "Preserve unapproved behavior and backend contracts", "Verify target viewport layouts", "Report tests and remaining unverified areas"],
-            "implementation_risks": ["Template colors and copy are illustrative until confirmed against rendered target evidence."],
+            "implementation_risks": ["Verify visual choices against the approved project context and rendered evidence during implementation."],
         }
         spec_artifact = self.store.write_artifact(session_id, "implementation-spec", "decisions/implementation-spec.json", _json_bytes(specification))
         spec_md = _implementation_spec_markdown(specification)
@@ -971,6 +1413,76 @@ class FrontendDesignDirector:
         session = self.store.get_session(session_id)
         if session.phase != Phase.AWAITING_IMPLEMENTATION_APPROVAL:
             raise WorkflowBlocked("Implementation planning requires an approved mockup and implementation specification.")
+        manifest = _read_json_artifact(self.store, session_id, "mockup-manifest")
+        _validate_mockup_manifest(self.store, session_id, manifest)
+        direction_artifact = self.store.artifact(session_id, "design-direction")
+        spec_artifact = self.store.artifact(session_id, "implementation-spec")
+        specification = _read_json_artifact(self.store, session_id, "implementation-spec")
+        specification["sha256"] = spec_artifact["sha256"]
+        provider = str(getattr(self.backend, "provider_id", "codex")) if use_codex else "local"
+        project_root = Path(session.project_root)
+        scoped_existing = validate_scope_paths(project_root, list(files), allow_new=False) if files else []
+        scoped_new = validate_scope_paths(project_root, list(new_files), allow_new=True) if new_files else []
+        request = {
+            "design_direction_sha256": direction_artifact["sha256"],
+            "mockup_manifest_sha256": self.store.artifact(session_id, "mockup-manifest")["sha256"],
+            "implementation_specification_sha256": spec_artifact["sha256"],
+            "files": sorted(scoped_existing),
+            "new_files": sorted(scoped_new),
+            "scoped_file_sha256": {path: hashlib.sha256((project_root / path).read_bytes()).hexdigest() for path in scoped_existing},
+            "source_metadata_fingerprint": _project_source_metadata_fingerprint(project_root) if use_codex and not scoped_existing else None,
+            "use_codex": use_codex,
+        }
+        with self._track_operation(session, "implementation_plan", request, provider=provider) as operation:
+            cached = self._reusable_implementation_plan(session_id, operation.previous, specification, use_codex=use_codex)
+            if cached is not None:
+                operation.mark_result_reused({
+                    "artifact_name": "implementation-plan",
+                    "path": self.store.artifact(session_id, "implementation-plan")["path"],
+                    "sha256": cached["plan_sha256"],
+                })
+                return cached
+            result = self._create_implementation_plan(session_id, files=files, new_files=new_files, use_codex=use_codex)
+            plan_artifact = self.store.artifact(session_id, "implementation-plan")
+            operation.set_result_reference({"artifact_name": "implementation-plan", "path": plan_artifact["path"], "sha256": plan_artifact["sha256"]})
+            return result
+
+    def _reusable_implementation_plan(
+        self,
+        session_id: str,
+        previous: dict[str, Any] | None,
+        specification: dict[str, Any],
+        *,
+        use_codex: bool,
+    ) -> dict[str, Any] | None:
+        if not previous or previous.get("status") not in {"completed", "reused"}:
+            return None
+        reference = previous.get("result_reference")
+        if not isinstance(reference, dict) or reference.get("artifact_name") != "implementation-plan":
+            return None
+        try:
+            artifact = self.store.artifact(session_id, "implementation-plan")
+            if artifact["sha256"] != reference.get("sha256"):
+                return None
+            plan = _read_json_artifact(self.store, session_id, "implementation-plan")
+            if plan.get("specification_sha256") != specification.get("sha256"):
+                return None
+            if plan.get("plan_source") != ("codex_cli" if use_codex else "human_selected"):
+                return None
+            _validate_mockup_manifest(self.store, session_id, _read_json_artifact(self.store, session_id, "mockup-manifest"))
+            if _current_baselines(Path(self.store.get_session(session_id).project_root), plan) != plan["baseline_sha256"]:
+                return None
+            return {**plan, "plan_sha256": artifact["sha256"]}
+        except (KeyError, OSError, ValueError, WorkflowBlocked):
+            return None
+
+    def _create_implementation_plan(self, session_id: str, *, files: list[str] | None = None, new_files: list[str] | None = None, use_codex: bool = False) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        if session.phase != Phase.AWAITING_IMPLEMENTATION_APPROVAL:
+            raise WorkflowBlocked("Implementation planning requires an approved mockup and implementation specification.")
+        _validate_mockup_manifest(self.store, session_id, _read_json_artifact(self.store, session_id, "mockup-manifest"))
+        if not _valid_approval(self.store, session_id, "design_direction", "design-direction") or not _valid_approval(self.store, session_id, "mockup", "mockup-manifest"):
+            raise WorkflowBlocked("Current human direction and mockup approvals are required before planning implementation.")
         spec_record = self.store.artifact(session_id, "implementation-spec")
         specification = _read_json_artifact(self.store, session_id, "implementation-spec")
         specification["sha256"] = spec_record["sha256"]
@@ -1037,6 +1549,7 @@ class FrontendDesignDirector:
         mockup_approval = self.store.latest_valid_approval(session_id, "mockup", "mockup-manifest")
         if not direction_approval or not mockup_approval:
             raise WorkflowBlocked("A valid human design-direction and mockup approval are required.")
+        _validate_mockup_manifest(self.store, session_id, _read_json_artifact(self.store, session_id, "mockup-manifest"))
         specification = _read_json_artifact(self.store, session_id, "implementation-spec")
         if specification.get("approved_mockup_sha256") != mockup_approval.artifact_sha256:
             raise WorkflowBlocked("The current implementation specification does not match the approved mockup revision.")
@@ -1057,6 +1570,31 @@ class FrontendDesignDirector:
 
     def implement(self, session_id: str) -> dict[str, Any]:
         session = self.store.get_session(session_id)
+        plan_artifact = self.store.artifact(session_id, "implementation-plan")
+        specification_artifact = self.store.artifact(session_id, "implementation-spec")
+        mockup_artifact = self.store.artifact(session_id, "mockup-manifest")
+        approval = self.store.latest_valid_approval(session_id, "implementation", "implementation-plan")
+        plan = _read_json_artifact(self.store, session_id, "implementation-plan")
+        try:
+            current_baselines = _current_baselines(Path(session.project_root), plan)
+        except (OSError, ValueError, KeyError) as error:
+            current_baselines = {"unavailable": type(error).__name__}
+        inputs = {
+            "plan_sha256": plan_artifact["sha256"],
+            "specification_sha256": specification_artifact["sha256"],
+            "mockup_sha256": mockup_artifact["sha256"],
+            "implementation_approval_sha256": approval.artifact_sha256 if approval else None,
+            "current_baselines": current_baselines,
+        }
+        provider = str(getattr(self.backend, "provider_id", "codex"))
+        with self._track_operation(session, "implementation", inputs, provider=provider) as operation:
+            result = self._implement(session_id)
+            artifact = self.store.artifact(session_id, "implementation-result")
+            operation.set_result_reference({"artifact_name": "implementation-result", "path": artifact["path"], "sha256": artifact["sha256"]})
+            return result
+
+    def _implement(self, session_id: str) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
         if session.phase != Phase.IMPLEMENTING:
             raise WorkflowBlocked("Implementation has not been explicitly authorized.")
         approval = self.store.latest_valid_approval(session_id, "implementation", "implementation-plan")
@@ -1064,6 +1602,7 @@ class FrontendDesignDirector:
             raise WorkflowBlocked("No valid human implementation approval matches the current plan.")
         if not self.store.latest_valid_approval(session_id, "design_direction", "design-direction") or not self.store.latest_valid_approval(session_id, "mockup", "mockup-manifest"):
             raise WorkflowBlocked("The approved design direction or mockup has changed; implementation authorization is no longer valid.")
+        _validate_mockup_manifest(self.store, session_id, _read_json_artifact(self.store, session_id, "mockup-manifest"))
         plan = _read_json_artifact(self.store, session_id, "implementation-plan")
         if set(approval.approved_scope) != set(plan["approved_scope"]):
             raise WorkflowBlocked("The implementation approval scope does not match the current plan.")
@@ -1167,6 +1706,25 @@ class FrontendDesignDirector:
 
     def apply_patch(self, session_id: str) -> dict[str, Any]:
         session = self.store.get_session(session_id)
+        patch = self.store.artifact(session_id, "implementation-patch")
+        plan = _read_json_artifact(self.store, session_id, "implementation-plan")
+        approval = self.store.latest_valid_approval(session_id, "patch_application", "implementation-patch")
+        try:
+            current_baselines = _current_baselines(Path(session.project_root), plan)
+        except (OSError, ValueError, KeyError) as error:
+            current_baselines = {"unavailable": type(error).__name__}
+        inputs = {
+            "patch_sha256": patch["sha256"],
+            "patch_approval_sha256": approval.artifact_sha256 if approval else None,
+            "current_baselines": current_baselines,
+        }
+        with self._track_operation(session, "patch_application", inputs) as operation:
+            result = self._apply_patch(session_id)
+            operation.set_result_reference({"artifact_name": "implementation-patch", "path": patch["path"], "sha256": patch["sha256"]})
+            return result
+
+    def _apply_patch(self, session_id: str) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
         if session.phase not in {Phase.PATCH_READY, Phase.APPLYING}:
             raise WorkflowBlocked("A generated patch must be ready before it can be applied.")
         patch_approval = self.store.latest_valid_approval(session_id, "patch_application", "implementation-patch")
@@ -1197,6 +1755,34 @@ class FrontendDesignDirector:
             raise
 
     def verify(self, session_id: str, commands: list[str] | None = None, *, codex_review: bool = False) -> dict[str, Any]:
+        session = self.store.get_session(session_id)
+        plan_artifact = self.store.artifact(session_id, "implementation-plan")
+        patch_artifact = self.store.artifact(session_id, "implementation-patch")
+        implementation_result_artifact = self.store.artifact(session_id, "implementation-result")
+        inputs = {
+            "implementation_plan_sha256": plan_artifact["sha256"],
+            "patch_sha256": patch_artifact["sha256"],
+            "implementation_result_sha256": implementation_result_artifact["sha256"],
+            "applied_files": list(session.metadata.get("applied_files", [])),
+            "commands": list(commands or []),
+            "codex_review": codex_review,
+        }
+        provider = str(getattr(self.backend, "provider_id", "codex")) if codex_review else "local"
+        with self._track_operation(session, "verification", inputs, provider=provider) as operation:
+            result = self._verify(session_id, commands, codex_review=codex_review)
+            try:
+                artifact = self.store.artifact(session_id, "verification")
+                operation.set_result_reference({"artifact_name": "verification", "path": artifact["path"], "sha256": artifact["sha256"]})
+            except KeyError:
+                pass
+            failed = [item for item in result.get("results", []) if item.get("status") == "failed"]
+            if failed:
+                summary = "; ".join(f"{item.get('command', 'command')} exited {item.get('return_code')}" for item in failed)
+                stderr = "\n".join(str(item.get("stderr", "")) for item in failed if item.get("stderr"))
+                operation.mark_failed_result("verification_failed", summary, "Change the project, verification command, or relevant environment before repeating the same check.", relevant_stderr=stderr)
+            return result
+
+    def _verify(self, session_id: str, commands: list[str] | None = None, *, codex_review: bool = False) -> dict[str, Any]:
         session = self.store.get_session(session_id)
         if session.phase != Phase.VERIFYING:
             raise WorkflowBlocked("Verification starts after a reviewed patch has been applied.")
@@ -1299,6 +1885,8 @@ class FrontendDesignDirector:
             "title": session.title,
             "updated_at": session.updated_at,
             "blocked_requirements": blocked,
+            "phase_override": session.metadata.get("phase_override"),
+            "operations": {"metrics": self.store.operation_metrics(session_id), "recent": self.store.operation_history(session_id, limit=10)},
             "artifacts": self.store.list_artifacts(session_id),
             "recent_events": self.store.history(session_id)[-12:],
         }
@@ -1435,9 +2023,24 @@ class FrontendDesignDirector:
 
     def _fail(self, session_id: str, error: Exception, operation: str) -> None:
         current = self.store.get_session(session_id).phase
+        failure = classify_failure(error)
+        diagnostic = getattr(error, "diagnostic", {})
+        self.store.set_metadata(session_id, "last_failure", {
+            "operation": operation,
+            "classification": failure.category,
+            "retryable": failure.retryable,
+            "retry_condition": failure.retry_condition,
+            "diagnostic_summary": failure.diagnostic_summary,
+            "relevant_stderr": failure.relevant_stderr,
+            "recorded_at": utc_now(),
+        })
         if Phase.FAILED in TRANSITIONS[current]:
             self.store.set_metadata(session_id, "failed_operation", operation)
-            self.store.transition(session_id, Phase.FAILED, {"operation": operation, "error_category": type(error).__name__, "message": _safe_failure(str(error))})
+            self.store.transition(session_id, Phase.FAILED, {
+                "operation": operation, "error_category": type(error).__name__, "failure_category": failure.category,
+                "retryable": failure.retryable, "retry_condition": failure.retry_condition,
+                "message": failure.diagnostic_summary, "exit_status": diagnostic.get("exit_status") if isinstance(diagnostic, dict) else None,
+            })
 
 
 def _read_json_artifact(store: WorkflowStore, session_id: str, name: str) -> dict[str, Any]:
@@ -1446,6 +2049,112 @@ def _read_json_artifact(store: WorkflowStore, session_id: str, name: str) -> dic
     if not isinstance(value, dict):
         raise ValueError(f"Artifact {name} must contain a JSON object.")
     return value
+
+
+def _valid_approval(store: WorkflowStore, session_id: str, approval_type: str, artifact_name: str) -> Approval | None:
+    try:
+        return store.latest_valid_approval(session_id, approval_type, artifact_name)
+    except (KeyError, OSError, ValueError):
+        return None
+
+
+def _phase_stage(phase: Phase) -> str:
+    if phase in {Phase.INITIALIZED, Phase.DISCOVERING, Phase.CAPABILITIES_REVIEW}:
+        return "discovery"
+    if phase in {Phase.AUDITING, Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AUDIT_INCOMPLETE}:
+        return "audit"
+    if phase in {Phase.AWAITING_DIRECTION, Phase.DIRECTION_APPROVED}:
+        return "direction"
+    if phase in {Phase.GENERATING_MOCKUPS, Phase.AWAITING_MOCKUP_REVIEW, Phase.MOCKUP_REVISION, Phase.MOCKUP_APPROVED}:
+        return "mockup"
+    if phase == Phase.AWAITING_IMPLEMENTATION_APPROVAL:
+        return "planning"
+    if phase in {Phase.IMPLEMENTING, Phase.PATCH_READY, Phase.APPLYING}:
+        return "implementation"
+    return "verification"
+
+
+def _load_supplied_direction(path: Path) -> dict[str, Any]:
+    """Read a user-selected JSON direction and normalize it to the persisted contract."""
+    source = Path(path)
+    if source.is_symlink():
+        raise ValueError("A supplied direction file cannot be a symbolic link.")
+    source = source.resolve(strict=True)
+    if not source.is_file() or source.stat().st_size > 100_000:
+        raise ValueError("A supplied direction must be a regular JSON file no larger than 100 KB.")
+    value = json.loads(source.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("A supplied design direction must be a JSON object.")
+    if value.get("artifact_type") not in {None, "design_direction"}:
+        raise ValueError("The supplied artifact is not typed as a design direction.")
+    direction = value.get("design_direction", value)
+    if not isinstance(direction, dict):
+        raise ValueError("The design_direction field must contain a JSON object.")
+    visual = direction.get("visual_appearance", "custom")
+    behavior = direction.get("behavior_and_interaction", "custom")
+    scope = direction.get("scope", "screens")
+    constraints = direction.get("constraints", "")
+    if visual not in {"preserve", "refine", "explore", "custom"}:
+        visual = "custom"
+    if behavior not in {"preserve", "improve", "explore", "custom"}:
+        behavior = "custom"
+    if scope not in {"components", "screens", "opportunities", "frontend"}:
+        raise ValueError("Supplied direction scope must be components, screens, opportunities, or frontend.")
+    if not isinstance(constraints, str):
+        raise ValueError("Supplied direction constraints must be text.")
+    detail = direction.get("specification")
+    if detail is None:
+        detail = {
+            key: item for key, item in direction.items()
+            if key not in {"artifact_type", "format", "status", "source", "schema_version", "visual_appearance", "behavior_and_interaction", "scope", "constraints", "recorded_at", "decided_by", "decision_id"}
+        }
+    if not isinstance(detail, dict):
+        raise ValueError("Supplied direction specification must be a JSON object.")
+    if not constraints.strip() and (visual == "custom" or behavior == "custom"):
+        constraints = json.dumps(detail, ensure_ascii=False, sort_keys=True) if detail else "User-supplied design direction."
+    return {
+        "visual_appearance": visual,
+        "behavior_and_interaction": behavior,
+        "scope": scope,
+        "constraints": constraints.strip(),
+        "specification": detail,
+    }
+
+
+def _validate_mockup_manifest(store: WorkflowStore, session_id: str, manifest: dict[str, Any]) -> None:
+    """Validate role, provenance, direction link, and file integrity before review or reuse."""
+    legacy_codex_mockup = manifest.get("artifact_type") is None and manifest.get("generation_mode") == "codex_cli_isolated"
+    if manifest.get("artifact_type") != "mockup" and not legacy_codex_mockup:
+        raise ValueError("This artifact is not explicitly identified as an interface mockup. Regenerate or supply a mockup before review.")
+    if not legacy_codex_mockup and (manifest.get("format") != "html+css" or manifest.get("status") != "ready_for_review"):
+        raise ValueError("Mockup artifact identity or status is invalid; it cannot satisfy mockup review.")
+    if not legacy_codex_mockup and (manifest.get("source") not in {"codex_cli_isolated", "user_supplied"} or manifest.get("generation_mode") != manifest.get("source")):
+        raise ValueError("Mockup origin is missing or inconsistent; it cannot satisfy mockup review.")
+    direction_artifact = store.artifact(session_id, "design-direction")
+    direction_digest = manifest.get("design_direction_sha256")
+    if direction_digest != direction_artifact["sha256"]:
+        raise ValueError("The mockup refers to a different or outdated design direction.")
+    if not legacy_codex_mockup:
+        reference = manifest.get("direction_reference", {})
+        if reference.get("name") != "design-direction" or reference.get("sha256") != direction_artifact["sha256"]:
+            raise ValueError("The mockup does not reference the current design-direction artifact.")
+    files = manifest.get("files")
+    if not isinstance(files, dict) or set(files) != set(MOCKUP_FILES):
+        raise ValueError("Mockup manifest is missing its required interface files.")
+    state_root = Path(store.get_session(session_id).state_dir).resolve(strict=True)
+    content: dict[str, bytes] = {}
+    for name in MOCKUP_FILES:
+        entry = files.get(name)
+        if not isinstance(entry, dict):
+            raise ValueError(f"Mockup manifest is missing {name}.")
+        artifact_path = Path(str(entry.get("path", ""))).resolve(strict=True)
+        if not artifact_path.is_file() or not artifact_path.is_relative_to(state_root):
+            raise ValueError(f"Mockup file is missing or outside the session artifacts: {name}.")
+        data = artifact_path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != entry.get("sha256"):
+            raise ValueError(f"Mockup file integrity check failed: {name}.")
+        content[name] = data
+    _validate_mockup(content)
 
 
 def _screenshot_integrity_error(metadata: dict[str, Any], path: Path) -> str | None:
@@ -1606,3 +2315,77 @@ def _safe_failure(value: str) -> str:
     import re
 
     return re.sub(r"(?i)(authorization|api[_-]?key|token|password)(\s*[=:]\s*)[^\s,;]+", r"\1\2[REDACTED]", value)[:400]
+
+
+def _project_source_metadata_fingerprint(project_root: Path) -> str:
+    """Fingerprint source-file identity cheaply so changed projects can retry failed audits."""
+    ignored = {".git", ".agents", ".codex", ".claude", "node_modules", "vendor", "dist", "build", "coverage", ".next", ".nuxt", ".venv", "venv"}
+    source_suffixes = {
+        ".html", ".css", ".scss", ".sass", ".less", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
+        ".vue", ".svelte", ".json", ".jsonc", ".toml", ".yaml", ".yml", ".md", ".mdx", ".py", ".go",
+        ".rs", ".java", ".kt", ".swift", ".xml", ".graphql", ".gql", ".sql", ".sh", ".bash", ".ini",
+        ".cfg", ".conf", ".properties",
+    }
+    inventory: list[tuple[str, int, int]] = []
+    for base, directories, filenames in os.walk(project_root, followlinks=False):
+        directories[:] = sorted(name for name in directories if name not in ignored and not (Path(base) / name).is_symlink())
+        for filename in sorted(filenames):
+            path = Path(base) / filename
+            if path.suffix.casefold() not in source_suffixes or path.is_symlink():
+                continue
+            try:
+                status = path.stat(follow_symlinks=False)
+                inventory.append((path.relative_to(project_root).as_posix(), status.st_size, status.st_mtime_ns))
+            except OSError:
+                continue
+    payload = json.dumps(inventory, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _backend_execution_fingerprint(backend: Any | None) -> dict[str, Any]:
+    """Capture non-secret provider state so auth, CLI, or model changes permit a fresh attempt."""
+    code_root = Path(__file__).parent
+    application_code = {}
+    for name in ("director.py", "execution.py", "codex_backend.py", "providers.py", "implementation.py", "auditing.py", "mockups.py", "browser.py", "storage.py"):
+        try:
+            status = (code_root / name).stat()
+            application_code[name] = (status.st_size, status.st_mtime_ns, status.st_ctime_ns)
+        except OSError:
+            application_code[name] = "unavailable"
+    if backend is None:
+        return {"provider": "local", "application_code": application_code}
+    executable = getattr(backend, "executable", None)
+    executable_state: dict[str, Any] = {"configured": bool(executable)}
+    if executable:
+        path = Path(str(executable)).expanduser()
+        try:
+            resolved = path.resolve(strict=True)
+            status = resolved.stat()
+            executable_state.update({
+                "path": str(resolved), "size": status.st_size, "modified_ns": status.st_mtime_ns,
+                "changed_ns": status.st_ctime_ns, "mode": status.st_mode,
+            })
+        except OSError:
+            executable_state["path"] = str(path)
+    settings = getattr(backend, "settings", None)
+    configuration = {
+        name: getattr(settings, name)
+        for name in ("model", "reasoning_effort", "verbosity", "summary", "timeout_seconds")
+        if settings is not None and hasattr(settings, name)
+    }
+    provider_state: dict[str, Any] = {
+        "provider": getattr(backend, "provider_id", type(backend).__name__),
+        "executable": executable_state,
+        "configuration": configuration,
+        "cli_version": getattr(backend, "_version", None),
+        "application_code": application_code,
+    }
+    if getattr(backend, "provider_id", "") == "codex":
+        codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
+        for name in ("auth.json", "config.toml"):
+            try:
+                status = (codex_home / name).stat()
+                provider_state[name] = {"size": status.st_size, "modified_ns": status.st_mtime_ns, "mode": status.st_mode}
+            except OSError:
+                provider_state[name] = "missing"
+    return provider_state

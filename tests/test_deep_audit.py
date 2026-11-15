@@ -583,7 +583,7 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.session = self.director.create_session(self.root)
 
     def test_guide_persists_instructions_continues_audit_then_explicitly_ends(self) -> None:
-        responses = iter(["instructions", "Prioritize mobile navigation", "Keep the existing navigation structure", "END INSTRUCTIONS", "continue", "end"])
+        responses = iter(["instructions", "Prioritize mobile navigation", "Keep the existing navigation structure", "END INSTRUCTIONS", "continue", "continue", "end"])
         output: list[str] = []
         result = run_guided_workflow(self.director, self.store, self.session.id, input_fn=lambda _: next(responses), output_fn=output.append)
         saved = self.store.get_session(self.session.id)
@@ -638,7 +638,7 @@ class GuidedWorkflowTests(unittest.TestCase):
 
     def test_pending_workflow_phases_offer_additional_instructions(self) -> None:
         phases = [
-            Phase.CAPABILITIES_REVIEW, Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION,
+            Phase.INITIALIZED, Phase.CAPABILITIES_REVIEW, Phase.AUDIT_COMPLETED, Phase.AWAITING_DIRECTION,
             Phase.DIRECTION_APPROVED, Phase.GENERATING_MOCKUPS, Phase.AWAITING_MOCKUP_REVIEW,
             Phase.MOCKUP_REVISION, Phase.MOCKUP_APPROVED, Phase.AWAITING_IMPLEMENTATION_APPROVAL,
             Phase.IMPLEMENTING, Phase.PATCH_READY, Phase.APPLYING, Phase.VERIFYING,
@@ -686,8 +686,8 @@ class BrowserEvidenceTests(unittest.TestCase):
                 evidence = capture_screenshots(f"http://127.0.0.1:{server.server_port}/index.html", output, route_paths=["/settings.html"], viewports=["desktop", "mobile"])
             except BrowserUnavailable as error:
                 self.skipTest(str(error))
-            self.assertTrue((output / "gallery.html").is_file())
             self.assertTrue((output / "screenshots.json").is_file())
+            self.assertFalse((output / "gallery.html").exists())
         base_captures = [item for item in evidence if item.get("interaction_state") is None]
         focus_captures = [item for item in evidence if item.get("interaction_state") == "keyboard_focus_after_one_tab"]
         self.assertEqual(len(base_captures), 4)

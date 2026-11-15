@@ -1,6 +1,6 @@
 # Complete example workflow
 
-This walkthrough uses `examples/sample-frontend/`, a static HTML/CSS fixture. It demonstrates the full state flow. The built-in mockup template and manual plan work without Codex; add `--codex` only when you want the signed-in model to inspect the filtered source or improve a prototype.
+This walkthrough uses `examples/sample-frontend/`, a static HTML/CSS fixture. It demonstrates the full state flow. Audit, direction, and manual planning work without Codex. Creating a new interface mockup requires an explicit `--codex` opt-in; an existing interface can instead be supplied for review.
 
 ## 1. Install and inspect
 
@@ -54,7 +54,7 @@ frontend-director audit --project examples/sample-frontend \
   --server-url http://127.0.0.1:8080/ --depth exhaustive --codex
 ```
 
-The CLI asks for `RUN PROJECT SERVER` before it runs the command, launches without a shell, waits for HTTP readiness, captures source-discovered static routes at six viewport widths, and terminates only its own process group. This is not an OS sandbox. The screenshots and contact sheet are stored beneath `.agents/frontend-design-director/evidence/`. `--codex` asks the signed-in visual specialist to inspect those images and emit structured analysis whose route/viewport citations are validated; without it, visual interpretation remains for human review. The fixture has one static page, so route breadth is intentionally small.
+The CLI asks for `RUN PROJECT SERVER` before it runs the command, launches without a shell, waits for HTTP readiness, captures source-discovered static routes at six viewport widths, and terminates only its own process group. This is not an OS sandbox. Screenshots and their JSON index are stored beneath `.agents/frontend-design-director/evidence/`. `--codex` asks the signed-in visual specialist to inspect those images and emit structured analysis whose route/viewport citations are validated; without it, visual interpretation remains for human review. The fixture has one static page, so route breadth is intentionally small.
 
 ## Guided alternative
 
@@ -66,7 +66,7 @@ frontend-director guide --project examples/sample-frontend \
   --server-url http://127.0.0.1:8080/ --depth deep --codex
 ```
 
-At the discovery review, choose `continue`. The guide asks for `RUN PROJECT SERVER` when the audit stage begins. After the audit, `continue` opens separate visual, behavior, and scope choices and then asks `CONFIRM DIRECTION`. After mockup generation, choose `approve mockup` or `revise mockup`; that decision does not authorize implementation. Continuing from an approved mockup prepares an exact-path plan. The guide requires a separate typed implementation authorization, produces a patch in an isolated snapshot, and asks again before applying it to the fixture. Verification is an explicit choice and any commands are confirmed before running. After the cycle, choose `new audit`, `review`, `pause`, or `end`; ending is the only action that marks the guided session ended.
+At the initial prompt, choose `continue` to follow the recommended discovery-first workflow, or give a clear phase instruction. The guide asks for `RUN PROJECT SERVER` when the audit stage begins. After the audit, `continue` opens separate visual, behavior, and scope choices and then asks `CONFIRM DIRECTION`. After mockup generation, choose `approve mockup` or `revise mockup`; that decision does not authorize implementation. Continuing from an approved mockup prepares an exact-path plan. The guide requires a separate typed implementation authorization, produces a patch in an isolated snapshot, and asks again before applying it to the fixture. Verification is an explicit choice and any commands are confirmed before running. After the cycle, choose `new audit`, `review`, `pause`, or `end`; ending is the only action that marks the guided session ended.
 
 To test recovery, press Ctrl-D at any non-approval prompt, then rerun the same `guide --project ...` command. The current phase and pending action remain in SQLite; no interrupted prompt is treated as approval.
 
@@ -80,15 +80,31 @@ frontend-director direction --project examples/sample-frontend --visual refine -
 
 This does not approve implementation.
 
-## 4. Generate and review a mockup
-
-Create a responsive static prototype from the approved direction:
+To start with known project context, explicitly enter the direction phase first. The user still chooses and confirms the direction:
 
 ```bash
-frontend-director mockup --project examples/sample-frontend --brief-file examples/sample-frontend/README.md
+frontend-director phase --project examples/sample-frontend --to direction --reason "I already know the intended direction"
+frontend-director direction --project examples/sample-frontend --visual refine --behavior preserve --scope screens --constraints "Preserve the current task list and navigation order."
 ```
 
-The output is stored beneath `.agents/frontend-design-director/mockups/revision-001/`. Open `index.html` in a browser or serve the artifact directory to inspect it. The fallback prototype labels illustrative content and colors; use `--codex` for a source- and evidence-aware refinement.
+## 4. Generate and review a mockup
+
+Create an actual responsive interface from the approved direction in a fresh isolated workspace:
+
+```bash
+frontend-director phase --project examples/sample-frontend --to mockup --reason "Generate the approved direction"
+frontend-director mockup --project examples/sample-frontend --brief-file examples/sample-frontend/README.md --codex
+```
+
+The output is stored beneath `.agents/frontend-design-director/mockups/revision-001/`. Open `index.html` in a browser or serve the artifact directory to inspect it. The direction JSON is passed directly to the mockup generator; no HTML direction page or generic seed scaffold is produced. The generator must return an interface-shaped document, responsive styles, tokens, and a summary before the mockup can be reviewed.
+
+To use an existing interface instead, import its directory. It must contain `index.html` and `styles.css`; import does not approve the mockup:
+
+```bash
+frontend-director phase --project examples/sample-frontend --to planning --reason "Reuse the existing screen" --mockup-dir /path/to/mockup
+```
+
+The workflow pauses at mockup review. Approve the mockup before preparing an implementation plan.
 
 Approve, request a revision, or reject. The confirmation phrase is displayed by the CLI.
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Callable
@@ -65,12 +66,6 @@ def run_guided_workflow(
     while True:
         session = store.get_session(session_id)
         phase = session.phase
-        if phase == Phase.INITIALIZED:
-            output_fn("Reading project files and available tooling. No project scripts will be executed.")
-            director.discover(session_id)
-            _save_state(store, session_id, last_completed="discovery", pending_action="review_discovery")
-            _print_stage_result(output_fn, store, session_id, "Discovery", "capability-inventory")
-            continue
         if phase == Phase.DISCOVERING:
             output_fn("Resuming interrupted read-only discovery.")
             director.discover(session_id)
@@ -112,6 +107,32 @@ def run_guided_workflow(
         if action in {"review", "review reports", "artifacts"}:
             _review_current(store, session_id, phase, output_fn)
             continue
+        override_target = _parse_phase_override(action)
+        if override_target:
+            result = director.override_phase(
+                session_id,
+                override_target,
+                reason="The user explicitly requested a workflow phase override.",
+                source="guided",
+                user_instruction=action,
+            )
+            output_fn(
+                f"Phase override {result['status']}: {result['previous_phase']} → {result['current_phase']}. "
+                f"Skipped phases: {', '.join(result['skipped_phases']) or 'none'}."
+            )
+            if result["missing_optional_context"]:
+                for limitation in result["missing_optional_context"]:
+                    output_fn(f"Context limitation: {limitation}")
+            _save_state(store, session_id, status="active", pending_action=_pending_action(store.get_session(session_id).phase), last_action=action)
+            if result["status"] == "blocked":
+                output_fn("The requested phase is blocked by the listed artifact or approval requirement. The session remains open.")
+            elif override_target == "audit" and store.get_session(session_id).phase == Phase.AUDITING:
+                continue
+            elif override_target == "mockup" and use_codex and store.get_session(session_id).phase == Phase.DIRECTION_APPROVED:
+                result = director.generate_mockup(session_id, brief=director._stage_instructions(session_id, "mockup"), use_codex=True)
+                _save_state(store, session_id, last_completed="mockup", pending_action="review_mockup")
+                output_fn(f"Mockup revision {result['revision']} is ready for review.")
+            continue
         if action in {"revisit", "revisit audit", "re-audit", "new audit"}:
             if phase not in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AUDIT_INCOMPLETE, Phase.AWAITING_DIRECTION, Phase.COMPLETED, Phase.CAPABILITIES_REVIEW}:
                 output_fn("A new audit cannot start from this phase; finish or review the pending approval stage first.")
@@ -123,7 +144,12 @@ def run_guided_workflow(
             continue
 
         try:
-            if phase == Phase.CAPABILITIES_REVIEW and action in {"continue", "audit", "run audit"}:
+            if phase == Phase.INITIALIZED and action in {"continue", "discover", "run discovery"}:
+                output_fn("Reading project files and available tooling. No project scripts will be executed.")
+                director.discover(session_id)
+                _save_state(store, session_id, last_completed="discovery", pending_action="review_discovery")
+                _print_stage_result(output_fn, store, session_id, "Discovery", "capability-inventory")
+            elif phase == Phase.CAPABILITIES_REVIEW and action in {"continue", "audit", "run audit"}:
                 _run_audit(director, session_id, use_codex, browser_url, allow_remote, exercise_interactions, route_paths, depth, start_command, server_url, input_fn, output_fn)
                 _print_stage_result(output_fn, store, session_id, "Audit", "audit-summary")
             elif phase in {Phase.AUDIT_COMPLETED, Phase.AUDIT_COMPLETED_WITH_LIMITATIONS, Phase.AWAITING_DIRECTION} and action in {"continue", "choose direction", "design direction"}:
@@ -189,6 +215,7 @@ def run_guided_workflow(
 
 def _prompt_action(phase: Phase, input_fn: Input, output_fn: Output) -> str | None:
     choices: dict[Phase, list[str]] = {
+        Phase.INITIALIZED: ["continue", "instructions", "review", "pause", "end"],
         Phase.CAPABILITIES_REVIEW: ["continue", "instructions", "review", "pause", "end"],
         Phase.AUDIT_COMPLETED: ["continue", "re-audit", "instructions", "review", "pause", "end"],
         Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: ["continue", "re-audit", "instructions", "review", "pause", "end"],
@@ -211,7 +238,7 @@ def _prompt_action(phase: Phase, input_fn: Input, output_fn: Output) -> str | No
         Phase.CANCELLED: ["instructions", "review", "end"],
     }
     options = choices.get(phase, ["review", "pause", "end"])
-    output_fn(f"Current phase: {phase.value}\nNext actions: " + " · ".join(options))
+    output_fn(f"Current phase: {phase.value}\nNext actions: " + " · ".join(options) + "\nYou can also request an explicit phase change, for example: 'skip the audit and go straight to mockup'.")
     try:
         return input_fn("Action (or `instructions`, `revisit`, `pause`, `end`): ").strip()
     except EOFError:
@@ -388,6 +415,7 @@ def _print_stage_result(output_fn: Output, store: WorkflowStore, session_id: str
 
 def _instruction_stage(phase: Phase) -> str:
     return {
+        Phase.INITIALIZED: "audit",
         Phase.CAPABILITIES_REVIEW: "audit",
         Phase.AUDIT_COMPLETED: "design",
         Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: "design",
@@ -402,6 +430,7 @@ def _instruction_stage(phase: Phase) -> str:
 
 def _pending_action(phase: Phase) -> str:
     return {
+        Phase.INITIALIZED: "choose_start_phase_or_discover",
         Phase.CAPABILITIES_REVIEW: "review_discovery",
         Phase.AUDIT_COMPLETED: "review_audit_and_choose_direction",
         Phase.AUDIT_COMPLETED_WITH_LIMITATIONS: "review_limited_audit_and_choose_direction",
@@ -417,6 +446,36 @@ def _pending_action(phase: Phase) -> str:
         Phase.VERIFYING: "run_or_skip_verification_commands",
         Phase.COMPLETED: "select_next_cycle_or_end",
     }.get(phase, phase.value.casefold())
+
+
+def _parse_phase_override(instruction: str) -> str | None:
+    """Recognize direct phase commands; casual mentions of a phase are not overrides."""
+    value = re.sub(r"[.!?]+(?=\s|$)", " ", instruction.casefold().strip())
+    value = " ".join(value.split())
+    value = re.sub(r"^override (?:the )?current phase[,. ]*", "", value)
+    value = re.sub(r"(?: generation)? now(?: using what we already know)?$", "", value)
+    destinations = {
+        "discovery": r"(?:go|move|switch|jump) (?:directly )?to discovery",
+        "audit": r"(?:go|move|switch|jump) (?:directly )?to (?:the )?audit(?: phase)?",
+        "direction": r"(?:go|move|switch|jump) (?:(?:back|directly) )?to (?:the )?design direction|return to design direction",
+        "mockup": r"(?:go|move|switch|jump) (?:straight |directly )?to (?:the )?mockup(?: generation)?",
+        "planning": r"(?:go|move|switch|jump) (?:straight |directly )?to (?:implementation )?planning|move to implementation planning",
+        "implementation": r"(?:go|move|switch|jump) (?:straight |directly )?to implementation",
+        "verification": r"(?:go|move|switch|jump) (?:straight |directly )?to verification",
+    }
+    for target, pattern in destinations.items():
+        if re.fullmatch(pattern, value):
+            return target
+    if re.fullmatch(r"(?:skip|bypass) (?:the )?audit (?:and )?(?:then )?(?:go|move|proceed) (?:straight |directly )?to (?:the )?mockup", value):
+        return "mockup"
+    if re.fullmatch(r"(?:skip|bypass) discovery and (?:go|move|proceed) (?:straight |directly )?to (?:the )?mockup", value):
+        return "mockup"
+    if re.fullmatch(r"(?:use|reuse) (?:my )?existing mockup(?: and move to implementation planning)?", value):
+        return "planning"
+    if re.fullmatch(r"resume from (?:the )?(discovery|audit|design direction|mockup|planning|implementation|verification)(?: phase)?", value):
+        phase_name = re.sub(r" phase$", "", value.split("resume from ", 1)[1].removeprefix("the "))
+        return {"design direction": "direction"}.get(phase_name, phase_name)
+    return None
 
 
 def _save_state(store: WorkflowStore, session_id: str, **updates: Any) -> None:
