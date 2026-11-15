@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .codex_backend import _validate_schema
+from .execution import ExecutionPolicy, execution_policy_for_phase, instruction_with_execution_policy, run_process
+
 
 class ResourceKind(StrEnum):
     SKILL = "skill"
@@ -389,6 +391,7 @@ def build_capability_registry(
     claude: dict[str, Any] | None = None,
     *,
     screenshot_count: int = 0,
+    execution_policy: ExecutionPolicy | None = None,
 ) -> list[CapabilityResource]:
     """Normalize discovered resources without promoting metadata to executable authority."""
     claude = claude or {}
@@ -536,7 +539,7 @@ def build_capability_registry(
             profile_key != "design-taste-frontend"
             or (skill_resource and skill_resource.metadata.get("app_screen_workflow_ready"))
         )
-        browser_runtime = _design_browser_runtime() if profile_key == "design-taste-frontend" else {"status": "not_applicable"}
+        browser_runtime = _design_browser_runtime(execution_policy=execution_policy) if profile_key == "design-taste-frontend" else {"status": "not_applicable"}
         prerequisites = [] if callable_role else (
             "A readable installed SKILL.md plus the authenticated, structured Codex role backend are required.",
         )
@@ -1198,9 +1201,15 @@ def run_phase_collaboration(
     working_directory: Path,
     images: Iterable[Path] = (),
     timeout_seconds: int | None = None,
+    execution_policy: ExecutionPolicy | None = None,
 ) -> dict[str, Any]:
     """Run independent bounded specialist reviews and one evidence-backed challenge round."""
     mode = CollaborationMode(mode)
+    phase_policy = execution_policy_for_phase(phase)
+    if not phase_policy.allow_rtk:
+        execution_policy = phase_policy
+    elif execution_policy is None:
+        execution_policy = phase_policy
     evidence_json = json.dumps(evidence, ensure_ascii=False, indent=2, sort_keys=True)
     if len(evidence_json) > 120_000:
         raise ValueError("Collaboration evidence exceeds the 120 KB review limit.")
@@ -1287,6 +1296,7 @@ def run_phase_collaboration(
             "Report only concrete observations grounded in one or more exact evidence_references keys. Separate proven concerns from limitations, include practical tradeoffs, and do not invent behavior or measurements. "
             "Return JSON matching the supplied schema.\n\nEvidence (JSON):\n" + role_evidence_json + guidance_section
         )
+        prompt = instruction_with_execution_policy(prompt, execution_policy)
         execution = {
             "specialist": specialist,
             "provider": provider_id,
@@ -1310,6 +1320,7 @@ def run_phase_collaboration(
                 images=attached_images if visual_role and expert.get("supports_images", role == "visual_design") else (),
                 timeout_seconds=timeout_seconds,
                 specialist=specialist,
+                **({"execution_policy": execution_policy} if execution_policy and not execution_policy.allow_rtk else {}),
             )
             _validate_schema(response, PHASE_CONTRIBUTION_SCHEMA)
             execution.update({"status": "completed", "output_schema_validated": True})
@@ -1395,6 +1406,7 @@ def run_phase_collaboration(
             + "\n\nEvidence (JSON):\n" + evidence_json
             + "\n\nIndependent observations (JSON):\n" + json.dumps(observations, ensure_ascii=False, indent=2)
         )
+        review_prompt = instruction_with_execution_policy(review_prompt, execution_policy)
         review_execution = {
             "specialist": f"frontend_{phase}_cross_disciplinary_reviewer",
             "provider": provider_id,
@@ -1413,6 +1425,7 @@ def run_phase_collaboration(
                 images=attached_images if review_selection.get("provider") == "codex" else (),
                 timeout_seconds=timeout_seconds,
                 specialist=f"frontend_{phase}_cross_disciplinary_reviewer",
+                **({"execution_policy": execution_policy} if execution_policy and not execution_policy.allow_rtk else {}),
             )
             _validate_schema(response, PHASE_CHALLENGE_SCHEMA)
             review_execution.update({"status": "completed", "output_schema_validated": True})
@@ -1475,6 +1488,7 @@ def run_phase_collaboration(
                     + "\n\nDisputed observations (JSON):\n" + json.dumps(targeted_observations, ensure_ascii=False, indent=2)
                     + "\n\nChallenges (JSON):\n" + json.dumps([item.to_dict() for item in challenges if item.target_finding_id in allowed_targets], ensure_ascii=False, indent=2)
                 )
+                follow_up_prompt = instruction_with_execution_policy(follow_up_prompt, execution_policy)
                 try:
                     follow_up = backend.execute(
                         working_directory=working_directory,
@@ -1484,6 +1498,7 @@ def run_phase_collaboration(
                         images=attached_images if review_selection.get("provider") == "codex" else (),
                         timeout_seconds=timeout_seconds,
                         specialist=f"frontend_{phase}_targeted_follow_up",
+                        **({"execution_policy": execution_policy} if execution_policy and not execution_policy.allow_rtk else {}),
                     )
                     _validate_schema(follow_up, PHASE_FOLLOW_UP_SCHEMA)
                     seen_resolutions: set[str] = set()
@@ -1601,14 +1616,17 @@ def _preferred_profile_key(name: Any) -> str | None:
     return next((key for key, profile in PREFERRED_DESIGN_CAPABILITIES.items() if normalized == profile["skill_name"].casefold()), None)
 
 
-def _design_browser_runtime() -> dict[str, Any]:
+def _design_browser_runtime(*, execution_policy: ExecutionPolicy | None = None) -> dict[str, Any]:
     """Check Taste's documented browser-inspector prerequisites without launching tools."""
     executable = shutil.which("node")
     version: str | None = None
     node_22_or_newer = False
     if executable:
         try:
-            result = subprocess.run([executable, "--version"], capture_output=True, text=True, timeout=3, check=False)
+            result = run_process(
+                [executable, "--version"], policy=execution_policy,
+                capture_output=True, text=True, timeout=3, check=False,
+            )
             match = re.search(r"(?:v)?(\d+)\.(\d+)\.(\d+)", result.stdout or result.stderr)
             if result.returncode == 0 and match:
                 version = ".".join(match.groups())

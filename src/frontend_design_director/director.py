@@ -16,6 +16,7 @@ from .auditing import AuditResult, run_codex_audit, run_static_audit
 from .backend import AgentBackend
 from .browser import BrowserUnavailable, DEPTH_VIEWPORTS, capture_mockup_screenshots, capture_screenshots, probe_safe_interactions
 from .codex_backend import BackendFailure, BackendUnavailable, CodexCLIBackend
+from .execution import execution_policy_for_phase
 from .collaboration import (
     CapabilityResource,
     CollaborationMode,
@@ -1071,7 +1072,10 @@ class FrontendDesignDirector:
             raise WorkflowBlocked("The implementation plan is stale. Recreate and reapprove it.")
         started_at = utc_now()
         try:
-            patch, manifest = execute_implementation(Path(session.project_root), plan, backend=self.backend)
+            execution_policy = execution_policy_for_phase(session.phase)
+            patch, manifest = execute_implementation(
+                Path(session.project_root), plan, backend=self.backend, execution_policy=execution_policy,
+            )
             patch_artifact = self.store.write_artifact(session_id, "implementation-patch", "patches/implementation.patch", patch)
             patch_text = patch.decode("utf-8", errors="replace")
             patch_limit = 48_000
@@ -1176,7 +1180,13 @@ class FrontendDesignDirector:
         if session.phase != Phase.APPLYING:
             self.store.transition(session_id, Phase.APPLYING)
         try:
-            applied = apply_implementation_patch(Path(session.project_root), Path(patch_artifact["path"]).read_bytes(), manifest, plan)
+            applied = apply_implementation_patch(
+                Path(session.project_root),
+                Path(patch_artifact["path"]).read_bytes(),
+                manifest,
+                plan,
+                execution_policy=execution_policy_for_phase(Phase.APPLYING),
+            )
             self.store.add_execution(session_id, "patch_applier", "applied", applied)
             self.store.set_metadata(session_id, "applied_files", applied["changed_files"])
             self.store.transition(session_id, Phase.VERIFYING, {"changed_files": applied["changed_files"]})
@@ -1190,7 +1200,11 @@ class FrontendDesignDirector:
         session = self.store.get_session(session_id)
         if session.phase != Phase.VERIFYING:
             raise WorkflowBlocked("Verification starts after a reviewed patch has been applied.")
-        result = run_verification(Path(session.project_root), commands or [])
+        result = run_verification(
+            Path(session.project_root),
+            commands or [],
+            execution_policy=execution_policy_for_phase(session.phase, paused_from=session.metadata.get("paused_from")),
+        )
         plan = _read_json_artifact(self.store, session_id, "implementation-plan")
         implementation_result = _read_json_artifact(self.store, session_id, "implementation-result")
         changed = list(session.metadata.get("applied_files", []))
@@ -1301,6 +1315,7 @@ class FrontendDesignDirector:
         artifact_suffix: str,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         session = self.store.get_session(session_id)
+        execution_policy = execution_policy_for_phase(phase)
         discovery = session.metadata.get("discovery", {})
         project = discovery.get("project", {})
         valid_images = [item.resolve() for item in (images or []) if item.is_file()]
@@ -1311,6 +1326,7 @@ class FrontendDesignDirector:
             discovery.get("codex", {}),
             discovery.get("claude_code", {}),
             screenshot_count=len(valid_images),
+            execution_policy=execution_policy,
         )
         mode = CollaborationMode(session.metadata.get("collaboration_mode", CollaborationMode.COMPREHENSIVE.value))
         plan = assemble_expert_team(
@@ -1371,6 +1387,7 @@ class FrontendDesignDirector:
                         backend=self.backend,
                         working_directory=Path(temporary),
                         images=valid_images,
+                        execution_policy=execution_policy,
                     )
             except Exception as error:
                 record = {
