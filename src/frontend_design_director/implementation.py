@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
 from .backend import AgentBackend
 from .codex_backend import CodexCLIBackend
+from .execution import (
+    IMPLEMENTATION_EXECUTION_POLICY,
+    ExecutionPolicy,
+    instruction_with_execution_policy,
+    run_process,
+)
 from .mockups import validate_scope_paths
 from .snapshot import _git_environment, create_project_snapshot
 
@@ -118,6 +123,7 @@ def execute_implementation(
     plan: dict[str, Any],
     *,
     backend: AgentBackend | None = None,
+    execution_policy: ExecutionPolicy | None = None,
 ) -> tuple[bytes, dict[str, Any]]:
     """Run an authorized coding task in a disposable snapshot and return a scoped Git patch."""
     root = project_root.resolve(strict=True)
@@ -129,7 +135,10 @@ def execute_implementation(
         raise ScopeViolation("Implementation plan scope is malformed.")
     if _current_baselines(root, plan) != plan["baseline_sha256"]:
         raise ScopeViolation("An approved file changed after planning. Recreate and reapprove the implementation plan.")
-    with create_project_snapshot(root) as snapshot:
+    execution_policy = execution_policy or IMPLEMENTATION_EXECUTION_POLICY
+    if execution_policy.allow_rtk:
+        raise ValueError("The implementation phase requires an execution policy with RTK disabled.")
+    with create_project_snapshot(root, execution_policy=execution_policy) as snapshot:
         included = set(snapshot.included_files)
         missing = [path for path, digest in plan["baseline_sha256"].items() if digest is not None and path not in included]
         if missing:
@@ -143,8 +152,16 @@ def execute_implementation(
             "Approved specification:\n" + json.dumps(plan.get("specification", {}), indent=2, sort_keys=True) +
             "\n\nApproved file plan:\n" + json.dumps({"summary": plan.get("summary"), "files": plan.get("files"), "new_files": plan.get("new_files")}, indent=2, sort_keys=True)
         )
-        response = agent.execute(working_directory=snapshot.root, instruction=prompt, schema=IMPLEMENTATION_SCHEMA, sandbox="workspace-write", timeout_seconds=3600)
-        changed = _git_changed_paths(snapshot.root)
+        prompt = instruction_with_execution_policy(prompt, execution_policy)
+        response = agent.execute(
+            working_directory=snapshot.root,
+            instruction=prompt,
+            schema=IMPLEMENTATION_SCHEMA,
+            sandbox="workspace-write",
+            timeout_seconds=3600,
+            execution_policy=execution_policy,
+        )
+        changed = _git_changed_paths(snapshot.root, execution_policy=execution_policy)
         if not changed:
             raise RuntimeError("Codex completed without producing a file change; no production files were changed.")
         unexpected = sorted(set(changed) - set(scope))
@@ -154,12 +171,20 @@ def execute_implementation(
             candidate = snapshot.root / path
             if candidate.is_symlink() or (candidate.exists() and not candidate.is_file()):
                 raise ScopeViolation(f"Codex created a symlink or non-file inside the approved scope: {path}")
-        staged = subprocess.run(["git", "add", "--all"], cwd=snapshot.root, env=_git_environment(), capture_output=True, text=True, check=False, timeout=20)
+        staged = run_process(
+            ["git", "add", "--all"], policy=execution_policy, cwd=snapshot.root,
+            env=_git_environment(), capture_output=True, text=True, check=False, timeout=20,
+        )
         if staged.returncode:
-            raise RuntimeError("Could not stage isolated implementation changes for patch generation.")
-        result = subprocess.run(["git", "diff", "--cached", "--binary", "HEAD"], cwd=snapshot.root, env=_git_environment(), capture_output=True, check=False, timeout=20)
+            output = _combined_output(staged.stdout, staged.stderr)
+            raise RuntimeError(f"Could not stage isolated implementation changes for patch generation (exit {staged.returncode}).\n{output}")
+        result = run_process(
+            ["git", "diff", "--cached", "--binary", "HEAD"], policy=execution_policy,
+            cwd=snapshot.root, env=_git_environment(), capture_output=True, check=False, timeout=20,
+        )
         if result.returncode or not result.stdout:
-            raise RuntimeError("Could not generate a patch from the isolated implementation workspace.")
+            output = _combined_output(result.stdout, result.stderr)
+            raise RuntimeError(f"Could not generate a patch from the isolated implementation workspace (exit {result.returncode}).\n{output}")
         patch = result.stdout
     if _current_baselines(root, plan) != plan["baseline_sha256"]:
         raise ScopeViolation("An approved file changed while Codex was implementing. Patch is preserved for review but cannot be applied.")
@@ -175,7 +200,14 @@ def execute_implementation(
     return patch, manifest
 
 
-def apply_implementation_patch(project_root: Path, patch: bytes, manifest: dict[str, Any], plan: dict[str, Any]) -> dict[str, Any]:
+def apply_implementation_patch(
+    project_root: Path,
+    patch: bytes,
+    manifest: dict[str, Any],
+    plan: dict[str, Any],
+    *,
+    execution_policy: ExecutionPolicy | None = None,
+) -> dict[str, Any]:
     """Apply only a previously checked patch after confirming approved-file baselines still match."""
     root = project_root.resolve(strict=True)
     if hashlib.sha256(patch).hexdigest() != manifest.get("patch_sha256"):
@@ -186,12 +218,23 @@ def apply_implementation_patch(project_root: Path, patch: bytes, manifest: dict[
         raise ScopeViolation("Patch file list exceeds or differs from the approved scope.")
     if _current_baselines(root, plan) != plan["baseline_sha256"]:
         raise ScopeViolation("An approved target file changed after planning. The patch was not applied.")
-    check = subprocess.run(["git", "apply", "--check", "--binary", "-"], input=patch, cwd=root, env=_git_environment(), capture_output=True, check=False, timeout=30)
+    execution_policy = execution_policy or IMPLEMENTATION_EXECUTION_POLICY
+    if execution_policy.allow_rtk:
+        raise ValueError("Patch application requires an execution policy with RTK disabled.")
+    check = run_process(
+        ["git", "apply", "--check", "--binary", "-"], policy=execution_policy,
+        input=patch, cwd=root, env=_git_environment(), capture_output=True, check=False, timeout=30,
+    )
     if check.returncode:
-        raise ScopeViolation("Patch no longer applies cleanly to the target project; no files were changed.")
-    applied = subprocess.run(["git", "apply", "--binary", "-"], input=patch, cwd=root, env=_git_environment(), capture_output=True, check=False, timeout=30)
+        output = _combined_output(check.stdout, check.stderr)
+        raise ScopeViolation(f"Patch no longer applies cleanly to the target project; no files were changed.\n{output}")
+    applied = run_process(
+        ["git", "apply", "--binary", "-"], policy=execution_policy,
+        input=patch, cwd=root, env=_git_environment(), capture_output=True, check=False, timeout=30,
+    )
     if applied.returncode:
-        raise RuntimeError("Git could not apply the checked patch. Inspect the project state before retrying.")
+        output = _combined_output(applied.stdout, applied.stderr)
+        raise RuntimeError(f"Git could not apply the checked patch (exit {applied.returncode}). Inspect the project state before retrying.\n{output}")
     return {"status": "applied", "changed_files": changed, "patch_sha256": manifest["patch_sha256"]}
 
 
@@ -223,14 +266,27 @@ def _require_included(root: Path, paths: list[str]) -> None:
             raise ValueError(f"Scope path must resolve to a regular file: {relative}")
 
 
-def _git_changed_paths(workspace: Path) -> list[str]:
+def _git_changed_paths(
+    workspace: Path,
+    *,
+    execution_policy: ExecutionPolicy = IMPLEMENTATION_EXECUTION_POLICY,
+) -> list[str]:
     def run(arguments: list[str]) -> list[str]:
-        result = subprocess.run(["git", *arguments], cwd=workspace, env=_git_environment(), capture_output=True, check=False, timeout=20)
+        result = run_process(
+            ["git", *arguments], policy=execution_policy, cwd=workspace,
+            env=_git_environment(), capture_output=True, check=False, timeout=20,
+        )
         if result.returncode:
-            raise RuntimeError("Could not inspect isolated implementation changes.")
+            output = _combined_output(result.stdout, result.stderr)
+            raise RuntimeError(f"Could not inspect isolated implementation changes (exit {result.returncode}).\n{output}")
         paths = [item.decode("utf-8", errors="strict") for item in result.stdout.split(b"\0") if item]
         if any("\n" in path or "\r" in path for path in paths):
             raise ScopeViolation("Changes with newline characters in filenames are unsupported.")
         return paths
 
     return sorted(set(run(["diff", "--name-only", "-z", "HEAD"]) + run(["ls-files", "--others", "--exclude-standard", "-z"])))
+
+
+def _combined_output(stdout: str | bytes | None, stderr: str | bytes | None) -> str:
+    parts = [value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value for value in (stdout, stderr)]
+    return "\n".join(part for part in parts if part)

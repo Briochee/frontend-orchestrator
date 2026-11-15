@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from .discovery import _clean_process_environment
+from .execution import ExecutionPolicy, run_process
 
 
 IGNORED_DIRECTORIES = {
@@ -64,6 +64,7 @@ def create_project_snapshot(
     max_file_bytes: int = 2_000_000,
     max_total_bytes: int = 100_000_000,
     initialize_git: bool = True,
+    execution_policy: ExecutionPolicy | None = None,
 ) -> ProjectSnapshot:
     """Copy ordinary source/config files while omitting credentials and instructions."""
     source = source_root.resolve(strict=True)
@@ -112,7 +113,7 @@ def create_project_snapshot(
 
     if initialize_git:
         install_trusted_agents(destination)
-        _initialize_git(destination)
+        _initialize_git(destination, execution_policy=execution_policy)
     return ProjectSnapshot(temporary, destination, tuple(included), tuple(skipped))
 
 
@@ -125,7 +126,7 @@ def _is_text_candidate(path: Path) -> bool:
     return path.suffix.casefold() in TEXT_SUFFIXES or path.name.casefold() in TEXT_FILENAMES
 
 
-def _initialize_git(directory: Path) -> None:
+def _initialize_git(directory: Path, *, execution_policy: ExecutionPolicy | None = None) -> None:
     environment = _git_environment()
     environment.update({"GIT_AUTHOR_NAME": "Frontend Design Director", "GIT_AUTHOR_EMAIL": "frontend-director@localhost", "GIT_COMMITTER_NAME": "Frontend Design Director", "GIT_COMMITTER_EMAIL": "frontend-director@localhost"})
     commands = [
@@ -134,9 +135,20 @@ def _initialize_git(directory: Path) -> None:
         ["git", "-c", f"core.hooksPath={os.devnull}", "commit", "--quiet", "--allow-empty", "-m", "Filtered project snapshot"],
     ]
     for command in commands:
-        result = subprocess.run(command, cwd=directory, env=environment, capture_output=True, text=True, check=False, timeout=20)
+        result = run_process(
+            command,
+            policy=execution_policy,
+            cwd=directory,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
         if result.returncode != 0:
-            raise RuntimeError(f"Could not prepare isolated Codex workspace ({command[1]}): {result.stderr[-300:]}")
+            output = "\n".join(part for part in (result.stdout, result.stderr) if part)
+            detail = f"\n{output}" if output else ""
+            raise RuntimeError(f"Could not prepare isolated Codex workspace ({command[1]}), exit {result.returncode}.{detail}")
 
 
 def _git_environment() -> dict[str, str]:
