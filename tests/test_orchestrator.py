@@ -15,6 +15,7 @@ from unittest.mock import patch
 from frontend_design_director.auditing import _validate_finding_evidence, run_codex_audit, run_static_audit
 from frontend_design_director.browser import VIEWPORTS, BrowserUnavailable, capture_mockup_screenshots, capture_screenshots
 from frontend_design_director.codex_backend import CodexCLIBackend, CodexSettings
+from frontend_design_director.execution import execution_policy_for_phase
 from frontend_design_director.cli import _install_codex, _install_skill, _store_for, _uninstall_codex, main
 from frontend_design_director.director import FrontendDesignDirector, WorkflowBlocked
 from frontend_design_director.discovery import build_capability_matrix, discover_agents, discover_codex, discover_project, discover_skills
@@ -37,7 +38,11 @@ class FakeBackend:
 
     available = True
 
-    def execute(self, *, working_directory, instruction, schema, sandbox="read-only", images=(), timeout_seconds=None):
+    def __init__(self) -> None:
+        self.execution_policies = []
+
+    def execute(self, *, working_directory, instruction, schema, sandbox="read-only", images=(), timeout_seconds=None, execution_policy=None):
+        self.execution_policies.append(execution_policy)
         if schema.get("properties", {}).get("status", {}).get("enum") == ["complete"]:
             page = Path(working_directory) / "index.html"
             page.write_text("<!doctype html><html lang=\"en\"><title>Approved update</title><body>Approved update</body></html>\n", encoding="utf-8")
@@ -417,6 +422,24 @@ class AuditAndStateTests(WorkflowTestCase):
         self.assertEqual(result["status"], "passed")
         self.assertEqual(self.store.get_session(session_id).phase, Phase.COMPLETED)
         self.assertTrue(self.store.artifact(session_id, "final_report")["path"].endswith("final-report.md"))
+
+    def test_implementation_rtk_policy_survives_session_pause_and_resume(self) -> None:
+        session_id = self.make_audited_session()
+        self.approve_direction_and_mockup(session_id)
+        self.director.plan_implementation(session_id, files=["index.html"])
+        self.director.approve_implementation(session_id, human_confirmation=True)
+        self.assertEqual(self.store.get_session(session_id).phase, Phase.IMPLEMENTING)
+
+        self.director.pause(session_id)
+        resumed = self.director.resume(session_id)
+        self.assertEqual(resumed.phase, Phase.IMPLEMENTING)
+        self.assertFalse(execution_policy_for_phase(resumed.phase).allow_rtk)
+
+        self.director.implement(session_id)
+        self.assertTrue(any(
+            policy is not None and not policy.allow_rtk
+            for policy in self.director.backend.execution_policies
+        ))
 
     def test_cli_json_init_discover_audit_and_status_vertical_slice(self) -> None:
         from frontend_design_director.cli import main
