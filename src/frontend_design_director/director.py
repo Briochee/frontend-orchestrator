@@ -362,6 +362,7 @@ class FrontendDesignDirector:
             screenshot_available=valid_screenshot_count > 0,
             primary_provider="codex" if use_codex else "local",
             allowed_secondary_providers=allowed_secondary_providers,
+            project_context=" ".join(str(discovery["project"].get(key, "")) for key in ("project_name", "application_description")),
         )
         collaboration_plan_artifact = self.store.write_artifact(
             session_id, "collaboration-plan", "reports/collaboration-plan.json", _json_bytes(collaboration_plan),
@@ -1222,6 +1223,7 @@ class FrontendDesignDirector:
             frameworks=project.get("frameworks", []),
             screenshot_available=bool(valid_images),
             primary_provider="codex" if authorized_codex else "local",
+            project_context=" ".join(str(project.get(key, "")) for key in ("project_name", "application_description")),
         )
         safe_suffix = "".join(character for character in artifact_suffix if character.isalnum() or character in "-_")[:64] or "review"
         phase_slug = f"{phase}-{safe_suffix}"

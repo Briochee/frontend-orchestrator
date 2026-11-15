@@ -10,6 +10,8 @@ Discovery reads project metadata and manifests, classifies supported frontend fr
 
 The existing `Capability` model is an audit-facing readiness summary, not a normalized registry of skills, agents, plugins, MCP servers, model roles, and local tools. Keyword matching classifies a skill's likely domain, but does not make that skill an executable specialist.
 
+Skill-domain classification uses bounded phrase matches rather than broad substring hits. For each phase, the team assembler ranks a small, capped shortlist of installed, same-provider skill metadata against the selected expertise, project frameworks, and task phase. It records matching expertise and explicitly marks these entries as metadata hints; skill instructions are not loaded or executed as part of discovery or selection. This avoids presenting every vaguely related installed skill as an active collaborator.
+
 ## Current agent execution model
 
 `run_codex_audit` uses three fixed role prompts: technical, behavioral, and visual. The code and UX roles each run a first pass and a same-role verification pass. Visual analysis uses route-specific screenshot review and synthesis. All model execution is through the `AgentBackend` protocol; the production implementation invokes `codex exec` with a constrained JSON Schema, read-only sandbox, and attached image paths.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -48,6 +49,38 @@ class CollaborationMode(StrEnum):
     FOCUSED = "focused"
     COMPREHENSIVE = "comprehensive"
     EXHAUSTIVE = "exhaustive"
+
+
+SUPPORTING_SKILL_TERMS = {
+    "architecture": ("frontend architecture", "front-end architecture", "component architecture", "state management"),
+    "performance": ("frontend performance", "front-end performance", "web performance", "web vitals", "bundle size", "render performance"),
+    "security": ("frontend security", "web security", "xss", "cross-site scripting", "injection", "security review"),
+    "interaction": ("interaction design", "interaction behavior", "user journey", "usability", "user experience"),
+    "accessibility": ("accessibility", "a11y", "wcag", "screen reader", "keyboard navigation"),
+    "responsive": ("responsive design", "responsive layout", "mobile interface", "responsive web"),
+    "visual_design": ("visual design", "web design", "design system", "visual hierarchy", "typography", "color system", "layout design", "mockup"),
+    "design_tokens": ("design token", "design system", "css variable", "style guide", "color token"),
+    "frontend": ("frontend", "front-end", "web interface", "web application", "ui component"),
+    "browser": ("playwright", "cypress", "browser testing", "e2e testing", "end-to-end testing", "visual regression"),
+}
+FRAMEWORK_TERMS = {
+    "react": r"\breact\b",
+    "vue": r"\bvue(?:\.js)?\b",
+    "angular": r"\bangular\b",
+    "svelte": r"\bsvelte(?:kit)?\b",
+    "next.js": r"\bnext(?:\.js|js)\b",
+    "astro": r"\bastro\b",
+    "solid": r"\bsolid(?:\.js)?\b",
+    "remix": r"\bremix\b",
+}
+PHASE_SKILL_TERMS = {
+    "discovery": ("discover", "discovery", "inventory", "architecture", "inspection", "analysis", "analyze"),
+    "audit": ("audit", "review", "testing", "test", "accessibility", "guidelines", "inspect", "quality assurance", "qa"),
+    "planning": ("plan", "planning", "architecture", "tradeoff", "strategy", "design direction", "review"),
+    "mockup": ("design system", "responsive", "visual design", "mockup", "prototype", "wireframe"),
+    "implementation": ("implement", "testing", "test", "component", "coding", "patterns", "frontend"),
+    "verification": ("verification", "testing", "test", "review", "e2e", "accessibility", "browser"),
+}
 
 
 PHASE_CONTRIBUTION_SCHEMA: dict[str, Any] = {
@@ -455,6 +488,7 @@ def assemble_expert_team(
     screenshot_available: bool = False,
     primary_provider: str | None = None,
     allowed_secondary_providers: Iterable[str] = (),
+    project_context: str = "",
 ) -> dict[str, Any]:
     """Select complementary callable roles and explain unavailable, unsafe, or irrelevant resources."""
     mode = CollaborationMode(mode)
@@ -547,11 +581,9 @@ def assemble_expert_team(
         selected_domains.update({"ux", "accessibility", "browser"})
     if selected_domains.intersection({"visual_design", "typography", "color", "layout"}):
         selected_domains.update({"visual", "frontend"})
-    support_skills = [
-        {"id": item.id, "name": item.name, "provider": item.provider, "domains": list(item.capabilities), "used_as": "metadata relevance hint only"}
-        for item in resources if item.kind == ResourceKind.SKILL and item.status == CapabilityStatus.INSTALLED
-        and set(item.capabilities).intersection(selected_domains)
-    ]
+    support_skills = _select_supporting_skills(
+        resources, selected_domains, framework_set, phase, primary_provider, mode, project_context,
+    )
     max_review_rounds = {
         CollaborationMode.FOCUSED: 0,
         CollaborationMode.COMPREHENSIVE: 1,
@@ -589,6 +621,80 @@ def assemble_expert_team(
         "approval_authority": "human approval gates remain authoritative; specialist outputs are advisory",
         "coverage_gaps": [item["role"] for item in considered if not item["selected"] and item["role"] in {"technical_architecture", "ux_accessibility", "visual_design", "cross_disciplinary_reviewer"}],
     }
+
+
+def _select_supporting_skills(
+    resources: list[CapabilityResource],
+    selected_domains: set[str],
+    frameworks: set[str],
+    phase: str,
+    primary_provider: str | None,
+    mode: CollaborationMode,
+    project_context: str,
+) -> list[dict[str, Any]]:
+    """Rank a small same-provider set of relevant skill metadata without loading instructions."""
+    ranked: list[tuple[int, str, CapabilityResource]] = []
+    framework_values = {value.casefold() for value in frameworks}
+    phase_terms = PHASE_SKILL_TERMS.get(phase, ())
+    for item in resources:
+        if item.kind != ResourceKind.SKILL or item.status != CapabilityStatus.INSTALLED:
+            continue
+        if primary_provider and item.provider != primary_provider:
+            continue
+        name = item.name.casefold().replace("-", " ").replace("_", " ")
+        description = str(item.metadata.get("description", "")).casefold()
+        text = f"{name} {description}"
+        if re.search(r"\b(game|gaming)\b", text) and not re.search(r"\b(game|gaming)\b", project_context.casefold()):
+            continue
+        if phase_terms and not any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text) for term in phase_terms):
+            continue
+        mentioned_frameworks = {
+            framework for framework, pattern in FRAMEWORK_TERMS.items()
+            if re.search(pattern, text)
+        }
+        if mentioned_frameworks and not any(
+            framework in " ".join(framework_values)
+            for framework in mentioned_frameworks
+        ):
+            continue
+        matched_domains = {
+            domain for domain in selected_domains
+            if any(
+                re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text)
+                for term in SUPPORTING_SKILL_TERMS.get(domain, ())
+            )
+        }
+        if not matched_domains:
+            continue
+        score = len(matched_domains) * 10 + len(set(item.capabilities).intersection(selected_domains))
+        ranked.append((score, item.name.casefold(), item))
+
+    limit = {
+        CollaborationMode.FOCUSED: 3,
+        CollaborationMode.COMPREHENSIVE: 6,
+        CollaborationMode.EXHAUSTIVE: 8,
+    }[mode]
+    selected: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for _, _, item in sorted(ranked, key=lambda candidate: (-candidate[0], candidate[1], candidate[2].id)):
+        identity = (item.provider, item.name.casefold())
+        if identity in seen:
+            continue
+        seen.add(identity)
+        selected.append({
+            "id": item.id,
+            "name": item.name,
+            "provider": item.provider,
+            "domains": list(item.capabilities),
+            "matching_expertise": sorted(domain for domain in selected_domains if any(
+                re.search(rf"(?<!\w){re.escape(term)}(?!\w)", f"{item.name} {item.metadata.get('description', '')}".casefold())
+                for term in SUPPORTING_SKILL_TERMS.get(domain, ())
+            )),
+            "used_as": "metadata relevance hint only; instructions were not loaded",
+        })
+        if len(selected) == limit:
+            break
+    return selected
 
 
 def adjudicate_challenges(challenges: Iterable[SpecialistChallenge | dict[str, Any]], *, phase: str = "audit") -> list[dict[str, Any]]:

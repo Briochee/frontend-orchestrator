@@ -19,7 +19,7 @@ from frontend_design_director.collaboration import (
     build_capability_registry,
     run_phase_collaboration,
 )
-from frontend_design_director.discovery import discover_agents, discover_claude_code, discover_codex
+from frontend_design_director.discovery import classify_skill, discover_agents, discover_claude_code, discover_codex
 from frontend_design_director.providers import ClaudeCodeBackend
 from frontend_design_director.codex_backend import BackendFailure, BackendUnavailable
 from frontend_design_director.snapshot import create_project_snapshot
@@ -30,6 +30,11 @@ from frontend_design_director.storage import WorkflowStore
 
 
 class CapabilityRegistryTests(unittest.TestCase):
+    def test_skill_classification_does_not_match_ambiguous_substrings(self) -> None:
+        self.assertEqual(classify_skill("api-design", "REST API design patterns and resource naming."), [])
+        self.assertIn("frontend", classify_skill("web-design-guidelines", "Guidance for a web interface."))
+        self.assertIn("browser", classify_skill("e2e-testing", "Playwright E2E testing patterns."))
+
     def test_registry_distinguishes_provider_roles_agents_skills_and_unprobed_mcp(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -129,6 +134,46 @@ class CapabilityRegistryTests(unittest.TestCase):
         review = next(item for item in permitted["selected_experts"] if item["role"] == "cross_disciplinary_reviewer")
         self.assertEqual(review["provider"], "claude_code")
         self.assertTrue(review["secondary_provider"])
+
+    def test_supporting_skills_are_relevant_ranked_bounded_and_same_provider(self) -> None:
+        skills = [
+            {"name": "web-design-guidelines", "source_path": "/Users/example/.agents/skills/web-design-guidelines/SKILL.md", "description": "Review web interface design for accessibility and visual hierarchy."},
+            {"name": "web-design-guidelines", "source_path": "/Users/example/.codex/skills/web-design-guidelines/SKILL.md", "description": "Review web interface design for accessibility and visual hierarchy."},
+            {"name": "e2e-testing", "source_path": "/Users/example/.agents/skills/e2e-testing/SKILL.md", "description": "Playwright E2E testing patterns for browser workflows."},
+            {"name": "api-design", "source_path": "/Users/example/.agents/skills/api-design/SKILL.md", "description": "REST API design patterns and resource naming.", "capabilities": ["visual", "frontend"]},
+            {"name": "react-best-practices", "source_path": "/Users/example/.agents/skills/react-best-practices/SKILL.md", "description": "React component architecture and frontend performance."},
+            {"name": "claude-web-audit", "source_path": "/Users/example/.claude/skills/web-audit/SKILL.md", "description": "Web design and accessibility review."},
+            {"name": "game-playtest", "source_path": "/Users/example/.agents/skills/game-playtest/SKILL.md", "description": "Run browser-game playtests and frontend QA with structured issue finding."},
+            *[
+                {"name": f"generic-{index}", "source_path": f"/Users/example/.agents/skills/generic-{index}/SKILL.md", "description": "General information.", "capabilities": ["frontend", "visual"]}
+                for index in range(20)
+            ],
+        ]
+        resources = build_capability_registry(
+            {"root": "/tmp/fixture", "frameworks": ["Static HTML/CSS/JavaScript"]}, skills, [],
+            {"cli": {
+                "installed": True, "authenticated": True, "auth_mode": "chatgpt_plan",
+                "codex_exec_supported": True, "structured_output_supported": True, "image_input_supported": True,
+            }},
+            screenshot_count=15,
+        )
+
+        plan = assemble_expert_team(
+            phase="audit", mode="comprehensive", capabilities=resources,
+            frameworks=("Static HTML/CSS/JavaScript",), screenshot_available=True, primary_provider="codex",
+        )
+        names = [item["name"] for item in plan["supporting_skills"]]
+
+        self.assertEqual(set(names), {"web-design-guidelines", "e2e-testing"})
+        self.assertEqual(len(names), len(set(names)))
+        self.assertTrue(all(item["used_as"].endswith("instructions were not loaded") for item in plan["supporting_skills"]))
+
+        game_plan = assemble_expert_team(
+            phase="audit", mode="comprehensive", capabilities=resources,
+            frameworks=("Static HTML/CSS/JavaScript",), screenshot_available=True, primary_provider="codex",
+            project_context="Browser game with a canvas rendering surface.",
+        )
+        self.assertIn("game-playtest", {item["name"] for item in game_plan["supporting_skills"]})
 
     def test_challenge_disposition_preserves_dissent_without_vote_counting(self) -> None:
         challenge = SpecialistChallenge(

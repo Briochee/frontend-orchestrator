@@ -16,12 +16,24 @@ from .models import Capability
 
 
 FRONTEND_TERMS = {
-    "frontend": ("frontend", "front-end", "web", "ui", "interface", "component"),
-    "visual": ("visual", "design", "styling", "typography", "color", "layout", "figma", "screenshot"),
-    "accessibility": ("accessibility", "a11y", "wcag", "keyboard", "screen reader"),
-    "ux": ("ux", "interaction", "responsive", "mobile", "behavior", "user experience"),
-    "browser": ("browser", "playwright", "cypress", "screenshot", "visual regression"),
-    "performance": ("performance", "web vitals", "bundle", "rendering", "lighthouse"),
+    "frontend": (
+        "frontend", "front-end", "front end", "web application", "web app", "website", "web interface",
+        "user interface", "ui design", "ui component", "component library", "react", "vue", "angular", "svelte", "astro",
+    ),
+    "visual": (
+        "visual design", "web design", "design system", "visual hierarchy", "visual styling", "typography",
+        "color palette", "color system", "layout design", "mockup", "figma", "visual regression",
+    ),
+    "accessibility": ("accessibility", "a11y", "wcag", "keyboard navigation", "screen reader"),
+    "ux": ("ux", "user experience", "interaction design", "responsive design", "mobile interface", "usability"),
+    "browser": (
+        "browser automation", "browser testing", "playwright", "cypress", "puppeteer", "end-to-end testing",
+        "e2e testing", "screenshot testing", "visual regression",
+    ),
+    "performance": (
+        "web performance", "frontend performance", "front-end performance", "web vitals", "bundle size",
+        "render performance", "lighthouse",
+    ),
 }
 
 FRAMEWORK_DEPENDENCIES: dict[str, tuple[str, ...]] = {
@@ -319,7 +331,10 @@ def skill_roots(project_root: Path) -> list[Path]:
 
 def classify_skill(name: str, description: str) -> list[str]:
     text = f"{name} {description}".casefold()
-    return [category for category, terms in FRONTEND_TERMS.items() if any(term in text for term in terms)]
+    return [
+        category for category, terms in FRONTEND_TERMS.items()
+        if any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text) for term in terms)
+    ]
 
 
 def _skill_frontmatter(text: str) -> dict[str, str]:
