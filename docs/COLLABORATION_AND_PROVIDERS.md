@@ -24,4 +24,6 @@ Review artifacts are available through `report collaboration`, `report collabora
 - Capability selection records callable status, prerequisites, trust, framework fit, excluded resources, and coverage gaps. Role-based calls are independent task prompts; they are not claims of native subagent orchestration.
 - Contributions and challenges must cite supplied evidence references. Invalid references or schema responses are rejected and retained as limitations. Disagreements are adjudicated from evidence, not by vote. Exhaustive follow-up is bounded to one targeted call.
 
+Cross-review may identify duplicate finding IDs, but automatic consolidation requires a high-confidence agreement or partial agreement with validated supporting evidence. The retained finding preserves combined evidence and scope; disagreement, uncited proposals, and lower-confidence proposals never merge findings.
+
 See [SECURITY.md](SECURITY.md) for the project data-sharing and approval boundaries, and [CODEX_INTEGRATION.md](CODEX_INTEGRATION.md) for the existing Codex invocation details.

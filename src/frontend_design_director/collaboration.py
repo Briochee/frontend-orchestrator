@@ -124,10 +124,11 @@ PHASE_CHALLENGE_SCHEMA: dict[str, Any] = {
                     "assessment": {"type": "string", "enum": ["agree", "partially_agree", "disagree", "insufficient_evidence"]},
                     "concerns": {"type": "array", "items": {"type": "string"}},
                     "supporting_evidence_references": {"type": "array", "items": {"type": "string"}},
+                    "merge_finding_ids": {"type": "array", "items": {"type": "string"}},
                     "recommended_resolution": {"type": "string"},
                     "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
                 },
-                "required": ["target_finding_id", "assessment", "concerns", "supporting_evidence_references", "recommended_resolution", "confidence"],
+                "required": ["target_finding_id", "assessment", "concerns", "supporting_evidence_references", "merge_finding_ids", "recommended_resolution", "confidence"],
                 "additionalProperties": False,
             },
         },
@@ -270,6 +271,7 @@ class SpecialistChallenge:
     supporting_evidence: tuple[dict[str, Any], ...] = ()
     recommended_resolution: str = ""
     confidence: str = "medium"
+    merge_finding_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.reviewer or not self.target_finding_id:
@@ -278,6 +280,8 @@ class SpecialistChallenge:
             raise ValueError("Unsupported challenge assessment.")
         if self.confidence not in {"low", "medium", "high"}:
             raise ValueError("Challenge confidence must be low, medium, or high.")
+        if len(set(self.merge_finding_ids)) != len(self.merge_finding_ids) or self.target_finding_id in self.merge_finding_ids:
+            raise ValueError("Duplicate finding references must be unique and cannot include the challenge target.")
         if self.assessment != "agree" and not self.concerns:
             raise ValueError("A non-agreement challenge must state at least one concern.")
 
@@ -290,6 +294,7 @@ class SpecialistChallenge:
             "supporting_evidence": list(self.supporting_evidence),
             "recommended_resolution": self.recommended_resolution,
             "confidence": self.confidence,
+            "merge_finding_ids": list(self.merge_finding_ids),
         }
 
 
@@ -702,12 +707,28 @@ def adjudicate_challenges(challenges: Iterable[SpecialistChallenge | dict[str, A
     decisions: list[dict[str, Any]] = []
     for raw in challenges:
         challenge = raw if isinstance(raw, SpecialistChallenge) else SpecialistChallenge(**raw)
-        if challenge.assessment == "agree":
+        merge_authorized = bool(
+            challenge.merge_finding_ids
+            and challenge.assessment in {"agree", "partially_agree"}
+            and challenge.confidence == "high"
+            and challenge.supporting_evidence
+        )
+        if challenge.assessment == "agree" and not merge_authorized:
             status = "accepted"
-            rationale = "The independent reviewer agreed with the finding; its validated evidence remains authoritative."
-        elif challenge.assessment == "partially_agree":
+            rationale = (
+                "The independent reviewer agreed with the finding; its validated evidence remains authoritative."
+                if not challenge.merge_finding_ids
+                else "The reviewer agreed but the duplicate proposal lacked high-confidence, cited support; findings remain separate."
+            )
+        elif challenge.assessment in {"agree", "partially_agree"}:
             status = "accepted_with_modification"
-            rationale = "The finding is retained with the reviewer's qualification; no unsupported rewrite was applied."
+            rationale = (
+                "The reviewer supplied explicit duplicate finding IDs; the Director will retain the target and consolidate their evidence."
+                if merge_authorized
+                else "The reviewer supplied duplicate finding IDs, but confidence or cited support is below the automatic consolidation threshold; the findings remain separate."
+                if challenge.merge_finding_ids
+                else "The finding is retained with the reviewer's qualification; no unsupported rewrite was applied."
+            )
         elif challenge.assessment == "insufficient_evidence":
             status = "deferred"
             rationale = "The available evidence is insufficient to accept or reject the disputed claim."
@@ -719,6 +740,7 @@ def adjudicate_challenges(challenges: Iterable[SpecialistChallenge | dict[str, A
             "status": status, "selected_approach": challenge.recommended_resolution,
             "contributors": [challenge.reviewer], "supporting_evidence": list(challenge.supporting_evidence),
             "concerns": list(challenge.concerns), "confidence": challenge.confidence,
+            "merge_finding_ids": list(challenge.merge_finding_ids) if merge_authorized else [],
             "director_rationale": rationale, "human_approval_required": False,
             "human_approval_status": "not_required_for_advisory_review",
         })
@@ -863,7 +885,7 @@ def run_phase_collaboration(
         review_prompt = (
             f"You are the independent cross-disciplinary reviewer for the {phase} phase. Challenge unsupported conclusions, hidden tradeoffs, and scope conflicts in the specialist observations. "
             "Do not settle disagreements by vote. Cite only supplied evidence_references; do not approve implementation or alter the human-approved scope. "
-            "Return one structured challenge for each material concern and preserve unresolved questions.\n\nEvidence (JSON):\n" + evidence_json
+            "Return one structured challenge for each material concern and preserve unresolved questions. For duplicate observations, set merge_finding_ids to duplicate observation IDs and keep target_finding_id as the one to retain. Merge only the same underlying issue with the same remediation; leave the list empty when uncertain.\n\nEvidence (JSON):\n" + evidence_json
             + "\n\nIndependent observations (JSON):\n" + json.dumps(observations, ensure_ascii=False, indent=2)
         )
         try:
@@ -890,6 +912,11 @@ def run_phase_collaboration(
                     raise ValueError("Cross-review target must identify one supplied specialist observation exactly once.")
                 if not isinstance(refs, list) or any(reference not in valid_references for reference in refs):
                     raise ValueError("Cross-review cited an evidence reference that was not supplied.")
+                merge_ids = raw.get("merge_finding_ids", [])
+                if not isinstance(merge_ids, list) or any(item not in allowed_observation_ids or item == target for item in merge_ids):
+                    raise ValueError("Cross-review merge targets must reference other supplied specialist observations.")
+                if len(set(merge_ids)) != len(merge_ids):
+                    raise ValueError("Cross-review returned duplicate merge targets.")
                 if raw.get("assessment") != "agree" and not refs:
                     raise ValueError("A cross-review challenge that disagrees must cite supplied evidence.")
                 seen_targets.add(target)
@@ -901,6 +928,7 @@ def run_phase_collaboration(
                     supporting_evidence=tuple({"type": "artifact_reference", "reference": reference} for reference in refs),
                     recommended_resolution=str(raw.get("recommended_resolution", ""))[:800],
                     confidence=str(raw.get("confidence", "medium")),
+                    merge_finding_ids=tuple(merge_ids),
                 ))
             result["cross_review"] = {
                 "status": "completed",

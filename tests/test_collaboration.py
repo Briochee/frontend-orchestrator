@@ -186,6 +186,40 @@ class CapabilityRegistryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             SpecialistChallenge(reviewer="reviewer", target_finding_id="TECH-2", assessment="disagree")
 
+    def test_explicit_duplicate_challenge_is_recorded_as_a_consolidation_decision(self) -> None:
+        challenge = SpecialistChallenge(
+            reviewer="cross-reviewer", target_finding_id="TECH-1", assessment="partially_agree",
+            concerns=("The second finding describes the same issue.",), confidence="high",
+            supporting_evidence=({"kind": "source", "reference": "src/page.js"},),
+            merge_finding_ids=("BEH-2",),
+        )
+        decision = adjudicate_challenges([challenge])[0]
+        self.assertEqual(decision["status"], "accepted_with_modification")
+        self.assertEqual(decision["merge_finding_ids"], ["BEH-2"])
+        with self.assertRaises(ValueError):
+            SpecialistChallenge(
+                reviewer="cross-reviewer", target_finding_id="TECH-1", assessment="partially_agree",
+                concerns=("A finding cannot be merged into itself.",), merge_finding_ids=("TECH-1",),
+            )
+
+    def test_disagreement_and_uncited_duplicate_proposals_never_authorize_merging(self) -> None:
+        disagreement = SpecialistChallenge(
+            reviewer="cross-reviewer", target_finding_id="TECH-1", assessment="disagree",
+            concerns=("The findings describe different remediation.",), confidence="high",
+            supporting_evidence=({"reference": "src/page.js"},), merge_finding_ids=("BEH-2",),
+        )
+        uncited_agreement = SpecialistChallenge(
+            reviewer="cross-reviewer", target_finding_id="TECH-3", assessment="agree",
+            confidence="high", merge_finding_ids=("BEH-4",),
+        )
+
+        decisions = adjudicate_challenges([disagreement, uncited_agreement])
+
+        self.assertEqual(decisions[0]["status"], "investigate_further")
+        self.assertEqual(decisions[0]["merge_finding_ids"], [])
+        self.assertEqual(decisions[1]["status"], "accepted")
+        self.assertEqual(decisions[1]["merge_finding_ids"], [])
+
 
 class ClaudeDiscoveryTests(unittest.TestCase):
     def test_claude_resources_are_metadata_only_and_mcp_is_not_marked_callable(self) -> None:
@@ -467,6 +501,7 @@ class PhaseCollaborationTests(unittest.TestCase):
                         "assessment": "disagree",
                         "concerns": ["The requested file list omits the referenced component."],
                         "supporting_evidence_references": ["approved-file-plan"],
+                        "merge_finding_ids": [],
                         "recommended_resolution": "Confirm the exact files before approval.",
                         "confidence": "high",
                     }],

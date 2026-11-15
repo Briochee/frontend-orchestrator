@@ -12,11 +12,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from frontend_design_director.browser import BrowserUnavailable, capture_screenshots
+from frontend_design_director.browser import BrowserUnavailable, capture_screenshots, probe_safe_interactions
 from frontend_design_director.director import FrontendDesignDirector
 from frontend_design_director.discovery import discover_project
 from frontend_design_director.guided import _prompt_action, run_guided_workflow
-from frontend_design_director.auditing import AuditResult, VISUAL_FINDINGS_SCHEMA, _validated_visual_analysis, run_codex_audit
+from frontend_design_director.auditing import AuditResult, VISUAL_FINDINGS_SCHEMA, _apply_reviewed_finding_merges, _compact_project_intelligence, _interaction_probe_evidence_prompt, _interaction_probe_evidence_refs, _validated_challenge_response, _validated_response_findings, _validated_visual_analysis, run_codex_audit
 from frontend_design_director.intelligence import attach_runtime_evidence, build_project_intelligence, contrast_ratio, intelligence_reports, renderable_route_candidates, runtime_findings
 from frontend_design_director.models import AuditType, EvidenceReference, Finding, Phase, Severity
 from frontend_design_director.reporting import audit_reports
@@ -26,6 +26,267 @@ from frontend_design_director.storage import WORKFLOW_STATE_DIRECTORY, WorkflowS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = REPO_ROOT / "examples" / "sample-frontend"
+
+
+class AuditFindingConsolidationTests(unittest.TestCase):
+    def test_behavioral_specialist_receives_only_structured_runtime_probe_outcomes(self) -> None:
+        intelligence = {
+            "project": {"name": "fixture"}, "routes": [], "coverage": {}, "runtime": [],
+            "interaction_probe_artifact": "/tmp/evidence/interaction-probes.json",
+            "interaction_probes": {
+                "status": "completed",
+                "scope": "loopback_only_reversible_controls",
+                "limitations": ["Requests were blocked after readiness."],
+                "route_results": [{
+                    "route": "/settings/", "status": "completed",
+                    "checks": [{"kind": "switch_state", "status": "tested", "state_changed": True, "restoration": "restored"}],
+                    "blocked_post_readiness_requests": 2,
+                }],
+            },
+        }
+
+        compact = _compact_project_intelligence(intelligence, AuditType.BEHAVIORAL, [])
+
+        self.assertEqual(compact["interaction_probes"]["status"], "completed")
+        self.assertEqual(compact["interaction_probes"]["route_results"][0]["checks"][0]["restoration"], "restored")
+        self.assertEqual(compact["interaction_probes"]["route_results"][0]["blocked_post_readiness_requests"], 2)
+        self.assertEqual(
+            compact["interaction_probes"]["route_results"][0]["checks"][0]["evidence_reference"],
+            "/tmp/evidence/interaction-probes.json#/route_results/0/checks/0",
+        )
+        self.assertEqual(
+            _interaction_probe_evidence_prompt(_interaction_probe_evidence_refs(intelligence))[0]["evidence_reference"],
+            "/tmp/evidence/interaction-probes.json#/route_results/0/checks/0",
+        )
+
+    def test_behavioral_probe_citations_are_bound_and_invalid_first_pass_is_retried(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "index.html").write_text("<main>Fixture</main>\n", encoding="utf-8")
+            artifact = root / ".agents" / "frontend-design-director" / "evidence" / "interaction-probes.json"
+            artifact.parent.mkdir(parents=True)
+            probes = {
+                "status": "completed",
+                "route_results": [{
+                    "route": "/settings/", "status": "completed",
+                    "checks": [{"kind": "switch_state", "status": "tested", "state_changed": True, "restoration": "restored"}],
+                }],
+            }
+            artifact.write_text(json.dumps(probes), encoding="utf-8")
+            intelligence = {
+                "project": {"name": "fixture"}, "routes": [], "coverage": {}, "runtime": [],
+                "interaction_probe_artifact": str(artifact), "interaction_probes": probes,
+            }
+            evidence_ref = f"{artifact}#/route_results/0/checks/0"
+            source_evidence = {"kind": "source", "reference": "index.html", "description": "Fixture source.", "line": 1}
+            probe_evidence = {"kind": "interaction_probe", "reference": evidence_ref, "description": "The switch changed state and was restored."}
+
+            class FakeBackend:
+                available = True
+                provider_id = "codex"
+
+                def __init__(self) -> None:
+                    self.ux_first_pass_calls = 0
+
+                def execute(self, *, specialist: str, **kwargs) -> dict:
+                    behavioral = specialist.startswith("frontend_ux_auditor")
+                    if behavioral:
+                        if specialist == "frontend_ux_auditor":
+                            self.ux_first_pass_calls += 1
+                            evidence = {**probe_evidence, "reference": evidence_ref + "/invalid"} if self.ux_first_pass_calls == 1 else probe_evidence
+                        else:
+                            evidence = probe_evidence
+                        finding = {
+                            "id": "BEH-PROBE", "audit_type": "behavioral", "category": "switch",
+                            "severity": "low", "title": "Switch state is local",
+                            "description": "The tested switch toggles and restores in the isolated browser context.",
+                            "evidence": [evidence],
+                        }
+                        assessment_evidence = [evidence]
+                        findings = [finding]
+                    else:
+                        evidence = source_evidence
+                        assessment_evidence = [evidence]
+                        findings = []
+                    return {
+                        "findings": findings,
+                        "assessment": "Evidence-backed fixture assessment.",
+                        "assessment_evidence": assessment_evidence,
+                        "recommendations": [],
+                        "limitations": [],
+                    }
+
+            backend = FakeBackend()
+            result = run_codex_audit(
+                root,
+                {"name": "fixture", "frameworks": []},
+                backend=backend,
+                intelligence=intelligence,
+                collaboration_mode="focused",
+            )
+
+            ux_run = next(item for item in result.specialist_runs if item["specialist"] == "frontend_ux_auditor")
+            self.assertEqual(ux_run["status"], "completed")
+            self.assertEqual(ux_run["first_pass_retry_attempts"], 1)
+            self.assertEqual(backend.ux_first_pass_calls, 2)
+            self.assertEqual(result.findings[0].evidence[0].reference, evidence_ref)
+            self.assertNotIn("unsupported evidence kind", " ".join(item.get("message", "") for item in result.diagnostics))
+
+            invalid = {**probe_evidence, "reference": evidence_ref + "/invalid"}
+            response = {
+                "findings": [{
+                    "id": "BEH-BAD", "audit_type": "behavioral", "category": "switch",
+                    "severity": "low", "title": "Unverified switch claim", "description": "Unsupported citation.",
+                    "evidence": [invalid],
+                }],
+                "recommendations": [], "limitations": [],
+            }
+            from frontend_design_director.snapshot import create_project_snapshot
+            with create_project_snapshot(root) as snapshot:
+                with self.assertRaisesRegex(ValueError, "interaction probe that was not tested"):
+                    _validated_response_findings(
+                        response, AuditType.BEHAVIORAL, "frontend_ux_auditor", snapshot, [],
+                        interaction_probe_evidence=_interaction_probe_evidence_refs(intelligence),
+                    )
+
+    def test_cross_review_merge_targets_must_be_other_known_findings_with_valid_evidence(self) -> None:
+        from frontend_design_director.snapshot import create_project_snapshot
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "index.html").write_text("<main>Fixture</main>\n", encoding="utf-8")
+            primary = Finding(
+                id="TECH-PRIMARY", audit_type=AuditType.TECHNICAL, category="dialog",
+                severity=Severity.MEDIUM, title="Dialog focus issue", description="Focus is not moved.",
+            )
+            duplicate = Finding(
+                id="BEH-DUPLICATE", audit_type=AuditType.BEHAVIORAL, category="dialog",
+                severity=Severity.LOW, title="Dialog keyboard issue", description="Escape is ignored.",
+            )
+            response = {
+                "challenges": [{
+                    "target_finding_id": primary.id,
+                    "assessment": "partially_agree",
+                    "concerns": ["The two findings cover the same dialog behavior."],
+                    "supporting_evidence": [{
+                        "kind": "source", "reference": "index.html", "description": "Dialog markup is shared.", "line": 1,
+                    }],
+                    "merge_finding_ids": [duplicate.id],
+                    "recommended_resolution": "Keep one finding and retain both details.",
+                    "confidence": "high",
+                }],
+                "unresolved_questions": [],
+                "limitations": [],
+            }
+            with create_project_snapshot(root, initialize_git=False) as snapshot:
+                challenges, _, _ = _validated_challenge_response(response, [primary, duplicate], snapshot)
+                self.assertEqual(challenges[0].merge_finding_ids, (duplicate.id,))
+                response["challenges"][0]["merge_finding_ids"] = ["UNRELATED"]
+                with self.assertRaises(ValueError):
+                    _validated_challenge_response(response, [primary, duplicate], snapshot)
+
+    def test_cross_review_can_cite_only_supplied_tested_interaction_probes(self) -> None:
+        from frontend_design_director.snapshot import create_project_snapshot
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "index.html").write_text("<main>Fixture</main>\n", encoding="utf-8")
+            behavior = Finding(
+                id="BEH-SEARCH", audit_type=AuditType.BEHAVIORAL, category="search",
+                severity=Severity.MEDIUM, title="Search has no empty state", description="No results are shown without feedback.",
+                affected_routes=("/customers/",),
+            )
+            evidence_ref = "/tmp/probes.json#/route_results/0/checks/0"
+            probe_evidence = {
+                evidence_ref: {
+                    "route": "/customers/",
+                    "check": {"kind": "search_empty_state", "status": "tested", "empty_state_visible": False},
+                },
+            }
+            response = {
+                "challenges": [{
+                    "target_finding_id": behavior.id,
+                    "assessment": "partially_agree",
+                    "concerns": ["The runtime check supports no empty state, but only for this tested route and query."],
+                    "supporting_evidence": [{
+                        "kind": "interaction_probe", "reference": evidence_ref,
+                        "description": "The tested no-match search produced zero cards without an empty state.",
+                    }],
+                    "merge_finding_ids": [],
+                    "recommended_resolution": "Limit the statement to the observed check.",
+                    "confidence": "high",
+                }],
+                "unresolved_questions": [],
+                "limitations": [],
+            }
+            with create_project_snapshot(root, initialize_git=False) as snapshot:
+                challenges, _, _ = _validated_challenge_response(
+                    response, [behavior], snapshot, interaction_probe_evidence=probe_evidence,
+                )
+                self.assertEqual(challenges[0].supporting_evidence[0]["reference"], evidence_ref)
+
+                response["challenges"][0]["supporting_evidence"][0]["reference"] = evidence_ref + "/unverified"
+                with self.assertRaisesRegex(ValueError, "interaction probe that was not tested and supplied"):
+                    _validated_challenge_response(
+                        response, [behavior], snapshot, interaction_probe_evidence=probe_evidence,
+                    )
+
+                response["challenges"][0]["supporting_evidence"][0]["reference"] = evidence_ref
+                probe_evidence[evidence_ref]["route"] = "/orders/"
+                with self.assertRaisesRegex(ValueError, "route does not match"):
+                    _validated_challenge_response(
+                        response, [behavior], snapshot, interaction_probe_evidence=probe_evidence,
+                    )
+                probe_evidence[evidence_ref]["route"] = "/customers/"
+
+                technical = Finding(
+                    id="TECH-SEARCH", audit_type=AuditType.TECHNICAL, category="search",
+                    severity=Severity.MEDIUM, title="Search behavior issue", description="A technical finding.",
+                )
+                response["challenges"][0]["target_finding_id"] = technical.id
+                response["challenges"][0]["supporting_evidence"][0]["reference"] = evidence_ref
+                with self.assertRaisesRegex(ValueError, "only support behavioral findings"):
+                    _validated_challenge_response(
+                        response, [technical], snapshot, interaction_probe_evidence=probe_evidence,
+                    )
+
+    def test_only_explicit_high_confidence_duplicate_decisions_merge_findings(self) -> None:
+        primary = Finding(
+            id="TECH-PRIMARY", audit_type=AuditType.TECHNICAL, category="keyboard-accessibility",
+            severity=Severity.MEDIUM, title="Dialog does not manage focus",
+            description="Opening the dialog does not move focus into it.",
+            affected_routes=("/orders/",), affected_components=("order-dialog",),
+            evidence=(EvidenceReference("code", "src/orders.js", "The dialog is shown without focus entry.", line=20),),
+            impact="Keyboard users may begin outside the dialog.",
+            recommendation="Move focus into the dialog and restore it when closed.",
+        )
+        duplicate = Finding(
+            id="BEH-DUPLICATE", audit_type=AuditType.BEHAVIORAL, category="dialog-keyboard",
+            severity=Severity.LOW, title="Order overlay leaves focus outside",
+            description="Escape does not close the order dialog.",
+            affected_routes=("/orders/",), affected_components=("order-dialog",),
+            evidence=(EvidenceReference("code", "src/app.js", "Escape only closes the mobile menu.", line=8),),
+            impact="Keyboard users cannot dismiss the overlay through Escape.",
+            recommendation="Handle Escape as a dialog close action.",
+        )
+        decisions = [{
+            "subject": primary.id, "status": "accepted_with_modification", "confidence": "high",
+            "merge_finding_ids": [duplicate.id],
+        }]
+
+        findings, consolidations = _apply_reviewed_finding_merges([primary, duplicate], decisions)
+
+        self.assertEqual([item.id for item in findings], [primary.id])
+        self.assertIn("Escape does not close", findings[0].description)
+        self.assertEqual({item.reference for item in findings[0].evidence}, {"src/orders.js", "src/app.js"})
+        self.assertIn("Escape", findings[0].recommendation)
+        self.assertEqual(consolidations, [{"retained_finding_id": primary.id, "merged_finding_ids": [duplicate.id]}])
+        self.assertEqual(decisions[0]["consolidated_finding_id"], primary.id)
+
+        low_confidence = [{"subject": primary.id, "status": "accepted_with_modification", "confidence": "low", "merge_finding_ids": [duplicate.id]}]
+        unchanged, no_consolidations = _apply_reviewed_finding_merges([primary, duplicate], low_confidence)
+        self.assertEqual(len(unchanged), 2)
+        self.assertEqual(no_consolidations, [])
 
 
 class DeepProjectIntelligenceTests(unittest.TestCase):
@@ -350,6 +611,7 @@ class GuidedWorkflowTests(unittest.TestCase):
             use_codex=True,
             collaboration_mode="exhaustive",
             allowed_secondary_providers=["claude"],
+            exercise_safe_interactions=True,
             input_fn=lambda _: (_ for _ in ()).throw(EOFError()),
             output_fn=lambda _: None,
         )
@@ -357,6 +619,11 @@ class GuidedWorkflowTests(unittest.TestCase):
         self.assertEqual(result["status"], "waiting_for_input")
         self.assertEqual(metadata["collaboration_mode"], "exhaustive")
         self.assertEqual(metadata["allowed_secondary_providers"], ["claude"])
+        self.assertTrue(metadata["exercise_safe_interactions"])
+
+    def test_safe_interaction_probes_require_a_browser_url_or_approved_server(self) -> None:
+        with self.assertRaisesRegex(ValueError, "require an explicit --url"):
+            self.director.audit(self.session.id, exercise_safe_interactions=True)
 
     def test_guide_requires_codex_for_explicit_secondary_provider_authorization(self) -> None:
         with self.assertRaisesRegex(ValueError, "requires the primary Codex audit"):
@@ -436,6 +703,80 @@ class BrowserEvidenceTests(unittest.TestCase):
         self.assertIn("/settings.html", desktop["internal_links"])
         self.assertGreater(mobile["document"]["horizontal_overflow_px"], 0)
         self.assertEqual(mobile["visual_evidence_status"], "valid")
+
+    def test_opt_in_safe_probes_restore_controls_and_block_interaction_requests(self) -> None:
+        if not __import__("frontend_design_director.browser", fromlist=["playwright_available"]).playwright_available():
+            self.skipTest("Playwright is not installed.")
+        with tempfile.TemporaryDirectory(prefix="frontend-director-probe-test-") as temporary:
+            root = Path(temporary)
+            (root / "index.html").write_text("""<!doctype html><html><head><title>Probe fixture</title></head><body>
+              <input type="search" aria-label="Search records">
+              <ul><li class="customer-card">Visible record</li></ul><p class="empty-state" hidden>No matches</p>
+              <input id="range" type="range" min="1" max="101" step="1" value="10"><output for="range">10</output><span id="qualified-orders">1</span>
+              <button type="button" role="switch" aria-checked="false" id="switch">Enable</button>
+              <button data-open="record" type="button" id="view-record">View</button>
+              <div role="dialog" hidden><button type="button" data-close>Close</button></div>
+              <form><input type="text" value="Original" oninput="fetch('/blocked-edit', {method: 'POST'})"><button type="submit">Save</button></form>
+              <script>
+                const search = document.querySelector('input[type=search]');
+                search.addEventListener('input', () => { const empty = search.value.includes('__frontend_director_no_match__'); document.querySelector('.customer-card').hidden = empty; document.querySelector('.empty-state').hidden = !empty; });
+                const range = document.querySelector('#range');
+                range.addEventListener('input', () => { document.querySelector('output').textContent = range.value; document.querySelector('#qualified-orders').textContent = range.value; });
+                document.querySelector('#switch').addEventListener('click', event => event.currentTarget.setAttribute('aria-checked', String(event.currentTarget.getAttribute('aria-checked') !== 'true')));
+                document.querySelector('#view-record').addEventListener('click', () => { document.querySelector('[role=dialog]').hidden = false; fetch('/blocked-write', {method: 'POST'}); });
+                document.querySelector('[data-close]').addEventListener('click', () => { document.querySelector('[role=dialog]').hidden = true; });
+              </script>
+            </body></html>""", encoding="utf-8")
+            reached_writes: list[str] = []
+
+            class Handler(SimpleHTTPRequestHandler):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, directory=str(root), **kwargs)
+
+                def do_POST(self):
+                    reached_writes.append(self.path)
+                    self.send_response(204)
+                    self.end_headers()
+
+                def log_message(self, _format, *_args):
+                    return
+
+            try:
+                server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            except PermissionError:
+                self.skipTest("The sandbox does not allow binding a local HTTP test server.")
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            self.addCleanup(server.server_close)
+            self.addCleanup(thread.join, 2)
+            self.addCleanup(server.shutdown)
+            try:
+                result = probe_safe_interactions(f"http://127.0.0.1:{server.server_port}/index.html")
+            except BrowserUnavailable as error:
+                self.skipTest(str(error))
+
+        self.assertEqual(result["status"], "completed")
+        route = result["route_results"][0]
+        checks = {item["kind"]: item for item in route["checks"]}
+        self.assertEqual(set(checks), {"form_text_edit", "search_empty_state", "range_control", "switch_state", "read_only_dialog"})
+        self.assertTrue(checks["form_text_edit"]["value_changed"])
+        self.assertEqual(checks["form_text_edit"]["restoration"], "restored")
+        self.assertEqual(checks["search_empty_state"]["restoration"], "restored")
+        self.assertEqual(checks["search_empty_state"]["no_match_result_count"], 0)
+        self.assertTrue(checks["search_empty_state"]["empty_state_visible"])
+        self.assertTrue(checks["range_control"]["formatted_output_changed"])
+        self.assertTrue(checks["range_control"]["related_metric_changed"])
+        self.assertEqual(checks["range_control"]["restoration"], "restored")
+        self.assertTrue(checks["switch_state"]["state_changed"])
+        self.assertFalse(checks["switch_state"]["theme_effect_observed"])
+        self.assertTrue(checks["switch_state"]["theme_effect_restored"])
+        self.assertEqual(checks["switch_state"]["restoration"], "restored")
+        self.assertTrue(checks["read_only_dialog"]["opened"])
+        self.assertFalse(checks["read_only_dialog"]["focus_inside_on_open"])
+        self.assertFalse(checks["read_only_dialog"]["escape_closed"])
+        self.assertTrue(checks["read_only_dialog"]["closed"])
+        self.assertGreater(route["blocked_post_readiness_requests"], 0)
+        self.assertEqual(reached_writes, [])
 
 
 class DevelopmentServerTests(unittest.TestCase):
