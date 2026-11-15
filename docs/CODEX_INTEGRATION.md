@@ -4,7 +4,7 @@
 
 The implementation was checked against the installed Codex CLI and current OpenAI documentation on [non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode), [custom subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents), [skills](https://learn.chatgpt.com/docs/build-skills), and the [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
 
-- **Execution:** `codex exec` is the documented non-interactive CLI. The adapter uses `--ephemeral`, `--ignore-user-config`, `--cd`, a restricted sandbox, `--output-schema`, and `--output-last-message`.
+- **Execution:** `codex exec` is the documented non-interactive CLI. The adapter uses `--ephemeral`, `--ignore-user-config`, `--cd`, a restricted sandbox, `--output-schema`, and `--output-last-message`. Calls execute directly without RTK so JSON, full diagnostics, and exit statuses are not transformed. A clear transient transport failure or short stated retry window receives at most one immediate retry; deterministic schema, permission, syntax, quota, timeout, and response failures are not retried unchanged.
 - **Authentication:** `codex exec` reuses saved CLI authentication. The adapter requires ChatGPT sign-in and removes API-key environment variables, so model work uses the signed-in ChatGPT plan rather than API-key billing.
 - **Model:** defaults to `gpt-6-luna` with `model_reasoning_effort="xhigh"`. Response verbosity defaults to `high`; reasoning summary defaults to `detailed`. The user can override these settings. Model availability is account-specific.
 - **JSON contracts:** every role receives a JSON Schema for its final response. Python validates the returned JSON again before storing findings or plans.

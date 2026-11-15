@@ -19,6 +19,7 @@ from typing import Any, Iterator
 from urllib.parse import urlsplit
 
 from .browser import _validate_url
+from .execution import current_operation
 
 
 @dataclass
@@ -110,6 +111,9 @@ def managed_development_server(
             kwargs["start_new_session"] = True
         run._process = subprocess.Popen(command_tuple, **kwargs)
         run.process_id = run._process.pid
+        operation = current_operation()
+        if operation is not None:
+            operation.process_started(run._process.pid)
         run.started_at = _now()
         deadline = time.monotonic() + readiness_timeout_seconds
         while time.monotonic() < deadline:
@@ -130,6 +134,9 @@ def managed_development_server(
         yield run
     finally:
         _stop_owned_process(run)
+        operation = current_operation()
+        if operation is not None and run._process is not None:
+            operation.process_finished(run._process.returncode)
         stdout_file.close()
         stderr_file.close()
         run.stdout_excerpt = _redacted_tail(stdout_path)

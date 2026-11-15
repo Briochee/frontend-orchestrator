@@ -13,7 +13,21 @@ Use the Python CLI as the workflow owner. Its SQLite state machine and artifact-
 frontend-director guide --project /path/to/project --depth deep --codex
 ```
 
-The guide discovers the project, proposes the next action, preserves optional human instructions, supports review and re-audit, and remains active until the human pauses or explicitly enters `end`. On a later Codex turn, run the same command or specify the persisted session ID with `--session`. No input or a closed terminal leaves a resumable pending decision.
+The guide offers discovery as the recommended first action, but users can enter a later phase directly with a clear instruction. It preserves optional human instructions, supports review and re-audit, and remains active until the human pauses or explicitly enters `end`. On a later Codex turn, run the same command or specify the persisted session ID with `--session`. No input or a closed terminal leaves a resumable pending decision.
+
+## Direction, mockup, and phase overrides
+
+A design direction is a structured JSON specification stored as `artifact_type: design_direction`. It is not an HTML page, preview, or mockup. Do not create HTML presentations or seed a mockup generator with generic direction scaffolding. The mockup generator starts from the approved direction and creates an actual interface in its isolated workspace; its manifest must identify the artifact as `mockup` and reference the exact direction digest. New mockups require an explicit `--codex` call or an explicitly supplied existing interface. An imported interface still requires mockup review.
+
+The CLI and guided natural-language interface share the Director's phase override controller. For example:
+
+```bash
+frontend-director phase --project /path/to/project --session SESSION_ID --to mockup --reason "Use the approved direction"
+frontend-director mockup --project /path/to/project --session SESSION_ID --codex
+frontend-director phase --project /path/to/project --session SESSION_ID --to planning --reason "Reuse this mockup" --mockup-dir /path/to/mockup
+```
+
+Clear instructions such as `skip the audit and go straight to mockup`, `go back to design direction`, or `use my existing mockup and move to implementation planning` are honored when essential artifacts are available. Missing optional audit context is recorded. Overrides do not create approvals: mockups still require human review, implementation requires approval of the exact current plan, patch application remains separate, and verification requires an applied patch.
 
 Choose the audit depth deliberately:
 
@@ -62,5 +76,11 @@ frontend-director implement --project /path/to/project --session SESSION_ID --js
 ```
 
 Do not wrap this command with `rtk`. The orchestrator rejects direct RTK executable launches from its controlled command runner, adds a temporary PATH denial shim to implementation subprocesses, and sends an explicit restriction to implementation specialists and the Codex backend. This does not control an already-running parent wrapper, nor can PATH-based protection prevent an independent provider shell from using an absolute RTK path or shell alias/function. Do not claim those cases are technically blocked.
+
+## Execution discipline and recovery
+
+Use session reports, artifact references, and recorded operation results before repeating repository or workflow inspection. Give each command a clear purpose. After a failure, inspect its captured exit status and stderr, classify the cause, and do not repeat it unchanged or guess alternative syntax. Correct the command from the documented interface, or wait for the existing recorded operation; do not launch a duplicate planner or poll for the same unchanged state. Transient provider retries are bounded. Permission, quota, invalid-schema, invalid-command, and missing-artifact failures require a changed condition before another attempt. If recovery cannot proceed safely, preserve the partial work and report the blocker. Use `frontend-director status --json` to inspect the persisted operation summary; do not edit SQLite workflow state directly.
+
+Invoke Frontend Design Director commands, all JSON-producing commands, Codex or Claude calls, arbitrary Python, state changes, and commands where complete diagnostics matter directly, without `rtk`. RTK may be used only for supported read-only repository inspection when its transformed output is sufficient. The orchestrator's application-controlled subprocesses do not add RTK automatically. Parent wrappers and external agents with independent shell tools remain outside complete process-level control.
 
 Use `review` to list current artifacts, `instructions` to persist multiline stage-specific guidance (finish with `END INSTRUCTIONS`), `re-audit` to add a revision without discarding prior reports, `pause` to persist the current decision, and `end` only for explicit session termination. Guidance entered while a plan or patch is awaiting approval does not change that plan or patch. Never bypass CLI approval gates or modify target files outside the approved patch workflow.

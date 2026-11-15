@@ -8,12 +8,13 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .discovery import _clean_codex_environment
-from .execution import ExecutionPolicy, codex_execution_rules, instruction_with_execution_policy, run_process
+from .execution import ExecutionPolicy, codex_execution_rules, current_operation, instruction_with_execution_policy, run_process
 
 
 class BackendUnavailable(RuntimeError):
@@ -164,38 +165,60 @@ class CodexCLIBackend:
                 } if execution_policy else None,
                 "retry_attempts": 0,
             }
-            try:
-                with codex_execution_rules(cwd, execution_policy):
-                    result = run_process(
-                        command,
-                        policy=execution_policy,
-                        input=instruction,
-                        capture_output=True,
-                        text=True,
-                        cwd=cwd,
-                        env=environment,
-                        timeout=timeout_seconds or self.settings.timeout_seconds,
-                        check=False,
-                    )
-            except subprocess.TimeoutExpired as error:
-                stderr = _safe_stderr(_decode_output(error.stderr))
-                raise BackendFailure("Codex execution exceeded its configured timeout.", diagnostic={
-                    **base_diagnostic,
-                    "error_classification": "model_timeout",
-                    "exit_status": None,
-                    "relevant_stderr": stderr,
-                    "failure_location": "codex.exec.timeout",
-                }) from error
-            except OSError as error:
-                raise BackendUnavailable(f"Codex CLI could not be started: {type(error).__name__}.", diagnostic={
-                    **base_diagnostic,
-                    "error_classification": "backend_invocation_failed",
-                    "exit_status": None,
-                    "failure_location": "codex.exec.start",
-                }) from error
+            retry_attempts = 0
+            while True:
+                try:
+                    with codex_execution_rules(cwd, execution_policy):
+                        result = run_process(
+                            command,
+                            policy=execution_policy,
+                            input=instruction,
+                            capture_output=True,
+                            text=True,
+                            cwd=cwd,
+                            env=environment,
+                            timeout=timeout_seconds or self.settings.timeout_seconds,
+                            check=False,
+                        )
+                except subprocess.TimeoutExpired as error:
+                    stderr = _safe_stderr(_decode_output(error.stderr))
+                    raise BackendFailure("Codex execution exceeded its configured timeout.", diagnostic={
+                        **base_diagnostic,
+                        "error_classification": "model_timeout",
+                        "exit_status": None,
+                        "relevant_stderr": stderr,
+                        "failure_location": "codex.exec.timeout",
+                        "retry_attempts": retry_attempts,
+                        "retryable": False,
+                        "retry_condition": "Verify that the prior process ended, then change its timeout or provider availability before retrying.",
+                    }) from error
+                except OSError as error:
+                    raise BackendUnavailable(f"Codex CLI could not be started: {type(error).__name__}.", diagnostic={
+                        **base_diagnostic,
+                        "error_classification": "backend_invocation_failed",
+                        "exit_status": None,
+                        "failure_location": "codex.exec.start",
+                        "retry_attempts": retry_attempts,
+                        "retryable": False,
+                        "retry_condition": "Verify the executable path and local invocation permissions before retrying.",
+                    }) from error
+                if result.returncode == 0:
+                    break
+                message = _safe_stderr(result.stderr)
+                delay = _transient_retry_delay(message, retry_attempts)
+                if delay is None:
+                    break
+                retry_attempts += 1
+                operation = current_operation()
+                if operation is not None:
+                    operation.record_details({
+                        "provider_retry_attempts": retry_attempts,
+                        "last_retry_category": "transient_network",
+                    })
+                time.sleep(delay)
             if result.returncode != 0:
                 message = _safe_stderr(result.stderr)
-                classification = "invalid_schema" if "invalid_json_schema" in message.casefold() or "invalid schema" in message.casefold() else "backend_invocation_failed"
+                classification = _classify_codex_stderr(message)
                 raise BackendFailure(f"Codex exited with status {result.returncode}: {message}", diagnostic={
                     **base_diagnostic,
                     "error_classification": classification,
@@ -203,6 +226,9 @@ class CodexCLIBackend:
                     "relevant_stderr": message,
                     "schema_validation_errors": [message] if classification == "invalid_schema" else [],
                     "failure_location": "codex.exec.output_schema" if classification == "invalid_schema" else "codex.exec",
+                    "retry_attempts": retry_attempts,
+                    "retryable": classification == "transient_network",
+                    "retry_condition": "Wait for network connectivity to recover; one immediate retry was used." if retry_attempts else "A single bounded retry is allowed after network connectivity is restored." if classification == "transient_network" else "Do not retry unchanged provider input or authorization.",
                 })
             if not output_path.is_file():
                 # The documented CLI normally writes the final message to -o; retain stdout as a compatible fallback.
@@ -484,6 +510,45 @@ def _decode_output(value: str | bytes | None) -> str:
     if value is None:
         return ""
     return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
+
+
+def _classify_codex_stderr(stderr: str) -> str:
+    text = stderr.casefold()
+    if any(token in text for token in ("usage limit", "quota exhausted", "billing limit", "insufficient quota")):
+        return "quota_exhausted"
+    if "429" in text or "rate limit" in text or "too many requests" in text:
+        return "rate_limited"
+    if any(token in text for token in ("permission denied", "operation not permitted", "not authorized")):
+        return "permission_denied"
+    if "invalid_json_schema" in text or "invalid schema" in text:
+        return "invalid_schema"
+    if any(token in text for token in ("unknown option", "unrecognized argument", "invalid choice", "usage: ")):
+        return "invalid_cli_syntax"
+    if any(token in text for token in (
+        "connection reset", "connection refused", "temporary failure in name resolution", "network is unreachable",
+        "service unavailable", "temporarily unavailable", "http 502", "http 503", "http 504",
+    )):
+        return "transient_network"
+    if "backend_invocation_failed" in text:
+        return "backend_invocation_failed"
+    return "backend_invocation_failed"
+
+
+def _transient_retry_delay(stderr: str, retry_attempts: int) -> float | None:
+    """Retry only one clearly transient transport failure or a short stated retry window."""
+    if retry_attempts >= 1:
+        return None
+    text = stderr.casefold()
+    retry_after = re.search(r"retry[- ]after\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:s|seconds?)?", text)
+    if retry_after and ("429" in text or "rate limit" in text or "too many requests" in text):
+        delay = float(retry_after.group(1))
+        return delay if 0 <= delay <= 5 else None
+    if any(token in text for token in (
+        "connection reset", "connection refused", "temporary failure in name resolution", "network is unreachable",
+        "service unavailable", "temporarily unavailable", "http 502", "http 503", "http 504",
+    )):
+        return 0.25
+    return None
 
 
 def _safe_stderr(stderr: str) -> str:

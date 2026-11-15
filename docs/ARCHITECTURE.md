@@ -9,7 +9,7 @@ CLI
  └─ FrontendDesignDirector
     ├─ Discovery: project manifests, documented skill paths, custom-agent TOML, Codex config/cache
     ├─ Audit: architecture/route/component/style inventory + optional rendered browser evidence + optional Codex specialists
-    ├─ Evidence: route/viewport screenshots, DOM structure, computed styles, browser errors, navigation timing, contact sheet
+    ├─ Evidence: route/viewport screenshots, DOM structure, computed styles, browser errors, navigation timing, JSON screenshot index
     ├─ Reports: separate technical/behavioral/visual outputs + coverage, color, typography, layout, responsive, and component inventories
     ├─ Consultation: separate human visual, behavioral, and scope decisions
     ├─ Mockups: isolated static artifacts + human revision loop
@@ -41,7 +41,17 @@ INITIALIZED -> DISCOVERING -> CAPABILITIES_REVIEW -> AUDITING -> AUDIT_COMPLETED
 
 `PAUSED`, `FAILED`, and `CANCELLED` preserve interruption and failure state. `state_machine.py` contains the explicit transition map. Invalid transitions raise before the state row changes.
 
-The SQLite database stores sessions, phase events, findings, user decisions, approvals, artifact hashes, and agent execution outcomes. Reports and prototypes are files under the session state directory; SQLite records their paths, versions, and SHA-256 digests. Approval validity is checked against the current artifact digest each time a gated action runs.
+The SQLite database stores sessions, phase events, findings, user decisions, approvals, artifact hashes, agent execution outcomes, and bounded operation lifecycle records. Reports and prototypes are files under the session state directory; SQLite records their paths, versions, and SHA-256 digests. Approval validity is checked against the current artifact digest each time a gated action runs.
+
+### Execution tracking and recovery
+
+The `operations` table records long-running workflow operations with a stable operation name, phase, project/session binding, hashed input and environment fingerprints, attempt number, process IDs, exit status, classified failure, redacted diagnostic excerpt, retry condition, and result-artifact reference. `status --json` exposes bounded recent history and per-session counts. The recorded input values are not stored; only the fingerprint and field names are retained. Provider diagnostics add non-secret specialist, CLI-version, failure-location, retry-count, and schema-error metadata.
+
+An equivalent in-flight operation is not launched twice. A dead local owner is marked interrupted and permits one recovery attempt; a live or foreign-host owner remains blocked because its process state cannot be verified. Unchanged deterministic failures are suppressed. Only transient operation failures receive a bounded attempt budget. Codex additionally retries one clear transport failure or a short, explicit rate-limit window; schema, permission, quota, timeout, and malformed-response failures do not receive an unchanged backend retry. Audit and mockup outputs retain their phase reports even when a specialist fails. A successful implementation plan is reused only while its plan artifact, approved specification, mockup, and planned file baselines remain valid. Source and scoped-file fingerprints make a changed input a new operation.
+
+Subprocesses started through the shared runner are attached to the active operation and preserve native stdout, stderr, and exit codes. The explicitly approved development-server process is also recorded while it runs. The system cannot observe independent shell commands launched directly by an outer coding agent; those agents receive the same no-speculative-retry and evidence-reuse instructions. This recovery policy does not directly edit SQLite state or replace the public `phase --to ... --mockup-dir ...` workflow API.
+
+The application does not automatically wrap commands with RTK. Use the direct executable for Frontend Design Director, Codex/Claude, Python, JSON-producing operations, state changes, and commands where full diagnostics matter. RTK remains an optional caller-side aid for supported read-only repository inspection when transformed output is acceptable. The no-RTK policy remains enforced in implementation, patch application, and post-application verification. An outer `rtk frontend-director ...` wrapper is outside the application's control.
 
 ## Discovery and audit
 
@@ -51,7 +61,7 @@ The deterministic audit scans source for a small set of evidence-backed signals.
 
 The deterministic intelligence pass maps framework-neutral static route candidates, file/module components, local imports, project structure, CSS custom properties, color literals, font families/sizes/line heights, repeated dimensions, and media-query breakpoints. These values are labeled as source-defined until corroborated by sampled browser-computed styles. Static route candidates without dynamic parameters are navigated automatically when a browser URL is explicitly supplied. Supplying one or more exact `--route` paths limits the capture to the base route and those paths. Dynamic patterns are listed but never instantiated. A passive first-Tab focus state is captured when available; UI controls are not activated.
 
-Depth profiles select viewport sets: standard uses 1440 and 390; deep uses 1440, 768, and 390; exhaustive uses 1920, 1440, 1280, 768, 390, and 320. Each route/viewport creates a full-page capture and bounded metadata for document dimensions, landmarks, controls and accessible-name signals, sampled computed styles, console/page errors, failed requests, readiness, and navigation timing. Only same-origin GET/HEAD/OPTIONS browser requests are allowed. A local HTML gallery is created. Deterministic findings are limited to objective observations such as width overflow, uncaught errors, and missing input names; they do not interpret subjective composition.
+Depth profiles select viewport sets: standard uses 1440 and 390; deep uses 1440, 768, and 390; exhaustive uses 1920, 1440, 1280, 768, 390, and 320. Each route/viewport creates a full-page capture and bounded metadata for document dimensions, landmarks, controls and accessible-name signals, sampled computed styles, console/page errors, failed requests, readiness, and navigation timing. Only same-origin GET/HEAD/OPTIONS browser requests are allowed. A JSON screenshot index is created. Deterministic findings are limited to objective observations such as width overflow, uncaught errors, and missing input names; they do not interpret subjective composition.
 
 When an authorized `--start-command` and loopback readiness URL are supplied, `server.py` asks the CLI for interactive confirmation, runs the argument vector without a shell under a filtered environment, uses bounded HTTP readiness checks, captures redacted output, and stops only the process group it started. This does not provide OS-level containment for the target script. Attaching to a user-managed server remains available through `--url`.
 
@@ -63,7 +73,9 @@ Reports are generated from inventories and findings with explicit evidence bound
 
 ## Human direction and mockups
 
-Visual direction, interaction direction, and scope are independent decisions. A direction approval is bound to the digest of `design-direction.json`. Mockups are versioned under `mockups/revision-NNN/`; prior revisions remain available. The built-in renderer produces static HTML/CSS/tokens and labels its sample content and colors as illustrative. `mockup --codex` optionally refines the prototype in a temporary workspace with only the mockup files as writable outputs, then requests phase-appropriate read-only review of its artifacts and rendered mockup screenshots.
+Visual direction, interaction direction, and scope are independent decisions. A direction is a JSON artifact with `artifact_type: design_direction`, and its approval is bound to that file's digest. It contains a specification, never an HTML preview. Mockups are versioned under `mockups/revision-NNN/`; prior revisions remain available. `mockup --codex` creates the interface from scratch in an isolated workspace using the approved direction as context. The generator does not receive a generic HTML seed. The saved manifest has `artifact_type: mockup`, an explicit source and status, and the digest of the direction it implements. Before approval, the Director validates the manifest's identity, artifact linkage, file hashes, interface structure, responsive CSS, and restrictions against explanatory scaffold text, executable markup, and remote resources.
+
+The built-in HTML scaffold is no longer marked as a completed mockup. If Codex generation is not authorized, a user can explicitly supply an existing `index.html` and `styles.css` directory for import. It is stored as a user-supplied mockup and still enters the ordinary mockup-review gate. Legacy template manifests are preserved but cannot be approved as actual interface mockups; legacy Codex manifests are accepted only if their linked files pass current integrity and structure checks.
 
 Mockup approval writes a formal implementation specification. It does not authorize production changes. The implementation plan records exact paths, reasons, change classes, and SHA-256 baselines for existing files. The human then approves that exact plan digest and scope.
 
@@ -81,17 +93,18 @@ The coordinator never runs commands found in project manifests. `verify --comman
 
 ## Guided continuity
 
-`guide` composes the existing director methods and does not create a parallel approval engine. Discovery and read-only audit run as safe stages; at human boundaries the guide stores a pending action, offers review/instruction/re-audit/pause/end options, and returns without polling or consuming model calls when input ends. Global and stage-specific human instructions append to SQLite metadata with source/timestamp; they do not become approvals. A completed improvement cycle remains resumable and offers a new cycle. `continue` only advances ordinary workflow; implementation authorization and patch application still require TTY confirmation phrases bound to exact artifact/scope digests.
+`guide` composes the existing director methods and does not create a parallel approval engine. Discovery is the recommended first action but can be skipped when the user explicitly selects a later phase. The CLI `phase --to` command and explicit natural-language requests in `guide` call the same `FrontendDesignDirector.override_phase` method. The selected phase, prior phase, user instruction, reason, skipped phases, available artifacts, optional context gaps, and outstanding approvals are persisted in session metadata and the event log. Overrides can enter discovery, audit, direction, mockup, planning, implementation, or verification only when relevant hard artifact and approval checks pass. They do not make approvals. A completed improvement cycle remains resumable and offers a new cycle. Implementation authorization and patch application still require TTY confirmation phrases bound to exact artifact/scope digests.
 
 ## Module map
 
 - `models.py`, `storage.py`, `state_machine.py`: schemas, SQLite ownership, phase validation.
+- `execution.py`: phase-scoped command policy, provider instructions, failure classification, operation fingerprints, and tracked subprocess lifecycle.
 - `discovery.py`, `snapshot.py`: metadata-only environment inspection and filtered Codex snapshots.
 - `intelligence.py`: static route/component/design-value inventories, runtime finding conversion, and architecture/system reports.
 - `auditing.py`, `reporting.py`, `browser.py`: specialist contracts, findings, screenshot capture/diagnostics, and audit artifacts.
 - `server.py`, `guided.py`: explicitly confirmed local-server lifecycle and persistent interactive stage routing.
 - `codex_backend.py`: non-interactive local Codex adapter with saved ChatGPT auth, sandbox mode, JSON Schema, and API-key environment stripping.
-- `mockups.py`: responsive static template, optional isolated Codex refinement, and path validation.
+- `mockups.py`: fresh isolated mockup generation and static-interface authenticity validation.
 - `implementation.py`: plans, baseline hashes, isolated patches, scope enforcement, and guarded application.
 - `verification.py`, `logging_setup.py`: explicit user-selected checks and bounded local JSONL logs.
 - `director.py`, `cli.py`: orchestration service, CLI gates, content-aware Codex resource install/update, manifest migration, and installation diagnostics.

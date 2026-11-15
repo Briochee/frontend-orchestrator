@@ -309,11 +309,11 @@ def build_capability_matrix(discovery: dict[str, Any], skills: list[dict[str, An
         ),
         Capability(
             name="mockup_creation",
-            available=True,
-            selected_tool="Codex CLI isolated prototype" if codex_ready else "Built-in responsive HTML/CSS scaffold",
-            status="ready",
-            recommendation="Codex refinement is optional; the local responsive template works without credentials or model calls.",
-            details={"codex_refinement_available": codex_ready},
+            available=bool(codex_ready),
+            selected_tool="Codex CLI isolated interface generator" if codex_ready else None,
+            status="ready" if codex_ready else "missing",
+            recommendation="An opted-in Codex call is required to generate a new interface mockup. You can also supply an existing mockup for review; direction documents and generic scaffolds are never treated as mockups.",
+            details={"codex_generation_available": codex_ready, "user_supplied_mockup_supported": True},
         ),
     ]
 

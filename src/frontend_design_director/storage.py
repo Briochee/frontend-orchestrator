@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
+import socket
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +27,10 @@ class _ClosingConnection(sqlite3.Connection):
             return super().__exit__(exception_type, exception, traceback)
         finally:
             self.close()
+
+
+class OperationBlocked(RuntimeError):
+    """Raised when an unchanged or already-running operation must not be repeated."""
 
 
 class WorkflowStore:
@@ -112,6 +118,33 @@ class WorkflowStore:
                     finished_at TEXT,
                     details_json TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS operations (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL REFERENCES sessions(id),
+                    operation_name TEXT NOT NULL,
+                    operation_signature TEXT NOT NULL,
+                    input_fingerprint TEXT NOT NULL,
+                    environment_fingerprint TEXT NOT NULL,
+                    phase TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    attempt INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    owner_pid INTEGER NOT NULL,
+                    process_pid INTEGER,
+                    host_name TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT,
+                    exit_code INTEGER,
+                    failure_category TEXT,
+                    diagnostic_summary TEXT,
+                    relevant_stderr TEXT,
+                    retryable INTEGER NOT NULL DEFAULT 0,
+                    retry_condition TEXT NOT NULL DEFAULT '',
+                    result_reference_json TEXT,
+                    details_json TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS operations_lookup
+                    ON operations(session_id, operation_name, operation_signature, attempt);
                 """
             )
 
@@ -168,6 +201,31 @@ class WorkflowStore:
             now = utc_now()
             connection.execute("UPDATE sessions SET phase = ?, updated_at = ? WHERE id = ?", (target.value, now, session_id))
             self._event(connection, session_id, "phase_changed", {"from": current.value, "to": target.value, **(payload or {})})
+        return self.get_session(session_id)
+
+    def override_transition(self, session_id: str, target: Phase, details: dict[str, Any]) -> Session:
+        """Persist an explicit user-directed entry into a guarded workflow phase."""
+        allowed = {
+            Phase.DISCOVERING,
+            Phase.AUDITING,
+            Phase.AWAITING_DIRECTION,
+            Phase.DIRECTION_APPROVED,
+            Phase.AWAITING_MOCKUP_REVIEW,
+            Phase.AWAITING_IMPLEMENTATION_APPROVAL,
+            Phase.IMPLEMENTING,
+            Phase.VERIFYING,
+        }
+        if target not in allowed:
+            raise ValueError(f"Phase {target.value} is not an override entry point.")
+        with self._connect() as connection:
+            row = connection.execute("SELECT phase FROM sessions WHERE id = ?", (session_id,)).fetchone()
+            if row is None:
+                raise KeyError(f"Workflow session not found: {session_id}")
+            current = Phase(row["phase"])
+            now = utc_now()
+            connection.execute("UPDATE sessions SET phase = ?, updated_at = ? WHERE id = ?", (target.value, now, session_id))
+            self._event(connection, session_id, "phase_changed", {"from": current.value, "to": target.value, "override": True})
+            self._event(connection, session_id, "phase_override", {"from": current.value, "to": target.value, **details})
         return self.get_session(session_id)
 
     def set_metadata(self, session_id: str, key: str, value: Any) -> None:
@@ -303,6 +361,175 @@ class WorkflowStore:
                 (session_id, role, status, started_at or utc_now(), utc_now(), json.dumps(details, sort_keys=True)),
             )
 
+    def begin_operation(
+        self,
+        session_id: str,
+        *,
+        operation_name: str,
+        operation_signature: str,
+        input_fingerprint: str,
+        environment_fingerprint: str,
+        phase: str,
+        provider: str,
+        details: dict[str, Any],
+        max_attempts: int = 2,
+    ) -> dict[str, Any]:
+        """Atomically start an operation or persist why an equivalent attempt was suppressed."""
+        if max_attempts < 1:
+            raise ValueError("Operation attempt budget must be at least one.")
+        now = utc_now()
+        blocked: str | None = None
+        previous: dict[str, Any] | None = None
+        attempt = 1
+        operation_id = str(uuid.uuid4())
+        host_name = hashlib.sha256(socket.gethostname().encode("utf-8")).hexdigest()[:16]
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            rows = connection.execute(
+                "SELECT * FROM operations WHERE session_id = ? AND operation_name = ? ORDER BY started_at DESC, rowid DESC",
+                (session_id, operation_name),
+            ).fetchall()
+            latest_same: sqlite3.Row | None = None
+            attempts_same: list[sqlite3.Row] = []
+            for row in rows:
+                if row["status"] == "suppressed":
+                    continue
+                if row["status"] in {"running", "interrupted"}:
+                    alive = (
+                        _operation_process_alive(row["owner_pid"], row["process_pid"], row["host_name"], host_name)
+                        if row["status"] == "running"
+                        else _operation_child_alive(row["process_pid"], row["host_name"], host_name)
+                    )
+                    if alive:
+                        blocked = f"Equivalent {operation_name} operation {row['id']} is still running; wait for that operation to finish."
+                        previous = _operation_row(row)
+                        break
+                    connection.execute(
+                        "UPDATE operations SET status = 'interrupted', finished_at = ?, failure_category = 'interrupted', diagnostic_summary = ?, retryable = 1, retry_condition = ? WHERE id = ?",
+                        (now, "The recorded owner and child process have exited before completion.", "The previous process must be confirmed stopped; it is now safe to make one bounded recovery attempt.", row["id"]),
+                    )
+                if row["operation_signature"] == operation_signature:
+                    if row["status"] != "reused":
+                        attempts_same.append(row)
+                    if latest_same is None:
+                        latest_same = row
+            if latest_same is not None and blocked is None:
+                previous = _operation_row(latest_same)
+                if latest_same["status"] == "failed" and not latest_same["retryable"]:
+                    blocked = (
+                        f"The unchanged {operation_name} operation previously failed as "
+                        f"{latest_same['failure_category'] or 'unknown'}: {latest_same['diagnostic_summary'] or 'no diagnostic summary'}. "
+                        f"Retry condition: {latest_same['retry_condition'] or 'change a relevant input or environment condition first.'}"
+                    )
+                elif latest_same["status"] in {"interrupted", "timed_out"} and not latest_same["retryable"]:
+                    blocked = (
+                        f"The previous {operation_name} operation ended without a verified result. "
+                        f"Retry condition: {latest_same['retry_condition'] or 'verify that the prior operation stopped and change a relevant condition.'}"
+                    )
+                elif latest_same["status"] in {"failed", "interrupted", "timed_out"} and len(attempts_same) >= max_attempts:
+                    blocked = f"The {operation_name} retry budget of {max_attempts} attempt(s) is exhausted for unchanged inputs and environment."
+                attempt = len(attempts_same) + 1
+
+            if blocked is not None:
+                connection.execute(
+                    "INSERT INTO operations(id, session_id, operation_name, operation_signature, input_fingerprint, environment_fingerprint, phase, provider, attempt, status, owner_pid, process_pid, host_name, started_at, finished_at, failure_category, diagnostic_summary, retryable, retry_condition, details_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'suppressed', ?, NULL, ?, ?, ?, 'duplicate_suppressed', ?, 0, ?, ?)",
+                    (operation_id, session_id, operation_name, operation_signature, input_fingerprint, environment_fingerprint, phase, provider, max(1, attempt - 1), os.getpid(), host_name, now, now, blocked[:500], "No retry until the recorded retry condition is met.", json.dumps(details, sort_keys=True)),
+                )
+                self._event(connection, session_id, "operation_suppressed", {"operation_id": operation_id, "operation_name": operation_name, "operation_signature": operation_signature, "reason": blocked[:500]})
+            else:
+                connection.execute(
+                    "INSERT INTO operations(id, session_id, operation_name, operation_signature, input_fingerprint, environment_fingerprint, phase, provider, attempt, status, owner_pid, process_pid, host_name, started_at, details_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, NULL, ?, ?, ?)",
+                    (operation_id, session_id, operation_name, operation_signature, input_fingerprint, environment_fingerprint, phase, provider, attempt, os.getpid(), host_name, now, json.dumps(details, sort_keys=True)),
+                )
+                self._event(connection, session_id, "operation_started", {"operation_id": operation_id, "operation_name": operation_name, "operation_signature": operation_signature, "attempt": attempt, "phase": phase, "provider": provider})
+        if blocked is not None:
+            raise OperationBlocked(blocked)
+        return {"operation_id": operation_id, "attempt": attempt, "previous": previous}
+
+    def update_operation_process(self, session_id: str, operation_id: str, process_id: int | None, *, exit_code: int | None = None) -> None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE operations SET process_pid = ?, exit_code = COALESCE(?, exit_code) WHERE id = ? AND session_id = ? AND status = 'running'",
+                (process_id, exit_code, operation_id, session_id),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(f"Running operation not found: {operation_id}")
+
+    def update_operation_details(self, session_id: str, operation_id: str, details: dict[str, Any]) -> None:
+        """Merge execution metadata while an operation is running."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT details_json FROM operations WHERE id = ? AND session_id = ? AND status = 'running'",
+                (operation_id, session_id),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Running operation not found: {operation_id}")
+            stored_details = json.loads(row["details_json"])
+            stored_details.update(details)
+            connection.execute(
+                "UPDATE operations SET details_json = ? WHERE id = ? AND session_id = ? AND status = 'running'",
+                (json.dumps(stored_details, sort_keys=True), operation_id, session_id),
+            )
+
+    def finish_operation(
+        self,
+        session_id: str,
+        operation_id: str,
+        *,
+        status: str,
+        details: dict[str, Any] | None = None,
+        failure_category: str | None = None,
+        diagnostic_summary: str | None = None,
+        relevant_stderr: str | None = None,
+        retryable: bool = False,
+        retry_condition: str = "",
+        exit_code: int | None = None,
+        result_reference: dict[str, Any] | None = None,
+    ) -> None:
+        if status not in {"completed", "failed", "cancelled", "timed_out", "reused", "interrupted"}:
+            raise ValueError(f"Unsupported terminal operation state: {status}.")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT details_json FROM operations WHERE id = ? AND session_id = ? AND status = 'running'",
+                (operation_id, session_id),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Running operation not found: {operation_id}")
+            stored_details = json.loads(row["details_json"])
+            stored_details.update(details or {})
+            connection.execute(
+                "UPDATE operations SET status = ?, process_pid = ?, finished_at = ?, exit_code = COALESCE(?, exit_code), failure_category = ?, diagnostic_summary = ?, relevant_stderr = ?, retryable = ?, retry_condition = ?, result_reference_json = ?, details_json = ? WHERE id = ? AND session_id = ?",
+                (status, row["process_pid"] if status == "interrupted" else None, utc_now(), exit_code, failure_category, diagnostic_summary, relevant_stderr, int(retryable), retry_condition, json.dumps(result_reference, sort_keys=True) if result_reference else None, json.dumps(stored_details, sort_keys=True), operation_id, session_id),
+            )
+            self._event(connection, session_id, "operation_finished", {"operation_id": operation_id, "status": status, "failure_category": failure_category, "retryable": retryable})
+
+    def operation_history(self, session_id: str, *, limit: int = 20) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM operations WHERE session_id = ? ORDER BY started_at DESC, rowid DESC LIMIT ?",
+                (session_id, max(1, min(limit, 100))),
+            ).fetchall()
+        return [_operation_row(row) for row in rows]
+
+    def operation_metrics(self, session_id: str) -> dict[str, int]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT status, COUNT(*) AS count FROM operations WHERE session_id = ? GROUP BY status", (session_id,)).fetchall()
+        counts = {row["status"]: row["count"] for row in rows}
+        with self._connect() as connection:
+            retry_rows = connection.execute(
+                "SELECT attempt, details_json FROM operations WHERE session_id = ? AND status NOT IN ('suppressed', 'reused')",
+                (session_id,),
+            ).fetchall()
+        retries = sum(
+            max(0, row["attempt"] - 1) + max(0, int(json.loads(row["details_json"]).get("provider_retry_attempts", 0)))
+            for row in retry_rows
+        )
+        return {
+            "total": sum(counts.values()), "completed": counts.get("completed", 0), "failed": counts.get("failed", 0),
+            "running": counts.get("running", 0), "retries": retries, "suppressed_duplicates": counts.get("suppressed", 0),
+            "reused_results": counts.get("reused", 0), "interrupted": counts.get("interrupted", 0),
+        }
+
     def history(self, session_id: str) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute("SELECT timestamp, event_type, payload_json FROM events WHERE session_id = ? ORDER BY id", (session_id,)).fetchall()
@@ -314,3 +541,42 @@ class WorkflowStore:
             "INSERT INTO events(session_id, timestamp, event_type, payload_json) VALUES (?, ?, ?, ?)",
             (session_id, datetime.now(timezone.utc).isoformat(timespec="seconds"), event_type, json.dumps(payload, sort_keys=True)),
         )
+
+
+def _operation_row(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "operation_id": row["id"], "operation_name": row["operation_name"], "operation_signature": row["operation_signature"],
+        "input_fingerprint": row["input_fingerprint"], "environment_fingerprint": row["environment_fingerprint"],
+        "phase": row["phase"], "provider": row["provider"], "attempt": row["attempt"], "status": row["status"],
+        "owner_pid": row["owner_pid"], "process_pid": row["process_pid"], "host_identity": row["host_name"],
+        "started_at": row["started_at"], "finished_at": row["finished_at"], "exit_code": row["exit_code"],
+        "failure_category": row["failure_category"], "diagnostic_summary": row["diagnostic_summary"],
+        "relevant_stderr": row["relevant_stderr"], "retryable": bool(row["retryable"]),
+        "retry_condition": row["retry_condition"],
+        "result_reference": json.loads(row["result_reference_json"]) if row["result_reference_json"] else None,
+        "details": json.loads(row["details_json"]),
+    }
+
+
+def _operation_process_alive(owner_pid: int, process_pid: int | None, row_host: str, current_host: str) -> bool:
+    if row_host != current_host:
+        return True
+    return _pid_exists(owner_pid) or (process_pid is not None and _pid_exists(process_pid))
+
+
+def _operation_child_alive(process_pid: int | None, row_host: str, current_host: str) -> bool:
+    if row_host != current_host:
+        return True
+    return process_pid is not None and _pid_exists(process_pid)
+
+
+def _pid_exists(process_id: int) -> bool:
+    try:
+        os.kill(process_id, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True

@@ -111,7 +111,7 @@ Inspection, design, and implementation have separate controls:
 1. `discover` reads project metadata and installed capability metadata.
 2. `audit` is local and source-based by default. `--codex` explicitly sends a filtered source snapshot to the signed-in Codex service. `--url` explicitly captures a running application; remote URLs require `--allow-remote`.
 3. `direction` requires a human decision for visual appearance, behavior, and scope independently.
-4. `mockup` writes static HTML/CSS into `.agents/frontend-design-director/`, isolated from production files. The built-in template works without Codex; `--codex` is optional.
+4. `direction` persists an explicitly typed JSON specification; it does not create HTML or a browser preview. `mockup --codex` starts from that specification in a fresh isolated workspace and creates an actual interface. Without an authorized generator, the CLI does not make a placeholder scaffold and call it a mockup.
 5. `mockup-review approve` approves the prototype only.
 6. `plan` records exact file paths. `approve-implementation` is a separate human gate.
 7. `implement` writes changes in a filtered temporary Git snapshot and returns a patch. `apply` requires a second human review and checks current target file hashes before applying.
@@ -203,7 +203,7 @@ The commands are separate so the human can inspect each artifact before advancin
 
 ## Guided deep review
 
-Use `guide` when you want the director to keep the session moving, retain instructions, and resume after a terminal closes. It discovers first, then pauses at the capability review. At each phase it proposes safe next steps, supports report review and re-auditing, and waits without consuming model calls when it needs human input.
+Use `guide` when you want the director to keep the session moving, retain instructions, and resume after a terminal closes. It starts by offering discovery as the recommended next step, while also accepting clear phase-change instructions. At each phase it proposes safe next steps, supports report review and re-auditing, and waits without consuming model calls when it needs human input.
 
 ```bash
 frontend-director guide --project /path/to/frontend --depth deep --codex
@@ -227,7 +227,29 @@ After screenshots are collected, `--codex` explicitly sends the filtered source 
 
 The guided session remains open at decision points. Use `instructions` to save multiline guidance (finish with `END INSTRUCTIONS`), `re-audit` to create a new additive audit revision, `review` to list artifacts, `pause` to persist a pending action, and `end` only when you intend to close the guided session. Resume with the same `guide --project ...` command or `--session <id>`. Continuing never equals design, implementation, or patch approval. Instructions entered while a plan or patch is awaiting approval do not alter that artifact; a revision must be reviewed separately.
 
-The audit writes `reports/audit-index.md`, executive/application summaries, architecture and route maps, component and design-system inventories, separate color/typography/layout/responsive/technical/behavioral/visual/performance/accessibility reports, structured findings, and a coverage/limitations report. Screenshot manifests and a local HTML contact sheet live under `evidence/`. Audit revisions are also retained under `reports/audits/audit-NNN/`.
+### Direct phase entry and artifact handoff
+
+The recommended path is `Discovery/Audit → Direction → Mockup → Review/Approval → Planning/Implementation → Verification`, but earlier analysis is optional when you have the needed context. `phase --to` records an explicit phase override through the same Director used by guided natural-language requests. It preserves the override reason, source, skipped phases, available artifacts, and outstanding approvals in the session database.
+
+```bash
+# Enter direction without running discovery or an audit, then record the human-approved direction.
+frontend-director phase --project /path/to/frontend --session SESSION_ID --to direction --reason "I already know the intended design"
+frontend-director direction --project /path/to/frontend --session SESSION_ID --visual refine --behavior preserve --scope screens --constraints "Keep the existing navigation and workflows."
+
+# Generate a real mockup directly from the approved direction.
+frontend-director phase --project /path/to/frontend --session SESSION_ID --to mockup --reason "Generate the approved direction"
+frontend-director mockup --project /path/to/frontend --session SESSION_ID --codex
+
+# Import an existing mockup. Import does not approve it; review it before planning.
+frontend-director phase --project /path/to/frontend --session SESSION_ID --to planning --reason "Reuse the supplied mockup" --mockup-dir /path/to/mockup
+frontend-director mockup-review approve --project /path/to/frontend --session SESSION_ID
+```
+
+The direction artifact is `decisions/design-direction.json` with `artifact_type: design_direction`; human-readable guidance stays in terminal output or Markdown. Director-generated HTML artifacts begin only during mockup generation, or during a later approved implementation. A user-supplied mockup can be imported only by explicit phase override and still requires review. A mockup manifest has `artifact_type: mockup`, references the exact direction digest, and is checked for interface structure and file integrity before approval. Legacy scaffold manifests are preserved but cannot pass as mockups; generate a new interface or explicitly supply one. Existing application HTML remains readable and renderable during audits.
+
+Clear guided instructions such as `skip the audit and go straight to mockup`, `go back to design direction`, `use my existing mockup and move to implementation planning`, or `resume from verification` use the same phase override controller. Casual mentions of a phase do not change workflow. Overrides do not grant direction, mockup, implementation, or patch-application approval. Entering `planning` with an unapproved mockup stops at mockup review; entering `implementation` requires a still-valid approval of the exact implementation plan; entering `verification` requires an applied patch.
+
+The audit writes `reports/audit-index.md`, executive/application summaries, architecture and route maps, component and design-system inventories, separate color/typography/layout/responsive/technical/behavioral/visual/performance/accessibility reports, structured findings, and a coverage/limitations report. Screenshot manifests and a JSON screenshot index live under `evidence/`; no HTML report page is generated during direction or audit phases. Audit revisions are also retained under `reports/audits/audit-NNN/`.
 
 ## Workflow state
 
@@ -237,7 +259,12 @@ Sessions persist in SQLite at `<project>/.agents/frontend-design-director/workfl
 frontend-director status --project /path/to/frontend
 frontend-director pause --project /path/to/frontend
 frontend-director resume --project /path/to/frontend
+frontend-director status --project /path/to/frontend --session SESSION_ID --json
 ```
+
+Status includes bounded recent operation history and counts for completed, failed, retries, interrupted, reused, and duplicate-suppressed operations. The Director records hashed input/provider fingerprints, process lifecycle, exit status, concise redacted diagnostics, retry conditions, and references to generated artifacts. It does not store raw operation inputs or large command output. An unchanged deterministic failure is not rerun; only clearly transient provider errors receive bounded retries. Existing successful plans are reused while the approved specification, mockup, and planned file baselines still match. Re-run after correcting the relevant input, authorization, provider setup, or source state. Independent shell commands launched by an outer coding agent cannot be monitored by the application.
+
+The application never automatically adds RTK to commands. Run Frontend Design Director and Codex/Claude commands, JSON-producing commands, arbitrary Python, state-changing operations, and commands requiring complete diagnostics directly. RTK may be used for supported read-only repository inspection only when transformed output is sufficient. RTK remains explicitly disabled during implementation, patch application, and verification after an applied patch. The application cannot control a parent RTK wrapper or external agent shell tools.
 
 See [docs/SETUP.md](docs/SETUP.md) for optional Playwright and development dependencies, and [docs/CODEX_INTEGRATION.md](docs/CODEX_INTEGRATION.md) for details about the bundled skill and agents.
 
