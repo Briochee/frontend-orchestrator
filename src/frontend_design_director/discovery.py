@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -138,23 +139,25 @@ def discover_skills(project_root: Path, extra_roots: tuple[Path, ...] = ()) -> t
                 if not resolved.is_file() or resolved.stat().st_size > SKILL_LIMIT_BYTES:
                     errors.append({"path": str(path), "error": "not a regular file or exceeds metadata read limit"})
                     continue
-                with resolved.open("r", encoding="utf-8", errors="replace") as stream:
-                    text = stream.read(4_096)
-                metadata = _skill_frontmatter(text)
+                text = resolved.read_text(encoding="utf-8", errors="replace")
+                metadata = _skill_frontmatter(text[:4_096])
                 if not metadata.get("name") or not metadata.get("description"):
                     errors.append({"path": str(path), "error": "missing name or description frontmatter"})
                     continue
                 capabilities = classify_skill(str(metadata["name"]), str(metadata["description"]))
                 if not capabilities:
                     continue
-                skills.append({
+                skill = {
                     "name": str(metadata["name"]),
                     "description": str(metadata["description"]),
                     "source_path": str(resolved),
                     "capabilities": capabilities,
                     "compatibility_confidence": "documented_location" if _is_documented_skill_location(resolved) else "observed_install_location",
                     "metadata_only": True,
-                })
+                }
+                if str(metadata["name"]).casefold() in {"impeccable", "design-taste-frontend"}:
+                    skill.update(_preferred_skill_metadata(resolved, text, project_root, metadata))
+                skills.append(skill)
             except (OSError, UnicodeError) as error:
                 errors.append({"path": str(path), "error": type(error).__name__})
     unique = {item["source_path"]: item for item in skills}
@@ -354,6 +357,123 @@ def _skill_frontmatter(text: str) -> dict[str, str]:
         if cleaned:
             metadata[key.strip()] = cleaned
     return metadata
+
+
+def _preferred_skill_metadata(
+    skill_path: Path,
+    content: str,
+    project_root: Path,
+    frontmatter: dict[str, str],
+) -> dict[str, Any]:
+    """Collect bounded provenance and installed-file metadata without running skill code."""
+    name = frontmatter.get("name", "").casefold()
+    skill_directory = skill_path.parent
+    scripts_directory = skill_directory / "scripts"
+    available_scripts: list[str] = []
+    if scripts_directory.is_dir() and not scripts_directory.is_symlink():
+        try:
+            available_scripts = sorted(
+                item.name for item in scripts_directory.iterdir()
+                if item.is_file() and not item.is_symlink() and item.suffix in {".mjs", ".js", ".cjs"}
+            )[:100]
+        except OSError:
+            pass
+
+    available_commands: list[str] = []
+    command_metadata = scripts_directory / "command-metadata.json"
+    if command_metadata.is_file() and not command_metadata.is_symlink():
+        try:
+            if command_metadata.stat().st_size <= 64_000:
+                value = json.loads(command_metadata.read_text(encoding="utf-8"))
+                if isinstance(value, dict):
+                    available_commands = sorted(str(key)[:100] for key in value if isinstance(key, str))[:100]
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            pass
+    commands_directory = skill_directory / "commands"
+    if not available_commands and commands_directory.is_dir() and not commands_directory.is_symlink():
+        try:
+            available_commands = sorted(
+                item.stem for item in commands_directory.glob("*.md")
+                if item.is_file() and not item.is_symlink()
+            )[:100]
+        except OSError:
+            pass
+
+    version = frontmatter.get("version")
+    version_source = "skill frontmatter" if version else None
+    plugin_manifest: dict[str, Any] = {}
+    for ancestor in (skill_directory, *list(skill_directory.parents)[:6]):
+        for relative in (".codex-plugin/plugin.json", ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"):
+            candidate = ancestor / relative
+            if candidate.is_symlink() or not candidate.is_file():
+                continue
+            try:
+                if candidate.stat().st_size > 64_000:
+                    continue
+                parsed = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                continue
+            if isinstance(parsed, dict):
+                plugin_manifest = parsed
+                if isinstance(parsed.get("version"), (str, int, float)):
+                    version = str(parsed["version"])
+                    version_source = str(candidate)
+                break
+        if plugin_manifest:
+            break
+
+    try:
+        resolved_path = skill_path.resolve(strict=True)
+        if resolved_path.is_relative_to(project_root.resolve()):
+            scope = "project"
+        elif resolved_path.is_relative_to(Path.home().resolve()):
+            scope = "user"
+        elif resolved_path.is_relative_to(Path("/etc")):
+            scope = "system"
+        elif "/plugins/cache/" in resolved_path.as_posix():
+            scope = "provider_plugin_cache"
+        else:
+            scope = "other"
+    except (OSError, ValueError):
+        scope = "unknown"
+    path_text = skill_path.as_posix()
+    source = (
+        "provider_plugin_cache" if "/plugins/cache/" in path_text
+        else "claude_code_skill_directory" if "/.claude/skills/" in path_text
+        else "shared_agent_skills_directory" if "/.agents/skills/" in path_text
+        else "codex_skill_directory" if "/.codex/skills/" in path_text
+        else "observed_skill_directory"
+    )
+    hooks_directory = skill_directory / "hooks"
+    hooks_present = bool(hooks_directory.is_dir() and not hooks_directory.is_symlink())
+    if not hooks_present:
+        hooks_present = bool(re.search(r"(?im)^hooks\s*:", content[:4_096]))
+
+    taste_inspector = scripts_directory / "inspect.mjs"
+    app_screen_reference = skill_directory / "references" / "app-screens.md"
+    required_dependencies = (
+        ["Node.js >=22 and Chrome, Edge, or Chromium for the documented browser inspector"]
+        if name == "design-taste-frontend"
+        else ["Node.js >=18.19 for the documented installer/update CLI"]
+    )
+    return {
+        "version": version,
+        "version_source": version_source,
+        "content_sha256": hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest(),
+        "installation_scope": scope,
+        "installation_source": source,
+        "installation_status": "installed",
+        "available_commands": available_commands,
+        "available_scripts": available_scripts,
+        "required_dependencies": required_dependencies,
+        "hooks_present": hooks_present,
+        "hooks_require_approval": hooks_present,
+        "app_screen_workflow_ready": (
+            bool(taste_inspector.is_file() and app_screen_reference.is_file())
+            if name == "design-taste-frontend" else None
+        ),
+        "plugin_manifest_version": plugin_manifest.get("version"),
+    }
 
 
 def _is_documented_skill_location(path: Path) -> bool:
@@ -611,14 +731,14 @@ def _discover_claude_markdown(project_roots: list[Path], config_home: Path, kind
                 if resolved in seen or not resolved.is_file() or resolved.stat().st_size > SKILL_LIMIT_BYTES:
                     continue
                 seen.add(resolved)
-                text = resolved.read_text(encoding="utf-8", errors="replace")[:4_096]
-                metadata = _skill_frontmatter(text)
+                text = resolved.read_text(encoding="utf-8", errors="replace")
+                metadata = _skill_frontmatter(text[:4_096])
                 name = metadata.get("name") or (resolved.parent.name if resolved.name == "SKILL.md" else resolved.stem)
                 description = metadata.get("description", "")
                 capabilities = classify_skill(name, description)
                 if not capabilities:
                     continue
-                resources.append({
+                resource = {
                     "name": name,
                     "description": description,
                     "source_path": str(resolved),
@@ -626,7 +746,10 @@ def _discover_claude_markdown(project_roots: list[Path], config_home: Path, kind
                     "metadata_only": True,
                     "compatibility_confidence": "documented_claude_code_location",
                     "metadata_valid": bool(description),
-                })
+                }
+                if str(name).casefold() in {"impeccable", "design-taste-frontend"} and resolved.name == "SKILL.md":
+                    resource.update(_preferred_skill_metadata(resolved, text, project_roots[0], metadata))
+                resources.append(resource)
             except (OSError, UnicodeError):
                 continue
     return sorted(resources, key=lambda item: (item["name"].casefold(), item["source_path"]))

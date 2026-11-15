@@ -21,6 +21,8 @@ from .collaboration import (
     CollaborationMode,
     assemble_expert_team,
     build_capability_registry,
+    load_design_expertise_preferences,
+    preferred_design_expertise_report,
     run_phase_collaboration,
 )
 from .discovery import build_capability_matrix, discover_agents, discover_claude_code, discover_codex, discover_project, discover_skills
@@ -122,6 +124,7 @@ class FrontendDesignDirector:
             claude_code = discover_claude_code(Path(session.project_root))
             capabilities = build_capability_matrix(project, skills, agents, codex)
             collaboration_capabilities = build_capability_registry(project, skills, agents, codex, claude_code)
+            design_preferences = load_design_expertise_preferences(Path(session.project_root))
             inventory = {
                 "schema_version": 1,
                 "project": project,
@@ -132,6 +135,11 @@ class FrontendDesignDirector:
                 "codex": codex,
                 "claude_code": claude_code,
                 "collaboration_capabilities": [item.to_dict() for item in collaboration_capabilities],
+                "design_expertise_preferences": design_preferences,
+                "preferred_design_expertise": preferred_design_expertise_report(
+                    collaboration_capabilities, design_preferences,
+                    provider=str(getattr(self.backend, "provider_id", "codex")),
+                ),
                 "capabilities": [item.__dict__ for item in capabilities],
                 "installation_policy": "No skill, plugin, dependency, or browser was installed.",
             }
@@ -402,6 +410,12 @@ class FrontendDesignDirector:
             discovery.get("codex", {}), discovery.get("claude_code", {}), screenshot_count=valid_screenshot_count,
         )
         refreshed_discovery["collaboration_capabilities"] = [item.to_dict() for item in collaboration_capabilities]
+        design_preferences = load_design_expertise_preferences(Path(session.project_root))
+        refreshed_discovery["design_expertise_preferences"] = design_preferences
+        refreshed_discovery["preferred_design_expertise"] = preferred_design_expertise_report(
+            collaboration_capabilities, design_preferences,
+            provider=str(getattr(self.backend, "provider_id", "codex")),
+        )
         self.store.set_metadata(session_id, "discovery", refreshed_discovery)
         self.store.write_artifact(session_id, "capability-inventory", "reports/capability-inventory.json", _json_bytes(refreshed_discovery))
         collaboration_plan = assemble_expert_team(
@@ -413,6 +427,8 @@ class FrontendDesignDirector:
             primary_provider="codex" if use_codex else "local",
             allowed_secondary_providers=allowed_secondary_providers,
             project_context=" ".join(str(discovery["project"].get(key, "")) for key in ("project_name", "application_description")),
+            design_preferences=design_preferences,
+            design_task=True,
         )
         collaboration_plan_artifact = self.store.write_artifact(
             session_id, "collaboration-plan", "reports/collaboration-plan.json", _json_bytes(collaboration_plan),
@@ -428,6 +444,7 @@ class FrontendDesignDirector:
                     Path(session.project_root), discovery["project"], screenshots=screenshots, backend=self.backend,
                     intelligence=intelligence, user_instructions=audit_instructions,
                     collaboration_mode=collaboration, collaboration_plan=collaboration_plan, review_backend=secondary_review,
+                preferred_design_preferences=design_preferences,
                 )
                 visual_evidence_complete = _visual_review_covers_expected_pairs(
                     codex_result.specialist_runs, codex_result.visual_analysis, expected_pairs,
@@ -484,6 +501,19 @@ class FrontendDesignDirector:
                 result = replace(static_result, limitations=tuple(dict.fromkeys((*static_result.limitations, *limitations))), screenshots=tuple(screenshots), backend_used="static", visual_analysis={})
             result = replace(result, collaboration={"schema_version": 1, "mode": collaboration.value, "plan": collaboration_plan, "cross_review": {"status": "not_requested"}, "decisions": []})
 
+        design_recommendations = [
+            f"Preferred design expertise {item['canonical_name']} is {item['status']}: {item['recommendation']}"
+            for item in collaboration_plan.get("preferred_design_expertise", {}).get("capabilities", [])
+            if item.get("recommendation") and item.get("enabled_by_user", True)
+        ]
+        if not use_codex and collaboration_plan.get("preferred_design_expertise", {}).get("ready_count", 0):
+            design_recommendations.insert(
+                0,
+                "Preferred design experts are callable but were not invoked because Codex analysis was not requested; rerun this audit with `--codex` to receive their independent skill-guided contributions.",
+            )
+        if design_recommendations:
+            result = replace(result, recommendations=tuple(dict.fromkeys((*result.recommendations, *design_recommendations))))
+
         completion_reasons: list[str] = []
         blockers: list[str] = []
         if exercise_safe_interactions and interaction_probes.get("status") != "completed":
@@ -519,6 +549,15 @@ class FrontendDesignDirector:
                 blockers.append("An exhaustive audit's evidence-triggered targeted follow-up failed.")
             if not review_selection and collaboration != CollaborationMode.FOCUSED:
                 completion_reasons.append("No authorized callable cross-disciplinary reviewer was available; the audit retains its primary specialist results.")
+            for expert in (item for item in collaboration_plan.get("selected_experts", []) if item.get("preferred_design_profile")):
+                expected_name = f"frontend_audit_{expert['role']}_reviewer"
+                run = next((item for item in result.specialist_runs if item.get("specialist") == expected_name), None)
+                if not run or run.get("status") != "completed":
+                    message = f"Preferred design specialist {expert['role']} did not produce a validated contribution."
+                    if collaboration == CollaborationMode.EXHAUSTIVE:
+                        blockers.append(message)
+                    else:
+                        completion_reasons.append(message)
         else:
             completion_reasons.append("Codex specialist interpretation was not requested; appearance and specialist findings are not semantically verified.")
 
@@ -588,6 +627,7 @@ class FrontendDesignDirector:
         findings = list(result.findings)
         self.store.replace_findings(session_id, findings)
         reports = audit_reports(findings, result, discovery["project"], intelligence)
+        reports["preferred-design-expertise.json"] = _json_bytes(collaboration_plan.get("preferred_design_expertise", {}))
         collaboration_report = dict(result.collaboration or {})
         collaboration_report.setdefault("plan", collaboration_plan)
         collaboration_report["plan_artifact"] = collaboration_plan_artifact["path"]
@@ -649,6 +689,8 @@ class FrontendDesignDirector:
             "completion_status": completion_status,
             "collaboration_mode": collaboration.value,
             "collaboration_plan": collaboration_plan_artifact["path"],
+            "preferred_design_expertise": collaboration_plan.get("preferred_design_expertise", {}),
+            "preferred_design_review": (result.collaboration or {}).get("preferred_design_review", {}),
             "collaboration_decision_ids": decision_ids,
             "completion_reasons": list(result.completion_reasons),
             "specialists": list(result.specialist_runs),
@@ -1279,6 +1321,11 @@ class FrontendDesignDirector:
             screenshot_available=bool(valid_images),
             primary_provider="codex" if authorized_codex else "local",
             project_context=" ".join(str(project.get(key, "")) for key in ("project_name", "application_description")),
+            design_preferences=load_design_expertise_preferences(Path(session.project_root)),
+            design_task=phase != "implementation" or bool(
+                self.store.latest_valid_approval(session_id, "design_direction", "design-direction")
+                and self.store.latest_valid_approval(session_id, "mockup", "mockup-manifest")
+            ),
         )
         safe_suffix = "".join(character for character in artifact_suffix if character.isalnum() or character in "-_")[:64] or "review"
         phase_slug = f"{phase}-{safe_suffix}"

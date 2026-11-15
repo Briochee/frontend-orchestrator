@@ -43,6 +43,8 @@ class CodexSettings:
 class CodexCLIBackend:
     """Run a local Codex CLI session without requiring or forwarding API keys."""
 
+    provider_id = "codex"
+
     def __init__(self, executable: str | None = None, settings: CodexSettings | None = None) -> None:
         self.executable = executable or shutil.which("codex")
         self.settings = settings or CodexSettings()

@@ -13,7 +13,13 @@ from typing import Any
 
 from .backend import AgentBackend
 from .codex_backend import BackendFailure, CodexCLIBackend
-from .collaboration import CollaborationMode, SpecialistChallenge, SpecialistContribution, adjudicate_challenges
+from .collaboration import (
+    CollaborationMode,
+    SpecialistChallenge,
+    SpecialistContribution,
+    adjudicate_challenges,
+    run_phase_collaboration,
+)
 from .models import AuditType, Confidence, EvidenceReference, Finding, Severity, VerificationStatus
 from .snapshot import ProjectSnapshot, create_project_snapshot
 
@@ -476,6 +482,7 @@ def run_codex_audit(
     collaboration_mode: CollaborationMode | str = CollaborationMode.COMPREHENSIVE,
     collaboration_plan: dict[str, Any] | None = None,
     review_backend: AgentBackend | None = None,
+    preferred_design_preferences: dict[str, Any] | None = None,
 ) -> AuditResult:
     """Run specialist reconnaissance and verification passes, then synthesize visual evidence."""
     agent = backend or CodexCLIBackend()
@@ -500,6 +507,8 @@ def run_codex_audit(
         "targeted_follow_up": {"status": "not_run", "challenges": []},
         "decisions": [],
         "finding_consolidations": [],
+        "preferred_design_expertise": (collaboration_plan or {}).get("preferred_design_expertise", {}),
+        "preferred_design_review": {"status": "not_selected", "contributions": [], "limitations": []},
     }
     provider_blocked: dict[str, Any] | None = None
     interaction_probe_evidence = _interaction_probe_evidence_refs(intelligence)
@@ -839,12 +848,163 @@ def run_codex_audit(
         specialist_findings, consolidations = _apply_reviewed_finding_merges(specialist_findings, collaboration["decisions"])
         collaboration["finding_consolidations"] = consolidations
         findings.extend(specialist_findings)
+
+        preferred_roles = [
+            item for item in (collaboration_plan or {}).get("selected_experts", [])
+            if item.get("preferred_design_profile") and item.get("provider") == getattr(agent, "provider_id", "codex")
+        ]
+        if preferred_roles:
+            selected_screenshots = _default_screenshots(valid_screenshots)
+            screenshot_evidence: dict[str, Any] = {}
+            screenshot_manifest: dict[str, Any] = {}
+            preferred_images: list[Path] = []
+            for item in selected_screenshots:
+                path = Path(str(item.get("path", "")))
+                if not path.is_file():
+                    continue
+                try:
+                    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                except OSError:
+                    continue
+                reference = f"screenshot:{len(preferred_images):03d}"
+                screenshot_evidence[reference] = {
+                    "image_index": len(preferred_images),
+                    "path": str(path.resolve()),
+                    "sha256": digest,
+                    "route": str(item.get("route", "/")),
+                    "viewport": str(item.get("viewport_label", item.get("viewport", "unknown"))),
+                    "interaction_state": str(item.get("interaction_state", "default")),
+                }
+                screenshot_manifest[reference] = {"path": str(path.resolve()), "sha256": digest, "reviewed_as": "rendered browser screenshot"}
+                preferred_images.append(path.resolve())
+
+            runnable_roles = [
+                item for item in preferred_roles
+                if item.get("supports_images") and screenshot_evidence
+            ]
+            review_selection = next((
+                item for item in (collaboration_plan or {}).get("selected_experts", [])
+                if item.get("role") == "cross_disciplinary_reviewer"
+                and item.get("provider") == getattr(agent, "provider_id", "codex")
+            ), None)
+            if preferred_design_preferences is None or preferred_design_preferences.get("cross_review", True):
+                if collaboration_mode != CollaborationMode.FOCUSED and review_selection:
+                    runnable_roles.append(review_selection)
+            preferred_plan = {
+                "schema_version": 1,
+                "phase": "audit",
+                "mode": collaboration_mode.value,
+                "selected_experts": runnable_roles,
+                "limits": {"max_independent_specialists": len(preferred_roles)},
+            }
+            if provider_blocked:
+                preferred_review = {
+                    "status": "skipped",
+                    "plan": preferred_plan,
+                    "contributions": [],
+                    "limitations": ["Preferred design review was not invoked after the provider reported an authentication or usage limit."],
+                }
+            elif not screenshot_evidence:
+                preferred_review = {
+                    "status": "incomplete",
+                    "plan": preferred_plan,
+                    "contributions": [],
+                    "limitations": ["Preferred design experts were selected, but no readable rendered screenshots could be attached."],
+                }
+            else:
+                preferred_review = run_phase_collaboration(
+                    phase="audit",
+                    mode=collaboration_mode,
+                    plan=preferred_plan,
+                    evidence=screenshot_evidence,
+                    evidence_manifest=screenshot_manifest,
+                    backend=agent,
+                    working_directory=snapshot.root,
+                    images=preferred_images,
+                )
+            preferred_review["readiness"] = (collaboration_plan or {}).get("preferred_design_expertise", {})
+            preferred_review["attempted_profiles"] = [item.get("preferred_design_profile") for item in preferred_roles]
+            preferred_review["native_plugins_invoked"] = False
+            collaboration["preferred_design_review"] = preferred_review
+            collaboration["contributions"].extend(preferred_review.get("contributions", []))
+            collaboration["decisions"].extend(preferred_review.get("decisions", []))
+            for execution in preferred_review.get("specialist_executions", []):
+                specialist_runs.append({
+                    "specialist": execution.get("specialist", "preferred_design_specialist"),
+                    "audit_type": AuditType.VISUAL.value,
+                    "status": execution.get("status", "unknown"),
+                    "first_pass": "valid" if execution.get("status") == "completed" else execution.get("status", "unknown"),
+                    "cross_validation": "completed" if preferred_review.get("cross_review", {}).get("status") == "completed" else "not_selected",
+                    "preferred_design_profile": execution.get("preferred_design_profile"),
+                    "skill_guidance_attached": execution.get("skill_guidance_attached", False),
+                    "native_plugin_invoked": execution.get("native_plugin_invoked", False),
+                    "images_attached": execution.get("images_attached", 0),
+                    "error_classification": execution.get("error_classification"),
+                    "skip_reason": execution.get("reason"),
+                })
+            for contribution in preferred_review.get("contributions", []):
+                profile_name = contribution.get("preferred_design_profile") or contribution.get("contributor_id")
+                for observation in contribution.get("observations", []):
+                    if observation.get("recommendation") and observation.get("evidence_references"):
+                        refs = ", ".join(observation["evidence_references"])
+                        recommendations.append(f"[{profile_name}] {observation['title']}: {observation['recommendation']} (evidence: {refs})")
+            if preferred_review.get("status") not in {"completed", "completed_with_limitations"}:
+                limitations.extend(preferred_review.get("limitations", []))
+            elif preferred_review.get("limitations"):
+                limitations.extend(preferred_review["limitations"])
+            collaboration["preferred_design_synthesis"] = _preferred_design_synthesis(preferred_review)
+
     return AuditResult(
         tuple(_unique_findings(findings)), tuple(dict.fromkeys(limitations)), tuple(dict.fromkeys(recommendations)),
         tuple(screenshots), "codex_cli", visual_analysis, tuple(specialist_runs), tuple(diagnostics),
         specialist_assessments=tuple(specialist_assessments),
         collaboration=collaboration,
     )
+
+
+def _preferred_design_synthesis(review: dict[str, Any]) -> dict[str, Any]:
+    """Summarize exact cross-contributor overlap without guessing semantic agreement."""
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    unique: list[dict[str, Any]] = []
+    for contribution in review.get("contributions", []):
+        contributor = contribution.get("preferred_design_profile") or contribution.get("contributor_id", "unknown")
+        for observation in contribution.get("observations", []):
+            title = " ".join(str(observation.get("title", "")).casefold().split())
+            recommendation = " ".join(str(observation.get("recommendation", "")).casefold().split())
+            if not title or not observation.get("evidence_references"):
+                continue
+            grouped.setdefault((title, recommendation), []).append({
+                "contributor": contributor,
+                "title": observation.get("title"),
+                "description": observation.get("description"),
+                "recommendation": observation.get("recommendation"),
+                "evidence_references": list(observation.get("evidence_references", [])),
+                "confidence": observation.get("confidence"),
+            })
+    shared: list[dict[str, Any]] = []
+    for items in grouped.values():
+        contributors = sorted({str(item["contributor"]) for item in items})
+        if len(contributors) > 1:
+            shared.append({"contributors": contributors, "observations": items})
+        else:
+            unique.extend(items)
+    decisions = list(review.get("decisions", []))
+    unresolved = [
+        item for item in decisions
+        if item.get("status") in {"investigate_further", "deferred", "unresolved_after_follow_up"}
+    ]
+    return {
+        "status": "advisory_contributions_retained" if review.get("contributions") else "no_validated_contribution",
+        "contributor_ids": [item.get("preferred_design_profile") or item.get("contributor_id") for item in review.get("contributions", [])],
+        "shared_findings": shared,
+        "unique_findings": unique,
+        "conflicting_or_unresolved_decisions": unresolved,
+        "director_decisions": decisions,
+        "unresolved_questions": list(review.get("cross_review", {}).get("unresolved_questions", [])),
+        "agreement_basis": "Shared means only an exact normalized title and recommendation match across contributors; semantic overlap is not inferred.",
+        "human_approval_required_for_changes": True,
+        "rationale": "Preferred design experts provide separate evidence-backed advisory contributions; the Director preserves supported dissent and the existing human approval gates remain authoritative.",
+    }
 
 
 def _default_screenshots(screenshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
