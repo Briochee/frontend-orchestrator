@@ -370,6 +370,18 @@ def _print_stage_result(output_fn: Output, store: WorkflowStore, session_id: str
             summary = store.get_session(session_id).metadata.get("audit", {})
             coverage = summary.get("coverage", {})
             output_fn(f"Findings: {summary.get('findings_count', 0)} · routes: {coverage.get('routes_rendered', 0)}/{coverage.get('routes_discovered', 0)} rendered/discovered · screenshots: {coverage.get('screenshots_captured', 0)} · revision: {summary.get('revision', 1)}")
+        elif artifact_name == "capability-inventory":
+            inventory = json.loads(Path(artifact["path"]).read_text(encoding="utf-8"))
+            preferred = inventory.get("preferred_design_expertise", {})
+            if preferred:
+                output_fn(preferred.get("summary", "Preferred design expertise readiness is recorded."))
+                for capability in preferred.get("capabilities", []):
+                    output_fn(
+                        f"{capability.get('canonical_name')}: {capability.get('status')} "
+                        f"(installed={capability.get('installed')}, callable={capability.get('callable')})"
+                    )
+                    if capability.get("recommendation"):
+                        output_fn(f"Recommended action: {capability['recommendation']}")
     except (KeyError, ValueError, OSError, json.JSONDecodeError):
         output_fn("Detailed artifact is not available yet.")
 

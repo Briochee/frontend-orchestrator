@@ -23,7 +23,9 @@ from urllib.parse import unquote, urlparse
 
 from . import __version__
 from .codex_backend import CodexCLIBackend, CodexSettings
+from .collaboration import build_capability_registry, load_design_expertise_preferences, preferred_design_expertise_report
 from .director import FrontendDesignDirector, WorkflowBlocked
+from .discovery import discover_claude_code, discover_codex, discover_skills
 from .guided import run_guided_workflow
 from .models import Phase
 from .storage import LEGACY_WORKFLOW_STATE_DIRECTORY, WORKFLOW_STATE_DIRECTORY, WorkflowStore
@@ -525,6 +527,23 @@ def _output(value: Any, as_json: bool) -> None:
 def _print_readable(value: dict[str, Any]) -> None:
     for key, item in value.items():
         label = key.replace("_", " ").capitalize()
+        if key == "preferred_design_expertise" and isinstance(item, dict):
+            print(f"{label}:")
+            print(f"  {item.get('summary', 'Readiness not available.')}")
+            for capability in item.get("capabilities", []):
+                installations = capability.get("installations", [])
+                version = next((entry.get("version") for entry in installations if entry.get("version")), None)
+                print(
+                    f"  {capability.get('canonical_name')}: status={capability.get('status')}, "
+                    f"installed={capability.get('installed')}, callable={capability.get('callable')}, "
+                    f"version={version or 'not verifiable'}, "
+                    f"native={capability.get('native_integration_status', 'not detected')}, "
+                    f"app_screen_workflow_ready={capability.get('app_screen_workflow_ready')}"
+                )
+                recommendation = capability.get("recommendation")
+                if recommendation:
+                    print(f"    Recommended action: {recommendation}")
+            continue
         if isinstance(item, dict):
             print(f"{label}:")
             for child_key, child_value in item.items():
@@ -1267,6 +1286,25 @@ def _installation_doctor(
     if not recommendations and codex_status == "current":
         recommendations.append("The Python package and bundled Codex resources appear current.")
 
+    try:
+        skills, _ = discover_skills(project)
+        codex_capabilities = discover_codex(project)
+        claude_capabilities = discover_claude_code(project)
+        design_registry = build_capability_registry(
+            {"project_root": str(project)}, skills, [], codex_capabilities, claude_capabilities,
+        )
+        design_expertise = preferred_design_expertise_report(
+            design_registry, load_design_expertise_preferences(project), provider="codex",
+        )
+    except (OSError, ValueError, RuntimeError) as error:
+        design_expertise = {
+            "enabled": True,
+            "priority": "preferred",
+            "summary": "Preferred design expertise readiness could not be checked.",
+            "capabilities": [],
+            "diagnostic": f"{type(error).__name__}: {str(error)[:240]}",
+        }
+
     return {
         "python": python_report,
         "codex": {
@@ -1287,6 +1325,7 @@ def _installation_doctor(
             "summary": {**counts, "total": len(components)},
             "resources": components,
         },
+        "preferred_design_expertise": design_expertise,
         "recommendations": recommendations,
         "status": "current" if codex_status == "current" and python_report["distribution_installed"] and python_report.get("source_matches_active") is not False and python_report.get("distribution_version") == __version__ and python_report.get("expected_source_matches") is not False else "action_recommended",
     }
