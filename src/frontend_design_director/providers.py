@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .codex_backend import BackendFailure, BackendUnavailable, _validate_schema
+from .execution import ExecutionPolicy, instruction_with_execution_policy, run_process
 
 
 class ClaudeCodeBackend:
@@ -37,6 +38,7 @@ class ClaudeCodeBackend:
         images: tuple[Path, ...] = (),
         timeout_seconds: int | None = None,
         specialist: str = "unspecified",
+        execution_policy: ExecutionPolicy | None = None,
     ) -> dict[str, Any]:
         if not self.authorized_secondary_provider:
             raise BackendUnavailable("Claude Code is a secondary provider; explicit data-sharing authorization is required.", diagnostic={
@@ -71,10 +73,12 @@ class ClaudeCodeBackend:
                 "error_classification": "invalid_schema",
                 "failure_location": "schema.preflight",
             })
+        instruction = instruction_with_execution_policy(instruction, execution_policy)
         try:
-            help_result = subprocess.run(
+            help_result = run_process(
                 [self.executable, "--help"], capture_output=True, text=True,
                 check=False, timeout=12, env=_claude_environment(include_api_key=False),
+                policy=execution_policy,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise BackendUnavailable("Claude Code invocation capabilities could not be verified.", diagnostic={
@@ -100,9 +104,10 @@ class ClaudeCodeBackend:
                 "retry_attempts": 0,
             })
         try:
-            auth = subprocess.run(
+            auth = run_process(
                 [self.executable, "auth", "status", "--json"], capture_output=True, text=True,
                 check=False, timeout=12, env=_claude_environment(include_api_key=True),
+                policy=execution_policy,
             )
         except subprocess.TimeoutExpired as error:
             raise BackendFailure("Claude Code authentication preflight timed out.", diagnostic={
@@ -159,9 +164,10 @@ class ClaudeCodeBackend:
             "schema_sha256": schema_digest,
         }
         try:
-            result = subprocess.run(
+            result = run_process(
                 command, cwd=cwd, capture_output=True, text=True, check=False,
                 timeout=timeout_seconds or 900, env=_claude_environment(include_api_key=True),
+                policy=execution_policy,
             )
         except subprocess.TimeoutExpired as error:
             raise BackendFailure("Claude Code review timed out.", diagnostic={

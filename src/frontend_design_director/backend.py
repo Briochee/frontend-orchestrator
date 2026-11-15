@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Protocol
 
+from .execution import ExecutionPolicy
+
 
 class AgentBackend(Protocol):
     """A backend that returns JSON-compatible results constrained by a schema."""
@@ -22,4 +24,5 @@ class AgentBackend(Protocol):
         images: tuple[Path, ...] = (),
         timeout_seconds: int | None = None,
         specialist: str = "unspecified",
+        execution_policy: ExecutionPolicy | None = None,
     ) -> dict[str, Any]: ...

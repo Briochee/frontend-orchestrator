@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .discovery import _clean_codex_environment
+from .execution import ExecutionPolicy, codex_execution_rules, instruction_with_execution_policy, run_process
 
 
 class BackendUnavailable(RuntimeError):
@@ -64,6 +65,7 @@ class CodexCLIBackend:
         images: tuple[Path, ...] = (),
         timeout_seconds: int | None = None,
         specialist: str = "unspecified",
+        execution_policy: ExecutionPolicy | None = None,
     ) -> dict[str, Any]:
         """Invoke ``codex exec`` and validate the schema-constrained final JSON."""
         if not self.executable:
@@ -104,7 +106,8 @@ class CodexCLIBackend:
                 "byte_size": len(content),
                 "format": image_format,
             })
-        self._require_chatgpt_plan_auth(specialist=specialist)
+        instruction = instruction_with_execution_policy(instruction, execution_policy)
+        self._require_chatgpt_plan_auth(specialist=specialist, execution_policy=execution_policy)
 
         with tempfile.TemporaryDirectory(prefix="frontend-director-codex-") as temporary:
             temp_root = Path(temporary)
@@ -153,21 +156,27 @@ class CodexCLIBackend:
             }
             base_diagnostic = {
                 "specialist": specialist,
-                "cli_version": self._cli_version(),
+                "cli_version": self._cli_version(execution_policy=execution_policy),
                 "invocation": invocation,
+                "execution_policy": {
+                    "phase": execution_policy.phase,
+                    "allow_rtk": execution_policy.allow_rtk,
+                } if execution_policy else None,
                 "retry_attempts": 0,
             }
             try:
-                result = subprocess.run(
-                    command,
-                    input=instruction,
-                    capture_output=True,
-                    text=True,
-                    cwd=cwd,
-                    env=environment,
-                    timeout=timeout_seconds or self.settings.timeout_seconds,
-                    check=False,
-                )
+                with codex_execution_rules(cwd, execution_policy):
+                    result = run_process(
+                        command,
+                        policy=execution_policy,
+                        input=instruction,
+                        capture_output=True,
+                        text=True,
+                        cwd=cwd,
+                        env=environment,
+                        timeout=timeout_seconds or self.settings.timeout_seconds,
+                        check=False,
+                    )
             except subprocess.TimeoutExpired as error:
                 stderr = _safe_stderr(_decode_output(error.stderr))
                 raise BackendFailure("Codex execution exceeded its configured timeout.", diagnostic={
@@ -222,24 +231,31 @@ class CodexCLIBackend:
                 }) from error
             return value
 
-    def _cli_version(self) -> str:
+    def _cli_version(self, *, execution_policy: ExecutionPolicy | None = None) -> str:
         if self._version is not None:
             return self._version
         try:
-            result = subprocess.run(
+            result = run_process(
                 [self.executable or "codex", "--version"], capture_output=True, text=True,
                 timeout=5, check=False, env=_clean_codex_environment(),
+                policy=execution_policy,
             )
             self._version = (result.stdout or result.stderr or "unknown").strip()[:120] if result.returncode == 0 else "unknown"
         except (OSError, subprocess.TimeoutExpired):
             self._version = "unknown"
         return self._version
 
-    def _require_chatgpt_plan_auth(self, *, specialist: str = "unspecified") -> None:
+    def _require_chatgpt_plan_auth(
+        self,
+        *,
+        specialist: str = "unspecified",
+        execution_policy: ExecutionPolicy | None = None,
+    ) -> None:
         """Require saved ChatGPT sign-in so this adapter never falls back to API-key billing."""
         try:
-            result = subprocess.run(
+            result = run_process(
                 [self.executable, "login", "status"],
+                policy=execution_policy,
                 capture_output=True,
                 text=True,
                 timeout=12,
@@ -249,7 +265,7 @@ class CodexCLIBackend:
         except (OSError, subprocess.TimeoutExpired) as error:
             raise BackendUnavailable("Could not verify saved Codex ChatGPT sign-in; no API key will be requested.", diagnostic={
                 "specialist": specialist,
-                "cli_version": self._cli_version(),
+                "cli_version": self._cli_version(execution_policy=execution_policy),
                 "error_classification": "backend_invocation_failed",
                 "failure_location": "codex.login_status",
             }) from error
