@@ -83,7 +83,7 @@ class UpdateCheckTests(unittest.TestCase):
                 main(["--version"])
 
         self.assertEqual(exit_result.exception.code, 0)
-        self.assertEqual(stdout.getvalue(), "frontend-director 0.5.0\n")
+        self.assertEqual(stdout.getvalue(), "frontend-director 0.6.0\n")
         check.assert_not_called()
 
 
