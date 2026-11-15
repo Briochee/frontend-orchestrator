@@ -69,6 +69,37 @@ After opening a new Codex session, ask: “Use the `frontend-design-director` sk
 
 It uses the installed Codex CLI when you opt in. Codex CLI reuses saved ChatGPT sign-in, so the default setup does not require an OpenAI API key. Model calls use the user's ChatGPT plan usage. The defaults are **GPT-6 Luna**, **xhigh** reasoning, **high** verbosity, and a **detailed** reasoning summary; all four are configurable. Codex requests use JSON Schema output.
 
+## Preferred frontend design expertise
+
+Discovery explicitly checks for [Impeccable](https://impeccable.style/docs/) and Taste Skill's `design-taste-frontend` capability ([official docs](https://www.tasteskill.dev/docs)). For a comprehensive or exhaustive rendered visual audit, both are preferred as separate contributors when their skill files, Codex role backend, and screenshot input are available. Their observations are retained separately, cited to captured screenshots, and cross-reviewed; the Director's synthesis remains advisory and does not approve design or implementation changes.
+
+`frontend-director discover` and `frontend-director doctor` report installation path and scope, verifiable version and content fingerprint, available commands/scripts, provider readiness, and missing prerequisites. A cached plugin or matching directory alone is not treated as a configured native integration. The current safe fallback reads a bounded, sanitized excerpt from each installed `SKILL.md` into a read-only structured Codex role call. It records that as `skill_guided_role`; it does not claim native plugin execution.
+
+When a preferred skill is missing or its documented workflow is incomplete, the report prominently recommends the provider-specific installation or update procedure. Installation and update are never automatic. Discovery does not execute skill scripts, hooks, initialization workflows, or plugin commands. Taste's documented browser inspector is considered available only when the installed `inspect.mjs` and app-screen reference are present and Node.js 22+ plus Chrome, Edge, or Chromium are detected; otherwise Taste may still contribute through the bounded advisory role fallback, with the missing app-screen workflow disclosed.
+
+The optional configuration is read from `~/.config/frontend-design-director/config.toml` (or `$XDG_CONFIG_HOME/frontend-design-director/config.toml`) and overridden by `.frontend-design-director/config.toml` in the target project:
+
+```toml
+[design_expertise]
+enabled = true
+prefer_impeccable = true
+prefer_taste_skill = true
+recommend_missing = true
+recommend_updates = true
+independent_contributions = true
+cross_review = true
+auto_install = false
+require_user_approval = true
+
+[design_expertise.impeccable]
+enabled = true
+
+[design_expertise.taste_skill]
+enabled = true
+```
+
+For Codex, Impeccable documents `npx impeccable install`; the shared skill installer is `npx skills add pbakaus/impeccable`. Taste documents `npx skills add Leonxlnx/taste-skill` or the explicit `--skill "design-taste-frontend"` form. Claude Code installation uses each provider's documented plugin interface. Review the upstream documentation before installing, then reload the provider session. These third-party tools have separate scripts, hooks, and permissions; the Director does not enable hooks or run their installer/update commands for you.
+
 ## Version checks
 
 The current version is **0.4.0** (`frontend-director --version`), defined once in the package and reused for build metadata. Each normal CLI command makes a best-effort check for a newer stable version using the [GitHub Releases API](https://github.com/Briochee/frontend-orchestrator/releases). If no release is available, it checks the version declaration in the repository's `main` branch. The check sends only a version metadata request; it does not send project files, Codex credentials, or API keys. It never installs an update automatically. When a newer version is found, the CLI prints a notice to stderr and leaves the command's normal or JSON output unchanged. Offline or unavailable update sources do not block work. Skip the network check for one command with `frontend-director --no-update-check audit --project /path/to/frontend`.

@@ -14,6 +14,31 @@ frontend-director verify --project /path/to/frontend --command "npm test" --code
 
 Review artifacts are available through `report collaboration`, `report collaboration-plan`, and phase reports such as `report collaboration-mockup`, `report collaboration-planning`, `report collaboration-implementation`, and `report collaboration-verification`.
 
+## Preferred design contributors
+
+For rendered design audits, planning, mockups, implementation of an approved visual direction, and visual verification, discovery proactively considers Impeccable and the canonical Taste Skill `design-taste-frontend`. Comprehensive and exhaustive design work select both when the active provider can make the bounded role calls; focused work limits preferred design participation to one contributor. Framework and security constraints, screenshots, user configuration, provider authorization, and human approval gates remain controlling. Technical implementation tasks are not automatically treated as visual work.
+
+The current Codex adapter uses an explicitly labeled `skill_guided_role` fallback: it reads a size-limited, sanitized excerpt from the installed `SKILL.md` and sends it with the evidence to a read-only structured role call. Native plugin execution, slash-command execution, Taste scripts, hooks, initialization, and installation are not implied or run by this fallback. The contribution record includes its invocation method, skill path and content fingerprint, whether the guidance was attached, screenshot references, validated output status, and the fact that no native plugin was invoked. Successful file discovery alone does not count as specialist participation.
+
+The audit plan and `preferred-design-expertise.json` artifact distinguish installed skill files from provider callability and native plugin state. It lists the benefits and provider-specific remediation command when either skill or a documented workflow is missing. Taste's app-screen inspector is reported separately from its art-direction fallback; marketing-page guidance is not applied to dashboard screens. Native installations and command lists are reported only when observed in local metadata; version is omitted unless it is verifiable from frontmatter or a provider plugin manifest.
+
+Preferred contributors can be disabled without changing other collaborators in `~/.config/frontend-design-director/config.toml` or the target project's `.frontend-design-director/config.toml`:
+
+```toml
+[design_expertise]
+enabled = true
+prefer_impeccable = true
+prefer_taste_skill = true
+independent_contributions = true
+cross_review = true
+recommend_missing = true
+recommend_updates = true
+auto_install = false
+require_user_approval = true
+```
+
+Per-tool overrides are available as `[design_expertise.impeccable] enabled = false` or `[design_expertise.taste_skill] enabled = false`. Project settings override user settings. Discovery and readiness checks never install third-party resources or enable hooks.
+
 ## Discovery and execution
 
 - Codex skills, custom agents, plugins, and MCP configuration are represented as distinct resources. Skill and agent metadata is read without executing their instructions. Installed custom agent definitions are not reported as callable native subagents because this CLI uses documented role-based `codex exec` calls and does not claim named-agent delegation.

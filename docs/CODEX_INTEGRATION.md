@@ -15,7 +15,15 @@ The implementation was checked against the installed Codex CLI and current OpenA
 
 ## Collaboration roles
 
-Capability-aware team plans select complementary role-based calls for audit, planning, mockup, implementation review, and explicitly requested verification review. Installed Codex agent definitions are reported as discovered resources but are not presented as named native subagent executions; the supported non-interactive path used here is the existing `codex exec` backend. Skills are metadata-only relevance hints until a reviewed instruction-loading policy exists. The task-specific plan, contributions, citations, cross-review, bounded exhaustive follow-up, and Director dispositions are persisted in the workflow artifacts and decision ledger.
+Capability-aware team plans select complementary role-based calls for audit, planning, mockup, implementation review, and explicitly requested verification review. Installed Codex agent definitions are reported as discovered resources but are not presented as named native subagent executions; the supported non-interactive path used here is the existing `codex exec` backend.
+
+Impeccable and Taste Skill are first-class preferred contributors for design-related phases. On an explicitly authorized Codex call, the adapter may attach a bounded, sanitized excerpt of their locally installed `SKILL.md` to a structured, read-only role request. The specialist contribution remains independent, is validated against supplied evidence references, and records the skill fingerprint, provider, attached image count, invocation method, and schema-validation status. This is recorded as `skill_guided_role`, not a native plugin call. The current backend uses `--ignore-user-config`, so it does not claim that native Codex skills or plugins were loaded into `codex exec`.
+
+Discovery and the `doctor` report inspect skill paths, plugin manifests, versions when verifiable, script/command metadata, and required prerequisites without running scripts. A skill on disk is distinct from an enabled plugin or a callable role adapter. For the native integrations, consult the [Impeccable documentation](https://impeccable.style/docs/) and [Taste Skill documentation](https://www.tasteskill.dev/docs); examples include `npx impeccable install` or `npx skills add pbakaus/impeccable`, and `npx skills add Leonxlnx/taste-skill`. The Director only recommends those commands and does not run them. Start a new provider session after a user-approved install or update.
+
+Taste's browser-inspector prerequisite is checked separately from the role-guidance fallback. The app-screen workflow is reported ready only when its documented inspection script and app-screen reference are installed; the browser inspector additionally requires Node.js 22+ and Chrome, Edge, or Chromium. A generic art-direction review is not represented as execution of Taste's inspector.
+
+The task-specific plan, contributions, citations, cross-review, bounded exhaustive follow-up, and Director dispositions are persisted in the workflow artifacts and decision ledger.
 
 For the secondary Claude Code adapter and cross-provider sharing rules, see [COLLABORATION_AND_PROVIDERS.md](COLLABORATION_AND_PROVIDERS.md). Claude calls require explicit per-audit authorization and are not inferred from installed resources.
 

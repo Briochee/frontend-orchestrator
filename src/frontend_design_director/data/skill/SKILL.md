@@ -36,6 +36,12 @@ Review `reports/audit-index.md` first. Reports include independent technical, be
 
 Read `coverage-and-limitations.md` before drawing conclusions. The browser pass does not perform complete keyboard/assistive-technology testing, automated WCAG certification, field Web Vitals measurement, or interaction-state crawling. Never claim an area passed if it was not checked.
 
+## Preferred design expertise
+
+During discovery, inspect the `preferred_design_expertise` section in the capability inventory. The Director proactively considers Impeccable and Taste Skill (`design-taste-frontend`) for rendered visual audits, design direction, mockups, approved visual implementation, and design verification. Comprehensive and exhaustive design work should use both as separate contributors when the active provider role and required evidence are available. Their contributions are advisory; the Director preserves disagreements and human approval remains authoritative.
+
+Check the `preferred-design-expertise.json` report and `collaboration.preferred_design_review` before describing tool participation. `skill_guided_role` means a bounded excerpt from an installed `SKILL.md` was supplied to a read-only structured Codex role; it does not mean a native plugin or script ran. A discovered or cached installation is not the same as an enabled plugin. If a tool or Taste's documented app-screen inspector is missing, unavailable, or disabled, state the exact status and show the provider-specific recommended installation/update action. Never run third-party installers, initialization commands, scripts, or hooks; do not enable hooks. Consult the [Impeccable documentation](https://impeccable.style/docs/) and [Taste Skill documentation](https://www.tasteskill.dev/docs) for provider-specific setup.
+
 ## Approval boundaries
 
 - Discovery and audit never authorize a design change.

@@ -52,6 +52,27 @@ frontend-director install-codex --scope user
 
 The project scope writes under `.agents/skills/frontend-design-director/` and `.codex/agents/`. The user scope writes under `~/.agents/skills/frontend-design-director/` and `~/.codex/agents/`; when `CODEX_HOME` is set, user-scope agent files go to `<CODEX_HOME>/agents/`. The installer compares content hashes, reports current, outdated, modified, untracked, missing, and invalid resources, and records managed files in a versioned manifest. It preserves local modifications unless `--force` is supplied. Open a new Codex session after installation. The command uses documented file discovery locations and does not modify Codex configuration or make a model call.
 
+## Optional preferred design skills
+
+The orchestrator can use [Impeccable](https://impeccable.style/docs/) and Taste Skill's `design-taste-frontend` ([docs](https://www.tasteskill.dev/docs)) as preferred design contributors. `frontend-director discover` and `frontend-director doctor` report their installed files, provider state, verifiable versions, prerequisites, and actionable recommendations. They do not install or update third-party resources.
+
+Use only the provider-documented installation method after reviewing its permissions:
+
+```bash
+# Impeccable: choose Codex and project/user scope in the installer
+npx impeccable install
+
+# Or install its shared Agent Skill
+npx skills add pbakaus/impeccable
+
+# Taste Skill's canonical skill name is design-taste-frontend
+npx skills add Leonxlnx/taste-skill
+# Explicit form documented by Taste Skill:
+npx skills add https://github.com/Leonxlnx/taste-skill --skill "design-taste-frontend"
+```
+
+Claude Code installations use each provider's documented plugin interface. Start a new session after an approved installation or update. The Director never enables third-party hooks, runs `impeccable init`, invokes Taste scripts, or installs these tools automatically. Taste's browser inspector requires Node.js 22+ and a supported Chrome/Edge/Chromium browser; app-screen review is marked unavailable when the installed inspection script or app-screen reference is missing. The read-only skill-guided role fallback is reported separately from native plugin execution.
+
 ## Update or repair an installation
 
 The Python CLI and its copied Codex files are updated separately. From the source checkout, refresh the pipx environment from that exact local path:

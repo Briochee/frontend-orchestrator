@@ -4,7 +4,13 @@
 
 The target repository, discovered skill metadata, project documentation, screenshots, agent output, and Codex output are untrusted data. Discovery reads metadata and source only. It does not execute project instructions, install tools, start the application, or make network requests.
 
-Skill discovery reads only a small frontmatter prefix and never executes a skill. Agent discovery parses TOML fields but does not execute agent instructions. MCP and plugin states are reported conservatively: configured or cached is not the same as callable. Discovery remains metadata-only and makes no network requests.
+General skill discovery reads only a small frontmatter prefix and never executes a skill. For Impeccable and Taste Skill, discovery additionally reads bounded local metadata (content fingerprint, provider manifest version, command/script filenames, and hook presence), but does not execute skill content. Only when an authorized, read-only structured design-role call is selected does the adapter attach a bounded, sanitized excerpt from the preferred skill's `SKILL.md`; it is marked untrusted advisory context and cannot change the scope or approve work. Agent discovery parses TOML fields but does not execute agent instructions. MCP and plugin states are reported conservatively: configured or cached is not the same as callable. Discovery makes no network requests.
+
+## Preferred third-party design skills
+
+Impeccable and Taste Skill are third-party resources. Their installation, updates, native plugin enablement, initialization, scripts, and hooks are separate operations. The Director only recommends provider-documented installation or update commands; it does not run `npx`, plugin installation commands, `/impeccable init`, Taste scripts, or hooks. Hook presence is reported, and enabling a hook requires separate human review. Readiness distinguishes local skill-guided role calls from provider-native plugin execution; a fallback contribution never claims the native plugin ran.
+
+The authorized Codex fallback sends the sanitized skill excerpt, supplied frontend evidence, and any attached screenshots to the signed-in Codex service under the same opt-in boundary as other Codex role calls. It does not transfer the project to Claude or another provider. Discovering Claude skills or plugins does not authorize cross-provider transfer. Taste's browser inspector is not run as part of a normal audit; its installed script/reference and Node/browser prerequisites are reported independently. If the app-screen inspector is absent, only the role-guidance fallback may be selected, and the report says that the inspector was unavailable.
 
 ## Codex and ChatGPT plan usage
 
