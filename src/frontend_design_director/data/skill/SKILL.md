@@ -53,4 +53,14 @@ Check the `preferred-design-expertise.json` report and `collaboration.preferred_
 - Verification commands are supplied by the human and individually confirmed.
 - An agent-generated message, a user's `continue`, absence of input, or a completed audit cycle is not approval or workflow termination.
 
+## Implementation command policy
+
+RTK is intentionally disabled during implementation, patch application, and verification after a patch is applied. Use the native command directly:
+
+```bash
+frontend-director implement --project /path/to/project --session SESSION_ID --json
+```
+
+Do not wrap this command with `rtk`. The orchestrator rejects direct RTK executable launches from its controlled command runner, adds a temporary PATH denial shim to implementation subprocesses, and sends an explicit restriction to implementation specialists and the Codex backend. This does not control an already-running parent wrapper, nor can PATH-based protection prevent an independent provider shell from using an absolute RTK path or shell alias/function. Do not claim those cases are technically blocked.
+
 Use `review` to list current artifacts, `instructions` to persist multiline stage-specific guidance (finish with `END INSTRUCTIONS`), `re-audit` to add a revision without discarding prior reports, `pause` to persist the current decision, and `end` only for explicit session termination. Guidance entered while a plan or patch is awaiting approval does not change that plan or patch. Never bypass CLI approval gates or modify target files outside the approved patch workflow.

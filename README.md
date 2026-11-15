@@ -117,6 +117,20 @@ Inspection, design, and implementation have separate controls:
 7. `implement` writes changes in a filtered temporary Git snapshot and returns a patch. `apply` requires a second human review and checks current target file hashes before applying.
 8. `verify` runs only commands the human explicitly supplies; it never runs package scripts merely because they appear in a manifest.
 
+RTK is intentionally disabled throughout implementation, patch application, and the verification stage that follows an applied patch. The orchestrator rejects direct RTK executable invocations and uses a temporary PATH guard for implementation subprocesses and provider shell tools; native command arguments and captured verification stdout, stderr, and exit codes are preserved. Use the CLI directly:
+
+```bash
+frontend-director implement --project /path/to/project --session SESSION_ID --json
+```
+
+Do not invoke this stage through an external wrapper such as `rtk frontend-director implement`. A parent-shell wrapper has already started before the application runs, so the orchestrator cannot retroactively control it. Application-controlled subprocesses reject direct RTK executables and receive a temporary PATH denial shim; Codex also receives an ephemeral command rule and implementation-specific instruction. Codex's rules are not a complete process-level boundary: its documented rule enforcement does not replace the sandbox, and absolute RTK paths or shell aliases/functions may bypass PATH-based blocking. See the [Codex rules documentation](https://learn.chatgpt.com/docs/agent-configuration/rules). The orchestrator does not modify global shell configuration or claim to control externally launched wrappers.
+
+Discouraged invocation:
+
+```bash
+rtk frontend-director implement --project /path/to/project --session SESSION_ID --json
+```
+
 Custom Codex agents cannot approve a direction, mockup, implementation plan, or patch. Their permissions are inherited from the parent Codex run; their instructions are not a permission boundary.
 
 ## Quick start

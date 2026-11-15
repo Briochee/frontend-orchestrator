@@ -71,6 +71,8 @@ Mockup approval writes a formal implementation specification. It does not author
 
 `implement` copies the filtered target into a temporary Git repository, checks that approved files still match their planned baseline, and asks Codex to edit only the approved exact paths. The adapter rejects unexpected changed paths, symlinks, or non-file outputs. It creates a Git patch but does not modify the target project. A read-only specialist pass receives a bounded patch excerpt and approved scope; its results are advisory and cannot create either implementation or patch-application approval.
 
+The implementation execution policy is passed through snapshot preparation, Codex, implementation reviews, patch Git operations, patch application, and verification after application. It rejects direct RTK executable launches and adds a temporary PATH denial shim; Codex also receives an explicit instruction and an ephemeral command rule. Native subprocess arguments, complete captured output, and exit statuses are retained. Provider shell tools may still bypass PATH protection through absolute executable paths or shell aliases/functions, and an outer RTK wrapper starts before the application can enforce this policy. Use the CLI directly: `frontend-director implement --project /path/to/project --session SESSION_ID --json`.
+
 `apply` requires a separate human confirmation. It validates the patch digest and file list, compares current target hashes with the plan baselines, runs `git apply --check`, then applies the patch. Unrelated user changes outside the approved file set are preserved. If a planned target file changes while implementation runs, application is blocked and the user must produce a new plan.
 
 ## Verification
